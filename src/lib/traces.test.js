@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { METHODS, METHOD_ORDER, renderStruct } from './traces.js';
+import { METHODS, METHOD_ORDER, STRUCT_KINDS } from './traces.js';
 
 // The README's central claim is that the traced algorithm logic is "validated"
 // and "untouched from the tested single-file original." These tests lock that in:
@@ -59,7 +59,7 @@ describe.each(METHOD_ORDER)('METHODS.%s', (key) => {
     }
   });
 
-  it('renders every structure step to a string without throwing', () => {
-    for (const s of steps) expect(typeof renderStruct(s)).toBe('string');
+  it('every structure step declares a kind the Struct view can render', () => {
+    for (const s of steps) expect(STRUCT_KINDS).toContain(s.struct.kind);
   });
 });

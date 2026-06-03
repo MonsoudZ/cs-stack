@@ -1,62 +1,27 @@
 // Pure, framework-agnostic step-builders for the capstone tracer.
 // Ported verbatim from the validated single-file build.
-export const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+//
+// These builders emit plain data only — each step carries a `struct` object
+// ({kind, ...}) that the Struct.svelte component renders as real markup.
+// (Presentation used to live here as hand-built HTML strings; it now lives
+// with the view, so this file is pure logic and stays unit-testable.)
+/**
+ * One animation step of a traced algorithm. Every builder below emits an
+ * array of these; Tracer.svelte renders the step at the current index.
+ * @typedef {Object} Step
+ * @property {number}   line     index into the method's `src` array to highlight
+ * @property {Object}   vars     variable name → display value, shown as chips
+ * @property {string[]} vm       pseudo-VM ops this source line compiles to
+ * @property {{label:string,expr:string}|null} cpu  ALU/arithmetic detail, if any
+ * @property {string}   note     one-line narration of what just happened
+ * @property {number[]} touches  stack-layer ids this step exercises (see LNAME)
+ * @property {*}        result   return value once known, else null
+ * @property {boolean}  finale   true on the single terminal step
+ * @property {{kind:'hash'|'window'|'array'|'graph'|'stack'}} struct  data for Struct.svelte
+ */
+export const STRUCT_KINDS = ['hash', 'window', 'array', 'graph', 'stack'];
 export const LNAME = { 3:'numbers',4:'arithmetic',5:'meaning',6:'cpu',7:'memory',9:'network',10:'cloud' };
 export const LCLASS = { 3:'t-num',4:'t-num',5:'t-mean',6:'t-sys',7:'t-sys',9:'t-sys',10:'t-sys' };
-
-// ---- structure renderers (return HTML strings; safe, no user input) ----
-function renderHash(st){
-  const op=st.op;
-  const fn=op?(op.type==='insert'?'insert: ':op.type==='hit'?'lookup: ':'probe: ')+
-    'hash('+op.key+') = '+op.key+' % 8 = bucket '+op.bucket+(op.type==='hit'?'  → walk chain → ✓ match':'')+(op.collision?'  ⚠ collision → chain it':'')
-    :'the hash function turns a key into a bucket index — pure arithmetic on a number';
-  const cells=st.buckets.map((chain,i)=>{
-    const active=op&&op.bucket===i, hit=active&&op.type==='hit';
-    const cls='bkt'+(chain.length?' filled':'')+(active?(hit?' hit':' active'):'');
-    const ents=chain.length?chain.map((e,ci)=>`<span class="bent${hit&&op.chainIndex===ci?' m':''}">${e.k}→${e.v}</span>`).join(''):'<span class="bent dotc">·</span>';
-    return `<div class="${cls}"><div class="bn">bkt ${i}</div><div class="bents">${ents}</div></div>`;
-  }).join('');
-  return `<div class="hashfn">${esc(fn)}</div><div class="buckets">${cells}</div>`;
-}
-function renderWindow(st){
-  const cells=st.arr.map((v,i)=>{
-    const inwin=i>=st.lo&&i<=st.hi, ismid=i===st.mid; const marks=[];
-    if(i===st.lo)marks.push('lo'); if(i===st.hi)marks.push('hi'); if(ismid)marks.push('mid');
-    return `<div class="wcell${inwin?'':' out'}${ismid?' mid':''}"><div class="wn">[${i}]</div><div class="wv">${v}</div><div class="wm">${marks.join(' ')}</div></div>`;
-  }).join('');
-  const fn=st.mid>=0?'window ['+st.lo+'..'+st.hi+']  ·  mid = ('+st.lo+'+'+st.hi+')/2 = '+st.mid+(st.compared?'  ·  compare arr['+st.mid+']='+st.arr[st.mid]+' vs target '+st.target:'')
-    :'window ['+st.lo+'..'+st.hi+']  ('+(st.hi-st.lo+1)+' of '+st.arr.length+' still in play)';
-  return `<div class="hashfn">${esc(fn)}</div><div class="buckets">${cells}</div>`;
-}
-const GPOS={A:[55,40],B:[150,28],C:[150,112],D:[252,40],E:[252,120]};
-const GEDGES=[['A','B'],['A','C'],['B','D'],['C','D'],['C','E']];
-function renderGraph(st){
-  const COL={cur:'#5b9dff',vis:'#2ee6c0',q:'#ffb454'};
-  const FR=st.frontier||st.queue||[];const FK=st.frontierKind||'queue';
-  const stt=n=>n===st.current?'cur':st.visited.includes(n)?'vis':FR.includes(n)?'q':'';
-  const edges=GEDGES.map(([a,b])=>{const p=GPOS[a],q=GPOS[b];return `<line x1="${p[0]}" y1="${p[1]}" x2="${q[0]}" y2="${q[1]}" stroke="rgba(120,200,255,.22)" stroke-width="2"/>`;}).join('');
-  const nodes=Object.entries(GPOS).map(([n,xy])=>{const s=stt(n),c=COL[s]||'#39465a';
-    return `<circle cx="${xy[0]}" cy="${xy[1]}" r="15" fill="${s?c+'33':'#0d1623'}" stroke="${c}" stroke-width="2"/><text x="${xy[0]}" y="${xy[1]+4}" text-anchor="middle" font-family="monospace" font-size="13" fill="${s?c:'#9aa8ba'}">${n}</text>`;}).join('');
-  const q=FR.length?FR.map(n=>`<span class="pchip"><span class="dot" style="background:#ffb454"></span>${n}</span>`).join(''):'<span class="csmini">empty</span>';
-  const vis=st.visited.length?st.visited.map(n=>`<span class="pchip"><span class="dot" style="background:#2ee6c0"></span>${n}</span>`).join(''):'<span class="csmini">none</span>';
-  return `<svg viewBox="0 0 310 150" style="width:100%;max-width:340px;height:auto">${edges}${nodes}</svg>`+
-    `<div class="qrow" style="margin-top:10px"><div class="qlab">${FK==='stack'?'Stack · LIFO (top→)':'Queue · FIFO front→back'}</div><div class="qchips">${q}</div></div>`+
-    `<div class="qrow"><div class="qlab">Visited</div><div class="qchips">${vis}</div></div>`;
-}
-function renderStack(st){
-  if(!st.frames.length)return '<div class="csmini" style="padding:10px 2px">call stack empty</div>';
-  return '<div class="csstack">'+st.frames.map((f,i)=>{
-    const active=i===st.frames.length-1, cls='csframe'+(f.ret?' ret':(active?' act':''));
-    const right=f.ret?`<span class="rv">returns ${f.val}</span>`:(f.n===0?'<span class="wait">base case → 0</span>':`<span class="wait">needs sum_to(${f.n-1})…</span>`);
-    return `<div class="${cls}"><span class="fl">sum_to(${f.n}) &nbsp;<span style="color:var(--faint);font-size:11px">n=${f.n}</span></span>${right}</div>`;
-  }).join('')+'</div>';
-}
-function renderArray(st){
-  const cells=st.arr.map((v,i)=>{const c=(st.cells&&st.cells[i])||{};return `<div class="wcell ${c.role||''}"><div class="wn">[${i}]</div><div class="wv">${v}</div><div class="wm">${c.mark||''}</div></div>`;}).join('');
-  return `<div class="hashfn">${esc(st.info||'')}</div><div class="buckets">${cells}</div>`;
-}
-export function renderStruct(s){const k=s.struct.kind;
-  return k==='hash'?renderHash(s.struct):k==='window'?renderWindow(s.struct):k==='array'?renderArray(s.struct):k==='graph'?renderGraph(s.struct):k==='stack'?renderStack(s.struct):'';}
 
 export const METHODS = {
   twosum:{ name:'Two Sum', header:'two_sum([2, 10, 7, 8], 18) → expect [1, 3]',

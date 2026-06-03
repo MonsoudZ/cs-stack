@@ -1,4 +1,12 @@
 ---
+// Self-hosted fonts (no render-blocking third-party request to Google Fonts,
+// no privacy leak). Weights match what the design system actually uses.
+import '@fontsource-variable/bricolage-grotesque'; // display — optical-size + weight axes
+import '@fontsource/jetbrains-mono/400.css';
+import '@fontsource/jetbrains-mono/500.css';
+import '@fontsource/jetbrains-mono/700.css';
+import '@fontsource/spline-sans/400.css';
+import '@fontsource/spline-sans/500.css';
 import '../styles/global.css';
 const {
   title = 'THE STACK — electrons to the cloud',
@@ -25,10 +33,6 @@ const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url);
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content={title} />
   <meta name="twitter:description" content={description} />
-
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=JetBrains+Mono:wght@400;500;700&family=Spline+Sans:wght@400;500&display=swap" rel="stylesheet" />
 </head>
 <body>
   <div class="bg-grid"></div>

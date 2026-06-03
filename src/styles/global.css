@@ -19,7 +19,7 @@
     --blue-d:rgba(91,157,255,.14);
     --red:#ff6b6b;
     --mono:'JetBrains Mono',ui-monospace,monospace;
-    --disp:'Bricolage Grotesque',sans-serif;
+    --disp:'Bricolage Grotesque Variable','Bricolage Grotesque',sans-serif;
     --body:'Spline Sans',system-ui,sans-serif;
   }
   *{box-sizing:border-box}

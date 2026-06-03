@@ -1,7 +1,8 @@
 <script>
   import { createStepper } from '../lib/stepper.svelte.js';
-  import { METHODS, METHOD_ORDER, renderStruct, LNAME, LCLASS, esc } from '../lib/traces.js';
+  import { METHODS, METHOD_ORDER, LNAME, LCLASS } from '../lib/traces.js';
   import Stepper from './Stepper.svelte';
+  import Struct from './Struct.svelte';
   let cur = $state('twosum');
   const stepper = createStepper(() => METHODS[cur].build(), { speed: 950 });
   const { idx } = stepper;
@@ -28,7 +29,7 @@
 
   <div class="tracepanel">
     <div class="tplab">① source · Ruby — the story you wrote</div>
-    <pre class="srccode">{#each M.src as ln, i}<span class="srcline" class:on={i === s.line}>{@html esc(ln)}</span>{/each}</pre>
+    <pre class="srccode">{#each M.src as ln, i}<span class="srcline" class:on={i === s.line}>{ln}</span>{/each}</pre>
     <div class="tvars">{#each Object.entries(s.vars) as [k, v]}<span class="tvar"><div class="k">{k}</div><div class="v">{v}</div></span>{/each}</div>
   </div>
   <div class="tracepanel">
@@ -37,7 +38,7 @@
   </div>
   <div class="tracepanel">
     <div class="tplab">{M.structLabel}</div>
-    <div>{@html renderStruct(s)}</div>
+    <div><Struct struct={s.struct} /></div>
   </div>
   <div class="tracepanel">
     <div class="tplab">④ CPU · the actual arithmetic on numbers (layers 03–06)</div>
