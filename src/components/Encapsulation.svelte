@@ -31,6 +31,6 @@
   <div class="netside"><span class="ar">{s.side}</span> &nbsp;·&nbsp; layer: <b style="color:var(--ink)">{s.layer}</b></div>
   <div class="encrow">{#each s.segs as g}<div class="seg {g.cls}"><span class="sl">{g.sl}</span><span class="sd">{g.sd}</span></div>{/each}</div>
   <div class="encbytes">on-the-wire size: {s.bytes} bytes{head > 0 ? '   (' + head + ' bytes of headers wrapping 22 bytes of actual request)' : '   (just the payload itself)'}</div>
-  <div class="csnote" style="color:var(--blue)">{s.note}</div>
+  <div class="csnote" role="status" aria-live="polite" style="color:var(--blue)">{s.note}</div>
   <Stepper {stepper} />
 </div>

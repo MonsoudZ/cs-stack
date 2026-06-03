@@ -30,6 +30,6 @@
   </div>
   <div class="slots">{#each s.slots as f, k}{#if f !== null}<div class="slot full"><span class="sn">slot {k + 1}</span><span class="sf">{f.trim() || '·'}</span></div>{:else}<div class="slot empty"><span class="sn">slot {k + 1}</span><span class="sf">gap</span></div>{/if}{/each}</div>
   <div class="recon" class:done={s.delivered}>{s.delivered ? '✓ delivered in order:  "' : 'reassembly buffer:  "'}{preview}"</div>
-  <div class="csnote">{s.note}</div>
+  <div class="csnote" role="status" aria-live="polite">{s.note}</div>
   <Stepper {stepper} />
 </div>

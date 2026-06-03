@@ -386,7 +386,8 @@
   .traceresult{font-family:var(--mono);font-size:16px;margin-top:14px;min-height:24px;color:var(--faint)}
   .traceresult.show{color:var(--signal);font-weight:700}
   .ttag{display:inline-block;font-family:var(--mono);font-size:10px;border:1px solid var(--border);border-radius:5px;
-    padding:2px 6px;margin-left:5px;color:var(--dim)}
+    padding:2px 6px;margin-left:5px;color:var(--dim);background:none;cursor:pointer;transition:.15s}
+  button.ttag:hover{filter:brightness(1.35);box-shadow:0 0 8px var(--border-hot)}
   .ttag.t-num{border-color:var(--amber);color:var(--amber)}
   .ttag.t-sys{border-color:var(--blue);color:var(--blue)}
   .ttag.t-mean{border-color:var(--violet);color:var(--violet)}

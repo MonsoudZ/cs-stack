@@ -12,7 +12,9 @@ const {
   title = 'THE STACK — electrons to the cloud',
   description = 'An explorable explanation of the computing stack, from silicon to the cloud. Climb 13 layers — transistors, gates, bits, the CPU, the OS, the network — and trace a real algorithm all the way down.',
 } = Astro.props;
-const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url);
+const base = Astro.site ?? Astro.url;
+const canonical = new URL(Astro.url.pathname, base);
+const ogImage = new URL('/og.png', base);
 ---
 <!doctype html>
 <html lang="en">
@@ -30,9 +32,13 @@ const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url);
   <meta property="og:title" content={title} />
   <meta property="og:description" content={description} />
   <meta property="og:url" content={canonical} />
+  <meta property="og:image" content={ogImage} />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content={title} />
   <meta name="twitter:description" content={description} />
+  <meta name="twitter:image" content={ogImage} />
 </head>
 <body>
   <div class="bg-grid"></div>
@@ -89,6 +95,11 @@ const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url);
     const rungs = $$('.rung');
     const fill = $('#spineFill'), pulse = $('#spinePulse');
     const sections = LAYERS.map((a) => document.getElementById(a[2])).filter(Boolean);
+    let activeId = null;
+    // Don't write the hash until the user actually scrolls — otherwise the
+    // first onScroll() would clobber an inbound deep-link anchor (e.g. #L12)
+    // before the browser gets to scroll there.
+    let userScrolled = false;
     function onScroll() {
       const stage = $('.stage'); if (!stage) return;
       const r = stage.getBoundingClientRect();
@@ -99,10 +110,19 @@ const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url);
       pulse.style.top = (p * trackH) + 'px';
       let best = 0, bestD = 1e9;
       sections.forEach((s, i) => { const d = Math.abs(s.getBoundingClientRect().top - 90); if (d < bestD) { bestD = d; best = i; } });
-      rungs.forEach((rg, i) => rg.classList.toggle('on', i === best));
+      rungs.forEach((rg, i) => { const on = i === best; rg.classList.toggle('on', on); rg.setAttribute('aria-current', on ? 'true' : 'false'); });
+      // Reflect the layer you're reading in the URL so it's deep-linkable/shareable.
+      const id = sections[best] && sections[best].id;
+      if (id && id !== activeId) {
+        activeId = id;
+        if (userScrolled) history.replaceState(null, '', location.pathname + location.search + '#' + id);
+      }
     }
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll);
+    // rAF-throttle: scroll fires far more often than we need to read layout.
+    let ticking = false;
+    const onScrollRaf = () => { userScrolled = true; if (!ticking) { ticking = true; requestAnimationFrame(() => { ticking = false; onScroll(); }); } };
+    window.addEventListener('scroll', onScrollRaf, { passive: true });
+    window.addEventListener('resize', onScrollRaf);
     onScroll();
   </script>
 </body>

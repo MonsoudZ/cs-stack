@@ -30,6 +30,6 @@
       {/each}
     {:else}<div class="csmini" style="padding:10px 2px">stack empty</div>{/if}
   </div>
-  <div class="csnote">{step.note}</div>
+  <div class="csnote" role="status" aria-live="polite">{step.note}</div>
   <Stepper {stepper} />
 </div>

@@ -34,6 +34,6 @@
       <div class="gantt-wrap"><div class="gantt">{#each s.timeline as c}<div class="gcell" style="background:{c.proc != null ? PROCS[c.proc].color : '#243043'}"></div>{/each}</div></div>
     </div>
   </div>
-  <div class="csnote">{s.note}</div>
+  <div class="csnote" role="status" aria-live="polite">{s.note}</div>
   <Stepper {stepper} />
 </div>

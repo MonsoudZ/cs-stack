@@ -64,6 +64,6 @@
     </div>
   </div></div>
   <div class="cloudlat {cacheHit ? 'warm' : 'cold'}">perceived latency: <span class="ms">{lat} ms</span><span class="tag">{cacheHit ? 'cache hit' : 'cache miss'}</span>{hop.async ? '  ·  background job runs off the critical path' : ''}</div>
-  <div class="csnote" style="color:var(--blue)">{hop.note}</div>
+  <div class="csnote" role="status" aria-live="polite" style="color:var(--blue)">{hop.note}</div>
   <Stepper {stepper} />
 </div>

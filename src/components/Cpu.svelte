@@ -43,6 +43,6 @@
       <div class="cpu-out">{s.out ? ('OUTPUT ▸ ' + s.out) : ''}</div>
     </div>
   </div>
-  <div class="csnote" style="margin-top:14px">{s.note}</div>
+  <div class="csnote" role="status" aria-live="polite" style="margin-top:14px">{s.note}</div>
   <Stepper {stepper} />
 </div>
