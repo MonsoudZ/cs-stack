@@ -8,8 +8,9 @@
   <div class="bits">
     {#each bits as b, i}
       <div class="bit" class:set={b} role="button" tabindex="0"
+           aria-pressed={!!b} aria-label="bit worth {128 >> i}"
            onclick={() => bits[i] = b ? 0 : 1}
-           onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') bits[i] = b ? 0 : 1; }}>
+           onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); bits[i] = b ? 0 : 1; } }}>
         <div class="cell">{b}</div><div class="pv">{128 >> i}</div>
       </div>
     {/each}

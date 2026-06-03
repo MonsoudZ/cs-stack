@@ -5,7 +5,8 @@
   <div class="w-label">flip the gate voltage — watch the channel open</div>
   <div class="w-row">
     <div class="toggle" class:hi={gate} style="cursor:pointer" role="button" tabindex="0"
-         onclick={() => gate = !gate} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') gate = !gate; }}>
+         aria-pressed={gate} aria-label="flip the gate voltage"
+         onclick={() => gate = !gate} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); gate = !gate; } }}>
       <div class="st">GATE</div><div class="v">{gate ? 1 : 0}</div>
     </div>
     <div class="tube">

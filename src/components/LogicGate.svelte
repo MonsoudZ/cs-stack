@@ -16,8 +16,8 @@
     {/each}
   </div>
   <div class="w-row" style="gap:34px">
-    <div class="lead"><div class="toggle" class:hi={A} style="cursor:pointer" role="button" tabindex="0" onclick={() => A = !A} onkeydown={(e)=>{if(e.key==='Enter'||e.key===' ')A=!A;}}><div class="st">A</div><div class="v">{num(A)}</div></div></div>
-    <div class="lead" style="opacity:{single ? 0.3 : 1}"><div class="toggle" class:hi={B} style="cursor:{single?'default':'pointer'}" role="button" tabindex="0" onclick={() => { if(!single) B = !B; }} onkeydown={(e)=>{if(!single&&(e.key==='Enter'||e.key===' '))B=!B;}}><div class="st">B</div><div class="v">{num(B)}</div></div></div>
+    <div class="lead"><div class="toggle" class:hi={A} style="cursor:pointer" role="button" tabindex="0" aria-pressed={A} aria-label="toggle input A" onclick={() => A = !A} onkeydown={(e)=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();A=!A;}}}><div class="st">A</div><div class="v">{num(A)}</div></div></div>
+    <div class="lead" style="opacity:{single ? 0.3 : 1}"><div class="toggle" class:hi={B} style="cursor:{single?'default':'pointer'}" role="button" tabindex={single ? -1 : 0} aria-pressed={B} aria-disabled={single} aria-label="toggle input B" onclick={() => { if(!single) B = !B; }} onkeydown={(e)=>{if(!single&&(e.key==='Enter'||e.key===' ')){e.preventDefault();B=!B;}}}><div class="st">B</div><div class="v">{num(B)}</div></div></div>
     <div class="out-lamp"><div class="lamp" class:on={out}>{num(out)}</div><small>{cur}</small></div>
     <table class="ttable"><tbody>
       <tr><th>A</th>{#if !single}<th>B</th>{/if}<th>OUT</th></tr>

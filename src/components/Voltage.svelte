@@ -7,7 +7,8 @@
     <div class="tube">
       <div class="lead"><div class="node" class:live={hi}></div><small>source</small></div>
       <div class="wire" class:live={hi} style="cursor:pointer" role="button" tabindex="0"
-           onclick={() => hi = !hi} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') hi = !hi; }}></div>
+           aria-pressed={hi} aria-label="drive the wire HIGH or LOW"
+           onclick={() => hi = !hi} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); hi = !hi; } }}></div>
       <div class="lead"><div class="node" class:live={hi}></div><small>{hi ? '≈ 3.3V' : '≈ 0V'}</small></div>
     </div>
     <div class="lead">

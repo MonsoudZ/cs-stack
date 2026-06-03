@@ -93,7 +93,8 @@
   </div>
 
 {:else if struct.kind === 'graph'}
-  <svg viewBox="0 0 310 150" style="width:100%;max-width:340px;height:auto">
+  <svg viewBox="0 0 310 150" style="width:100%;max-width:340px;height:auto" role="img"
+       aria-label="Graph traversal. {struct.current ? 'Now exploring ' + struct.current + '. ' : ''}Visited: {struct.visited.length ? struct.visited.join(', ') : 'none'}. {frontierKind === 'stack' ? 'Stack' : 'Queue'}: {frontier.length ? frontier.join(', ') : 'empty'}.">
     {#each GEDGES as [a, b]}
       <line x1={GPOS[a][0]} y1={GPOS[a][1]} x2={GPOS[b][0]} y2={GPOS[b][1]} stroke="rgba(120,200,255,.22)" stroke-width="2" />
     {/each}

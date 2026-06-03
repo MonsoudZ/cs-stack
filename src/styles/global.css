@@ -110,6 +110,11 @@
   .w-label{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent,var(--signal));margin-bottom:16px;position:relative}
   .w-row{display:flex;flex-wrap:wrap;gap:26px;align-items:center;position:relative}
 
+  /* visible keyboard focus on every interactive element (buttons, custom
+     role="button" widgets, sliders) — high-contrast ring against the dark UI */
+  :focus-visible{outline:2px solid var(--signal);outline-offset:2px;border-radius:6px}
+  [aria-disabled="true"]{cursor:default}
+
   /* generic controls */
   .btn{font-family:var(--mono);font-size:13px;background:var(--panel2);color:var(--ink);border:1px solid var(--border);
     border-radius:9px;padding:9px 15px;cursor:pointer;transition:.15s}
