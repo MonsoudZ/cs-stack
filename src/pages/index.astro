@@ -1,0 +1,107 @@
+---
+import Base from '../layouts/Base.astro';
+import Mosfet from '../components/Mosfet.svelte';
+import Voltage from '../components/Voltage.svelte';
+import LogicGate from '../components/LogicGate.svelte';
+import Bits from '../components/Bits.svelte';
+import CallStack from '../components/CallStack.svelte';
+import Scheduler from '../components/Scheduler.svelte';
+import Tracer from '../components/Tracer.svelte';
+import Transistor from '../components/Transistor.svelte';
+import Adder from '../components/Adder.svelte';
+import NumbersThings from '../components/NumbersThings.svelte';
+import Cpu from '../components/Cpu.svelte';
+import Encapsulation from '../components/Encapsulation.svelte';
+import Packets from '../components/Packets.svelte';
+import Cloud from '../components/Cloud.svelte';
+---
+<Base>
+  <section class="layer zone-physical" id="Lsi" data-title="Silicon">
+    <div class="layer-head"><div class="layer-idx">−01</div><div class="layer-titles"><h2>Before the switch: a rock we taught to decide</h2><div class="sub">physical · semiconductors · the MOSFET</div></div></div>
+    <p class="prose">One rung below the transistor is the material it's carved from. Dope silicon with a trace of impurity and you get spare electrons (<span class="hl">n-type</span>) or spare holes (<span class="hl">p-type</span>). Arrange them right and a gate voltage decides whether a conducting channel forms — a faucet for electrons.</p>
+    <Mosfet client:visible />
+    <p class="aside">Past the threshold, the gate's field pulls a <span class="hl">channel</span> into existence and current flows. That on/off, controlled by a voltage, is exactly the switch layer 01 calls a transistor.</p>
+  </section>
+
+  <section class="layer zone-physical" id="L0" data-title="Voltage">
+    <div class="layer-head"><div class="layer-idx">00</div><div class="layer-titles"><h2>A wire that is either pushed or not</h2><div class="sub">physical · electricity</div></div></div>
+    <p class="prose">At the bottom there are no zeros and ones — just <b>voltage</b>. Near the reference: <span class="hl">HIGH</span>. Near ground: <span class="hl">LOW</span>. That's the entire physical alphabet.</p>
+    <Voltage client:visible />
+  </section>
+
+  <section class="layer zone-physical" id="L1" data-title="Transistor">
+    <div class="layer-head"><div class="layer-idx">01</div><div class="layer-titles"><h2>The transistor: a wire that controls another wire</h2><div class="sub">physical · the switch</div></div></div>
+    <p class="prose">A small voltage on the gate decides whether current flows across the other two terminals — a switch with no moving parts. Pack a few billion onto silicon and you have a CPU.</p>
+    <Transistor client:visible />
+  </section>
+
+  <section class="layer zone-physical" id="L2" data-title="Logic gates">
+    <div class="layer-head"><div class="layer-idx">02</div><div class="layer-titles"><h2>Gates: transistors that compute true & false</h2><div class="sub">logic · boolean algebra</div></div></div>
+    <p class="prose">Wire transistors into a fixed pattern and the output stops being current and becomes a <b>decision</b>. This is where electricity becomes logic.</p>
+    <LogicGate client:visible />
+  </section>
+
+  <section class="layer zone-number" id="L3" data-title="Bits → numbers">
+    <div class="layer-head"><div class="layer-idx">03</div><div class="layer-titles"><h2>Eight wires become a number</h2><div class="sub">numbers · binary place value</div></div></div>
+    <p class="prose">Line up 8 true/false wires, agree each is worth twice the one to its right, and the pattern of HIGHs and LOWs <b>is a number</b>. Nothing physical changed — we just decided how to read it.</p>
+    <Bits client:visible />
+  </section>
+
+  <section class="layer zone-number" id="L4" data-title="Arithmetic">
+    <div class="layer-head"><div class="layer-idx">04</div><div class="layer-titles"><h2>Gates that add — arithmetic from logic</h2><div class="sub">numbers · the ripple-carry adder</div></div></div>
+    <p class="prose">XOR gives the sum bit, AND gives the carry. Chain them and the carry ripples left exactly like grade-school addition. Math is a side effect of wiring.</p>
+    <Adder client:visible />
+  </section>
+
+  <section class="layer zone-meaning" id="L5" data-title="Numbers → things">
+    <div class="layer-head"><div class="layer-idx">05</div><div class="layer-titles"><h2>The same number, pretending to be many things</h2><div class="sub">meaning · encoding</div></div></div>
+    <p class="prose">A number means nothing alone. <code>01000001</code> is 65, the letter <b>A</b>, a shade of gray, or an instruction — depending only on what code decides to do with it. Encoding is just an agreement.</p>
+    <NumbersThings client:visible />
+  </section>
+
+  <section class="layer zone-system" id="L6" data-title="The CPU">
+    <div class="layer-head"><div class="layer-idx">06</div><div class="layer-titles"><h2>The CPU: a loop that obeys numbers</h2><div class="sub">systems · fetch · decode · execute</div></div></div>
+    <p class="prose">A program is just numbers the CPU agreed to treat as commands. Forever: fetch the instruction, decode it, execute it, bump the counter.</p>
+    <Cpu client:visible />
+  </section>
+
+  <section class="layer zone-system" id="L7" data-title="Memory">
+    <div class="layer-head"><div class="layer-idx">07</div><div class="layer-titles"><h2>Memory: numbers with addresses</h2><div class="sub">systems · arrays · the call stack</div></div></div>
+    <p class="prose">RAM is one gigantic numbered array of bytes. An array is a run of consecutive addresses; the call stack is where recursion lives — it descends to a base case, then unwinds back up.</p>
+    <CallStack client:visible />
+    <p class="aside">Each call pushes a frame; values bubble back up — exactly the "down, then back up to a result" shape the tracer animates.</p>
+  </section>
+
+  <section class="layer zone-system" id="L8" data-title="Operating system">
+    <div class="layer-head"><div class="layer-idx">08</div><div class="layer-titles"><h2>The operating system: the referee</h2><div class="sub">systems · the scheduler · syscalls</div></div></div>
+    <p class="prose">One core runs one thing at a time, yet your machine juggles hundreds. The OS slices time into quanta and switches between them — concurrency on a single core is a fast lie.</p>
+    <Scheduler client:visible />
+  </section>
+
+  <section class="layer zone-system" id="L9" data-title="The network">
+    <div class="layer-head"><div class="layer-idx">09</div><div class="layer-titles"><h2>The network: numbers that leave the building</h2><div class="sub">systems · encapsulation · packets · TCP/IP</div></div></div>
+    <p class="prose">Data leaves wrapped like a parcel inside a parcel — each layer adds its own header, then it's chopped into packets, routed, and reassembled on the far side.</p>
+    <Encapsulation client:visible />
+    <p class="aside">Notice the overhead: a 22-byte request rides inside ~80 bytes once every header is attached — the price of routing and reliability.</p>
+    <Packets client:visible />
+  </section>
+
+  <section class="layer zone-system" id="L10" data-title="The cloud">
+    <div class="layer-head"><div class="layer-idx">10</div><div class="layer-titles"><h2>The cloud: someone else's machines, at scale</h2><div class="sub">systems · load balancers · app servers · datastores</div></div></div>
+    <p class="prose">"The cloud" is just a lot of the machine you climbed, rented by the hour: a load balancer, identical app servers, a cache, a database, a background queue.</p>
+    <Cloud client:visible />
+  </section>
+
+  <section class="layer zone-physical" id="L11" data-title="…and back down">
+    <div class="layer-head"><div class="layer-idx">11</div><div class="layer-titles"><h2>The lie, all the way down</h2><div class="sub">the whole picture</div></div></div>
+    <p class="prose">A click fires a packet across the network into a cloud load balancer, to a process on a CPU that fetches numbers from memory, does arithmetic with gates built from transistors toggled by voltage — and the answer climbs back up, becoming bytes, becoming pixels.</p>
+    <p class="prose" style="margin-top:14px">Every level is a story the level below agreed to tell. <span class="hl">↓ watch one real method make the whole trip.</span></p>
+  </section>
+
+  <section class="layer zone-all" id="L12" data-title="Trace a method">
+    <div class="layer-head"><div class="layer-idx">★</div><div class="layer-titles"><h2>Watch it happen: one method, every layer</h2><div class="sub">the capstone · real algorithms, traced top to bottom</div></div></div>
+    <p class="prose">Pick an algorithm and a single clock drives every layer at once: the Ruby line, the VM ops, the data structure mutating in memory, and the integer arithmetic the CPU runs. One step, re-told all the way down.</p>
+    <Tracer client:visible />
+    <p class="aside">Loops over arrays, hashes that turn keys into bucket indices, queues and call stacks, comparisons and sums — all riding on numbers that are really just wires that are either pushed or not.</p>
+  </section>
+</Base>

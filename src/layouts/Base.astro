@@ -1,0 +1,83 @@
+---
+import '../styles/global.css';
+const { title = 'THE STACK — electrons to the cloud' } = Astro.props;
+---
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{title}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=JetBrains+Mono:wght@400;500;700&family=Spline+Sans:wght@400;500&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="bg-glow"></div>
+  <div class="scan"></div>
+
+  <header class="hero">
+    <div class="kicker">A field guide to the machine</div>
+    <h1 class="title">FROM <em>ELECTRONS</em><br />TO THE CLOUD</h1>
+    <p class="lede">Every layer of computing is a <b>convenient lie</b> told by the layer beneath it. Climb the ladder and watch each lie get built — by hand, where you can poke it.</p>
+    <div class="hero-meta"><span>13 layers + a live tracer</span> · silicon → voltage → gates → bits → numbers → meaning → CPU → OS → network → cloud</div>
+    <div class="scrollcue">↓ start at the bottom</div>
+  </header>
+
+  <div class="stage">
+    <nav class="spine" aria-label="Layer navigation">
+      <div class="spine-track" id="spineTrack">
+        <div class="spine-line"></div>
+        <div class="spine-fill" id="spineFill"></div>
+        <div class="spine-pulse" id="spinePulse"></div>
+      </div>
+    </nav>
+    <main id="main">
+      <slot />
+    </main>
+  </div>
+
+  <footer>
+    <div><span class="updot">●</span> <b>THE STACK</b> — Astro + Svelte islands + MDX. Static prose ships zero JS; each widget is a hydrated island.</div>
+    <div style="margin-top:8px">Run <code>npm run dev</code> to develop, <code>npm run build</code> for a static bundle.</div>
+  </footer>
+
+  <script>
+    const $ = (s, el = document) => el.querySelector(s);
+    const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+    const mk = (t, c, h) => { const e = document.createElement(t); if (c) e.className = c; if (h != null) e.innerHTML = h; return e; };
+    const LAYERS = [
+      ['−01','Silicon','Lsi'],
+      ['00','Voltage','L0'],['01','Transistor','L1'],['02','Logic gates','L2'],['03','Bits → numbers','L3'],
+      ['04','Arithmetic','L4'],['05','Numbers → things','L5'],['06','The CPU','L6'],['07','Memory','L7'],
+      ['08','OS','L8'],['09','Network','L9'],['10','Cloud','L10'],['11','The whole thing','L11'],['★','Trace','L12']
+    ];
+    const track = $('#spineTrack');
+    LAYERS.forEach(([n, lbl, id]) => {
+      const b = mk('button', 'rung');
+      b.innerHTML = `<span class="num">${n}</span><span class="lbl">${lbl}</span>`;
+      b.onclick = () => { const el = document.getElementById(id); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+      track.appendChild(b);
+    });
+    const rungs = $$('.rung');
+    const fill = $('#spineFill'), pulse = $('#spinePulse');
+    const sections = LAYERS.map((a) => document.getElementById(a[2])).filter(Boolean);
+    function onScroll() {
+      const stage = $('.stage'); if (!stage) return;
+      const r = stage.getBoundingClientRect();
+      const total = stage.offsetHeight - window.innerHeight;
+      const p = Math.min(1, Math.max(0, (-r.top) / Math.max(1, total)));
+      const trackH = $('.spine-line').offsetHeight;
+      fill.style.height = (p * trackH) + 'px';
+      pulse.style.top = (p * trackH) + 'px';
+      let best = 0, bestD = 1e9;
+      sections.forEach((s, i) => { const d = Math.abs(s.getBoundingClientRect().top - 90); if (d < bestD) { bestD = d; best = i; } });
+      rungs.forEach((rg, i) => rg.classList.toggle('on', i === best));
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    onScroll();
+  </script>
+</body>
+</html>
