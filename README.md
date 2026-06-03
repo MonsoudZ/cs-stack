@@ -18,6 +18,7 @@ Restructured from a single 111KB HTML file into a real component project.
 npm install
 npm run dev      # http://localhost:4321
 npm run build    # static site -> dist/ (deploy anywhere, incl. Railway)
+npm test         # vitest — verifies every traced algorithm produces its stated answer
 ```
 
 ## Layout

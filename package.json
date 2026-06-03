@@ -6,12 +6,17 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
-    "preview": "astro preview"
+    "preview": "astro preview",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
-    "@astrojs/mdx": "^4.3.14",
-    "@astrojs/svelte": "^7.2.5",
-    "astro": "^5.18.2",
+    "@astrojs/mdx": "^6.0.1",
+    "@astrojs/svelte": "^8.1.2",
+    "astro": "^6.4.3",
     "svelte": "^5.56.1"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.8"
   }
 }
