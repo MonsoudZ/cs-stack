@@ -15,21 +15,21 @@
   <div class="meanings">
     <div class="mcard"><div class="mk">as a number</div><div class="mv">{n}</div><div class="mn">{hex}</div></div>
     <div class="mcard"><div class="mk">as text (ASCII)</div><div class="mv">{ch}</div><div class="mn">{isCtrl ? 'control code' : 'printable'}</div></div>
-    <div class="mcard"><div class="mk">as a shade</div><div class="mv" style="font-size:14px;color:var(--dim)">grayscale {n}/255</div><div class="swatch" style="background:rgb({n},{n},{n})"></div></div>
-    <div class="mcard"><div class="mk">as an instruction</div><div class="mv" style="font-size:18px">{op}</div><div class="mn">opcode {(+n) >> 5} · operand {(+n) & 31}</div></div>
+    <div class="mcard"><div class="mk">as a shade</div><div class="mv mv-small muted">grayscale {n}/255</div><div class="swatch" style:background={`rgb(${n},${n},${n})`}></div></div>
+    <div class="mcard"><div class="mk">as an instruction</div><div class="mv mv-op">{op}</div><div class="mn">opcode {(+n) >> 5} · operand {(+n) & 31}</div></div>
   </div>
 </div>
 <div class="widget">
   <div class="w-label">three numbers → one color (this is every pixel on your screen)</div>
-  <div class="w-row" style="gap:30px">
-    <div style="flex:1;min-width:200px">
+  <div class="w-row color-row">
+    <div class="control-fill">
       <div class="rgb-row"><label for="rgbR">R</label><input id="rgbR" type="range" min="0" max="255" bind:value={r} class="slider r" /><span>{r}</span></div>
       <div class="rgb-row"><label for="rgbG">G</label><input id="rgbG" type="range" min="0" max="255" bind:value={g} class="slider g" /><span>{g}</span></div>
       <div class="rgb-row"><label for="rgbB">B</label><input id="rgbB" type="range" min="0" max="255" bind:value={b} class="slider b" /><span>{b}</span></div>
     </div>
     <div class="lead">
-      <div class="swatch" style="width:120px;height:80px;margin:0;background:rgb({r},{g},{b})"></div>
-      <small style="font-family:var(--mono)">{hexcol}</small>
+      <div class="swatch color-swatch" style:background={`rgb(${r},${g},${b})`}></div>
+      <small class="mono-small">{hexcol}</small>
     </div>
   </div>
 </div>

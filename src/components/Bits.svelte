@@ -17,6 +17,6 @@
   <div class="readout">
     <div class="ro"><div class="k">decimal</div><div class="val">{val}</div></div>
     <div class="ro"><div class="k">hex</div><div class="val teal">{hex}</div></div>
-    <div class="ro"><div class="k">binary</div><div class="val violet" style="font-size:20px">{bits.join('')}</div></div>
+    <div class="ro"><div class="k">binary</div><div class="val violet binary-val">{bits.join('')}</div></div>
   </div>
 </div>

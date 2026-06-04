@@ -93,7 +93,7 @@
   </div>
 
 {:else if struct.kind === 'graph'}
-  <svg viewBox="0 0 310 150" style="width:100%;max-width:340px;height:auto" role="img"
+  <svg viewBox="0 0 310 150" class="graph-svg" role="img"
        aria-label="Graph traversal. {struct.current ? 'Now exploring ' + struct.current + '. ' : ''}Visited: {struct.visited.length ? struct.visited.join(', ') : 'none'}. {frontierKind === 'stack' ? 'Stack' : 'Queue'}: {frontier.length ? frontier.join(', ') : 'empty'}.">
     {#each GEDGES as [a, b]}
       <line x1={GPOS[a][0]} y1={GPOS[a][1]} x2={GPOS[b][0]} y2={GPOS[b][1]} stroke="rgba(120,200,255,.22)" stroke-width="2" />
@@ -105,11 +105,11 @@
       <text x={xy[0]} y={xy[1] + 4} text-anchor="middle" font-family="monospace" font-size="13" fill={s ? c : '#9aa8ba'}>{n}</text>
     {/each}
   </svg>
-  <div class="qrow" style="margin-top:10px">
+  <div class="qrow struct-row">
     <div class="qlab">{frontierKind === 'stack' ? 'Stack · LIFO (top→)' : 'Queue · FIFO front→back'}</div>
     <div class="qchips">
       {#if frontier.length}
-        {#each frontier as n}<span class="pchip"><span class="dot" style="background:#ffb454"></span>{n}</span>{/each}
+        {#each frontier as n}<span class="pchip"><span class="dot dot-amber"></span>{n}</span>{/each}
       {:else}<span class="csmini">empty</span>{/if}
     </div>
   </div>
@@ -117,19 +117,19 @@
     <div class="qlab">Visited</div>
     <div class="qchips">
       {#if struct.visited.length}
-        {#each struct.visited as n}<span class="pchip"><span class="dot" style="background:#2ee6c0"></span>{n}</span>{/each}
+        {#each struct.visited as n}<span class="pchip"><span class="dot dot-signal"></span>{n}</span>{/each}
       {:else}<span class="csmini">none</span>{/if}
     </div>
   </div>
 
 {:else if struct.kind === 'stack'}
   {#if !struct.frames.length}
-    <div class="csmini" style="padding:10px 2px">call stack empty</div>
+    <div class="csmini empty-note">call stack empty</div>
   {:else}
     <div class="csstack">
       {#each struct.frames as f, i}
         <div class="csframe" class:ret={f.ret} class:act={!f.ret && i === struct.frames.length - 1}>
-          <span class="fl">sum_to({f.n})&nbsp;<span style="color:var(--faint);font-size:11px">n={f.n}</span></span>
+          <span class="fl">sum_to({f.n})&nbsp;<span class="local-note">n={f.n}</span></span>
           {#if f.ret}<span class="rv">returns {f.val}</span>
           {:else if f.n === 0}<span class="wait">base case → 0</span>
           {:else}<span class="wait">needs sum_to({f.n - 1})…</span>{/if}

@@ -15,7 +15,7 @@
       <button type="button" class="btn" class:sel={cur === k} onclick={() => cur = k}>{k}</button>
     {/each}
   </div>
-  <div class="w-row" style="gap:34px">
+  <div class="w-row logic-row">
     <div class="lead"><button type="button" class="toggle" class:hi={A} aria-pressed={A} aria-label={`input A ${A ? 1 : 0}`} onclick={() => A = !A}><div class="st">A</div><div class="v">{num(A)}</div></button></div>
     <div class="lead"><button type="button" class="toggle" class:hi={B} disabled={single} aria-pressed={B} aria-label={`input B ${B ? 1 : 0}`} onclick={() => B = !B}><div class="st">B</div><div class="v">{num(B)}</div></button></div>
     <div class="out-lamp"><div class="lamp" class:on={out}>{num(out)}</div><small>{cur}</small></div>

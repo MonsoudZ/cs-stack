@@ -11,7 +11,7 @@
 <div class="widget">
   <div class="csbar">
     <span class="csmini">fact(n) = n ≤ 1 ? 1 : n × fact(n−1)</span>
-    <span style="flex:1"></span>
+    <span class="spacer"></span>
     <span class="csmini">start depth:</span>
     <span class="idxbtns">
       {#each [3,4,5] as n}<button type="button" class="btn" class:sel={N === n} onclick={() => setDepth(n)}>{n}</button>{/each}
@@ -22,13 +22,13 @@
     {#if step.frames.length}
       {#each step.frames as f, i}
         <div class="csframe {f.ret ? 'ret' : (i === step.frames.length - 1 ? 'act' : '')}">
-          <span class="fl">fact({f.n}) &nbsp;<span style="color:var(--faint);font-size:11px">local n={f.n}</span></span>
+          <span class="fl">fact({f.n}) &nbsp;<span class="local-note">local n={f.n}</span></span>
           {#if f.ret}<span class="rv">returns {f.val}</span>
           {:else if f.n <= 1}<span class="wait">base case → 1</span>
           {:else}<span class="wait">waiting for fact({f.n - 1})…</span>{/if}
         </div>
       {/each}
-    {:else}<div class="csmini" style="padding:10px 2px">stack empty</div>{/if}
+    {:else}<div class="csmini empty-note">stack empty</div>{/if}
   </div>
   <div class="csnote" role="status" aria-live="polite">{step.note}</div>
   <Stepper {stepper} />

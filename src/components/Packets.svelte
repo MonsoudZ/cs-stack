@@ -26,7 +26,7 @@
   <div class="pktsender">{#each FRAG as f, k}<div class="pkt {s.slots[k] !== null ? 'done' : ''} {s.flight && s.flight.seq === k + 1 ? 'flight' : ''}"><span class="pn">P{k + 1}</span><span class="pf">{f.trim() || '·'}</span></div>{/each}</div>
   <div class="channel">
     {#if s.flight}<span>the internet:</span><span class="flightchip {s.flight.status === 'arrive' ? 'ok' : 'drop'}">P{s.flight.seq} {s.flight.status === 'arrive' ? '✓ arrived' : '✗ dropped'}</span>
-    {:else}<span style="color:var(--faint)">— channel idle —</span>{/if}
+    {:else}<span class="muted">— channel idle —</span>{/if}
   </div>
   <div class="slots">{#each s.slots as f, k}{#if f !== null}<div class="slot full"><span class="sn">slot {k + 1}</span><span class="sf">{f.trim() || '·'}</span></div>{:else}<div class="slot empty"><span class="sn">slot {k + 1}</span><span class="sf">gap</span></div>{/if}{/each}</div>
   <div class="recon" class:done={s.delivered}>{s.delivered ? '✓ delivered in order:  "' : 'reassembly buffer:  "'}{preview}"</div>

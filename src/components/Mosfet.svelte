@@ -20,18 +20,18 @@
       <div class="mos-sub">p-type silicon body</div>
     </div>
   </div>
-  <div class="w-row" style="margin-top:18px;gap:24px;align-items:center">
-    <div style="flex:1;min-width:200px">
+  <div class="w-row mos-control-row">
+    <div class="control-fill">
       <div class="rgb-row">
-        <label for="mosV" style="width:auto">V<sub>gate</sub></label>
+        <label for="mosV" class="label-auto">V<sub>gate</sub></label>
         <input type="range" min="0" max="33" bind:value={raw} class="slider" id="mosV" aria-valuetext={(+raw / 10).toFixed(1) + ' volts'} />
-        <span style="font-family:var(--mono);color:var(--signal)">{(+raw / 10).toFixed(1)} V</span>
+        <span class="meter-value">{(+raw / 10).toFixed(1)} V</span>
       </div>
-      <div style="font-family:var(--mono);font-size:11px;color:var(--faint);margin-top:6px">threshold ≈ 1.5 V — below it, no channel</div>
+      <div class="slider-hint">threshold ≈ 1.5 V — below it, no channel</div>
     </div>
     <div class="lead">
-      <div class="toggle" class:hi={on} style="cursor:default;min-width:96px"><div class="st">CHANNEL</div><div class="v">{on ? 'ON' : 'OFF'}</div></div>
-      <small style="font-family:var(--mono)">{on ? 'current flows source → drain' : 'no current'}</small>
+      <div class="toggle display-toggle channel-toggle" class:hi={on}><div class="st">CHANNEL</div><div class="v">{on ? 'ON' : 'OFF'}</div></div>
+      <small class="mono-small">{on ? 'current flows source → drain' : 'no current'}</small>
     </div>
   </div>
 </div>

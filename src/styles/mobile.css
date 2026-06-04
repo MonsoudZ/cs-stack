@@ -1,0 +1,112 @@
+  @media(max-width:720px){
+    header.hero{padding:64px 16px 30px}
+    h1.title{font-size:clamp(42px,15vw,72px)}
+    .lede{font-size:16px;margin-top:18px}
+    .hero-meta{margin-top:24px;gap:10px;line-height:1.7}
+    .stage{padding:0 14px 92px}
+    section.layer{padding:30px 0;scroll-margin-top:12px}
+    .layer-head{gap:11px;margin-bottom:16px}
+    .layer-idx{font-size:11px;padding:5px 7px;border-radius:7px}
+    .layer-titles h2{font-size:clamp(24px,8vw,34px);line-height:1.06}
+    .layer-titles .sub{font-size:10px;line-height:1.5}
+    .prose{font-size:15px;line-height:1.65}
+    .widget{margin-top:18px;padding:20px 14px;border-radius:16px}
+    .w-label{font-size:9px;margin-bottom:14px;line-height:1.6}
+    .w-row{gap:18px}
+    .reader-guide span,.takeaway{border-radius:12px}
+  }
+
+  @media(max-width:560px){
+    .tube{transform:none;width:100%;justify-content:center;overflow:hidden}
+    .wire{width:clamp(44px,18vw,70px)}
+    .gate-sym{width:82px;height:72px}
+    .gate-sym .body{width:52px;height:50px}
+    .gate-sym .ctrl{top:-22px;height:28px}
+    .lamp{width:64px;height:64px;font-size:28px}
+    .gate-pick{gap:6px}
+    .gate-pick .btn,.idxbtns .btn{padding:6px 9px;font-size:11px}
+    .bits{gap:7px}
+    .bit .cell{width:42px;height:50px;font-size:23px}
+    .bit .pv{font-size:9px}
+    .readout{gap:14px;justify-content:flex-start}
+    .ro .val{font-size:22px}
+    .ro .val.violet{font-size:15px!important}
+    .adder-grid{display:grid;width:100%;overflow-x:auto;padding-bottom:6px;justify-content:start}
+    .nb-cell{width:40px;height:46px;font-size:20px}
+    .carry{width:40px}
+    .adlabel{min-width:max-content}
+    .adlabel .tag{width:50px}
+    .adlabel .dec{margin-left:8px}
+    .meanings{grid-template-columns:1fr;gap:12px}
+    .mcard{min-height:auto;padding:15px}
+    .mcard .mv{font-size:32px}
+    .cpu{gap:14px}
+    .rom{font-size:12px}
+    .rom .ln{padding:8px 10px;gap:10px}
+    .reg .rv{font-size:24px}
+    .stepbox{min-width:0;padding:15px}
+    .memscroll{margin-left:-4px;margin-right:-4px}
+    .mcell{width:62px;padding:9px 4px}
+    .mcell .vl{font-size:24px}
+    .csbar{align-items:flex-start}
+    .csframe{font-size:12px;align-items:flex-start;flex-direction:column;gap:5px}
+    .cpucore .core{width:100%;max-width:240px}
+    .qrow{align-items:flex-start;flex-direction:column;gap:7px}
+    .qrow .qlab{width:auto}
+    .gcell{width:18px;height:28px}
+    .encrow,.pktsender,.slots{justify-content:flex-start}
+    .seg{min-width:0;max-width:100%;flex:1 1 136px}
+    .pkt{min-width:48px;padding:8px 9px}
+    .slot{width:62px;height:58px}
+    .channel{min-height:58px;padding:14px;text-align:center;flex-wrap:wrap}
+    .cloudwrap{margin-left:-4px;margin-right:-4px}
+    .cloud{gap:10px}
+    .tier{min-width:120px}
+    .cnode{padding:12px 13px}
+    .cnode .cn{font-size:14px}
+    .carrow{font-size:18px}
+    .trace-widget{padding:20px 14px}
+    .trace-title{font-size:30px}
+    .trace-progress{padding:9px 12px;min-width:88px}
+    .trace-progress span{font-size:28px}
+    .trace-touchbar{align-items:flex-start;flex-direction:column}
+    .tracepanel{padding:15px 13px}
+    .srccode{font-size:12px;line-height:1.75}
+    .vmops{font-size:12px}
+    .alu .aexpr{font-size:21px}
+    .buckets{gap:5px}
+    .bkt{width:58px;min-height:52px}
+    .wcell{width:54px;height:66px}
+    .wcell .wv{font-size:18px}
+    .mosfet{max-width:100%;transform:none}
+    .mos-gate{width:180px}
+    .mos-oxide{width:210px}
+    .mos-body{height:118px}
+    .mos-region{width:82px;margin:8px;font-size:12px}
+    .mos-carriers{letter-spacing:.16em}
+  }
+
+  @media(max-width:390px){
+    .stage{padding-left:10px;padding-right:10px}
+    .widget{padding-left:10px;padding-right:10px}
+    .bit .cell{width:36px;height:46px}
+    .nb-cell{width:36px;height:42px}
+    .carry{width:36px}
+    .adlabel .tag{width:44px;font-size:11px}
+    .mos-region{width:68px;margin:7px}
+    .mos-gate{width:160px}
+    .mos-oxide{width:190px}
+  }
+
+  /* respect users who ask the OS to reduce motion: kill the ambient
+     animations and collapse transitions to near-instant, but keep the
+     widgets fully usable (state still changes, just without the movement). */
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{
+      animation-duration:.001ms !important;
+      animation-iteration-count:1 !important;
+      transition-duration:.001ms !important;
+      scroll-behavior:auto !important;
+    }
+    .scrollcue{animation:none}
+  }

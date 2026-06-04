@@ -41,7 +41,7 @@
 <div class="widget">
   <div class="csbar">
     <span class="csmini">a real Rails request lifecycle · GET /cases/42</span>
-    <span style="flex:1"></span>
+    <span class="spacer"></span>
     <button type="button" class="btn" onclick={toggleCache}>cache: {cacheHit ? 'WARM (hit)' : 'COLD (miss)'}</button>
   </div>
   <div class="w-label">step a request → through the stack, and the response back ←</div>
@@ -64,6 +64,6 @@
     </div>
   </div></div>
   <div class="cloudlat {cacheHit ? 'warm' : 'cold'}">perceived latency: <span class="ms">{lat} ms</span><span class="tag">{cacheHit ? 'cache hit' : 'cache miss'}</span>{hop.async ? '  ·  background job runs off the critical path' : ''}</div>
-  <div class="csnote" role="status" aria-live="polite" style="color:var(--blue)">{hop.note}</div>
+  <div class="csnote csnote-blue" role="status" aria-live="polite">{hop.note}</div>
   <Stepper {stepper} />
 </div>
