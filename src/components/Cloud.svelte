@@ -41,7 +41,7 @@
   onDestroy(() => stepper.destroy());
 </script>
 {#snippet node(key, cn, cd, dim)}
-  <div class="cnode {at(key) ? 'active' : (visited.has(key) ? 'visited' : '')} {dim ? 'dim' : ''}"><div class="cn">{cn}</div><div class="cd">{cd}</div></div>
+  <div class="cnode {at(key) ? 'active' : (visited.has(key) ? 'visited' : '')} {dim ? 'dim' : ''}" aria-current={at(key) ? 'true' : undefined}><div class="cn">{cn}</div><div class="cd">{cd}</div></div>
 {/snippet}
 <div class="widget">
   <div class="csbar">
@@ -58,7 +58,7 @@
     <div class="tier"><div class="tierlab">app tier · round-robin</div>
       {#each [0,1,2] as si}
         {@const sel = si === server}
-        <div class="cnode {at('app') && sel ? 'active' : (sel && visited.has('app') ? 'visited' : '')} {sel ? '' : 'dim'}"><div class="cn">App #{si + 1}</div><div class="cd">{sel ? 'Rails' : 'Rails · idle'}</div></div>
+        <div class="cnode {at('app') && sel ? 'active' : (sel && visited.has('app') ? 'visited' : '')} {sel ? '' : 'dim'}" aria-current={at('app') && sel ? 'true' : undefined}><div class="cn">App #{si + 1}</div><div class="cd">{sel ? 'Rails' : 'Rails · idle'}</div></div>
       {/each}
     </div>
     <div class="carrow">→</div>

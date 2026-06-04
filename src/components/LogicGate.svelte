@@ -19,8 +19,9 @@
     <div class="lead"><button type="button" class="toggle" class:hi={A} aria-pressed={A} aria-label={`input A ${A ? 1 : 0}`} onclick={() => A = !A}><div class="st">A</div><div class="v">{num(A)}</div></button></div>
     <div class="lead"><button type="button" class="toggle" class:hi={B} disabled={single} aria-pressed={B} aria-label={`input B ${B ? 1 : 0}`} onclick={() => B = !B}><div class="st">B</div><div class="v">{num(B)}</div></button></div>
     <div class="out-lamp"><div class="lamp" class:on={out}>{num(out)}</div><small>{cur}</small></div>
-    <table class="ttable"><tbody>
-      <tr><th>A</th>{#if !single}<th>B</th>{/if}<th>OUT</th></tr>
+    <table class="ttable">
+      <thead><tr><th scope="col">A</th>{#if !single}<th scope="col">B</th>{/if}<th scope="col">OUT</th></tr></thead>
+      <tbody>
       {#each rows as r}
         {@const a = !!r[0]}
         {@const b = !!r[1]}

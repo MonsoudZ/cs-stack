@@ -30,7 +30,12 @@ export function createStepper(buildFn, { speed = 900 } = {}) {
     if (timer) { stop(); return; }
     if (i >= steps.length - 1) { steps = buildFn(); i = 0; bump(); }
     autoOn.set(true);
-    timer = setInterval(() => { step(); if (i >= steps.length - 1) stop(); }, speed);
+    // Honour prefers-reduced-motion: still play, but at a calmer cadence so it
+    // isn't rapid auto-animating content. (matchMedia is absent under SSR/tests
+    // → treated as no preference.)
+    const reduce = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const interval = reduce ? Math.max(speed, 2200) : speed;
+    timer = setInterval(() => { step(); if (i >= steps.length - 1) stop(); }, interval);
   }
   function rebuild(newBuildFn) { stop(); buildFn = newBuildFn; steps = buildFn(); i = 0; render(); bump(); }
   function current() { return steps[i]; }

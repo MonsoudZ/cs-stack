@@ -11,7 +11,8 @@
 </script>
 <div class="widget">
   <div class="w-label">one byte (0–255), four interpretations</div>
-  <input type="range" min="0" max="255" bind:value={n} class="slider" aria-label="Byte value" />
+  <input type="range" min="0" max="255" bind:value={n} class="slider" aria-label="Byte value"
+         aria-valuetext={`${n}: ASCII ${ch}, opcode ${op}, gray shade ${n} of 255`} />
   <div class="meanings">
     <div class="mcard"><div class="mk">as a number</div><div class="mv">{n}</div><div class="mn">{hex}</div></div>
     <div class="mcard"><div class="mk">as text (ASCII)</div><div class="mv">{ch}</div><div class="mn">{isCtrl ? 'control code' : 'printable'}</div></div>
@@ -23,9 +24,9 @@
   <div class="w-label">three numbers → one color (this is every pixel on your screen)</div>
   <div class="w-row color-row">
     <div class="control-fill">
-      <div class="rgb-row"><label for="rgbR">R</label><input id="rgbR" type="range" min="0" max="255" bind:value={r} class="slider r" /><span>{r}</span></div>
-      <div class="rgb-row"><label for="rgbG">G</label><input id="rgbG" type="range" min="0" max="255" bind:value={g} class="slider g" /><span>{g}</span></div>
-      <div class="rgb-row"><label for="rgbB">B</label><input id="rgbB" type="range" min="0" max="255" bind:value={b} class="slider b" /><span>{b}</span></div>
+      <div class="rgb-row"><label for="rgbR">R</label><input id="rgbR" type="range" min="0" max="255" bind:value={r} class="slider r" aria-label="Red" aria-valuetext={`${r} of 255`} /><span>{r}</span></div>
+      <div class="rgb-row"><label for="rgbG">G</label><input id="rgbG" type="range" min="0" max="255" bind:value={g} class="slider g" aria-label="Green" aria-valuetext={`${g} of 255`} /><span>{g}</span></div>
+      <div class="rgb-row"><label for="rgbB">B</label><input id="rgbB" type="range" min="0" max="255" bind:value={b} class="slider b" aria-label="Blue" aria-valuetext={`${b} of 255`} /><span>{b}</span></div>
     </div>
     <div class="lead">
       <div class="swatch color-swatch" style:background={`rgb(${r},${g},${b})`}></div>

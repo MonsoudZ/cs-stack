@@ -13,7 +13,7 @@
     .widget{margin-top:18px;padding:20px 14px;border-radius:16px}
     .w-label{font-size:9px;margin-bottom:14px;line-height:1.6}
     .w-row{gap:18px}
-    .reader-guide span,.takeaway{border-radius:12px}
+    .reader-guide li,.takeaway{border-radius:12px}
   }
 
   @media(max-width:560px){

@@ -20,7 +20,7 @@
   <div class="sched">
     <div class="cpucore">
       {#if s.running != null}
-        <div class="core proc-core proc-{s.running}">
+        <div class="core proc-core proc-{s.running}" aria-current="true">
           <div class="lab">CPU CORE</div><div class="who">{PROCS[s.running].name}</div>
         </div>
       {:else}

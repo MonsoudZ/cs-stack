@@ -25,7 +25,7 @@
 <div class="widget">
   <div class="csbar"><span class="csmini">the same request, chopped into 6 packets crossing a lossy internet</span></div>
   <div class="w-label">step the transmission — packets drop, TCP notices the gaps and retransmits</div>
-  <div class="pktsender">{#each FRAG as f, k}<div class="pkt {s.slots[k] !== null ? 'done' : ''} {s.flight && s.flight.seq === k + 1 ? 'flight' : ''}"><span class="pn">P{k + 1}</span><span class="pf">{f.trim() || '·'}</span></div>{/each}</div>
+  <div class="pktsender">{#each FRAG as f, k}<div class="pkt {s.slots[k] !== null ? 'done' : ''} {s.flight && s.flight.seq === k + 1 ? 'flight' : ''}" aria-current={s.flight && s.flight.seq === k + 1 ? 'true' : undefined}><span class="pn">P{k + 1}</span><span class="pf">{f.trim() || '·'}</span></div>{/each}</div>
   <div class="channel">
     {#if s.flight}<span>the internet:</span><span class="flightchip {s.flight.status === 'arrive' ? 'ok' : 'drop'}">P{s.flight.seq} {s.flight.status === 'arrive' ? '✓ arrived' : '✗ dropped'}</span>
     {:else}<span class="muted">— channel idle —</span>{/if}

@@ -25,7 +25,7 @@
   <div class="csstack">
     {#if step.frames.length}
       {#each step.frames as f, i}
-        <div class="csframe {f.ret ? 'ret' : (i === step.frames.length - 1 ? 'act' : '')}">
+        <div class="csframe {f.ret ? 'ret' : (i === step.frames.length - 1 ? 'act' : '')}" aria-current={!f.ret && i === step.frames.length - 1 ? 'true' : undefined}>
           <span class="fl">fact({f.n}) &nbsp;<span class="local-note">local n={f.n}</span></span>
           {#if f.ret}<span class="rv">returns {f.val}</span>
           {:else if f.n <= 1}<span class="wait">base case → 1</span>

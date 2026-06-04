@@ -86,6 +86,10 @@
     el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
   }
 
+  // Only the horizontal step keys + Home/End are captured. ArrowUp/Down are
+  // left alone so the page can still scroll while focus is inside the region
+  // (and AT browse-mode arrows keep working); method switching stays on the
+  // visible, keyboard-focusable method buttons.
   function onTraceKey(event) {
     const tag = event.target?.tagName;
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || event.metaKey || event.ctrlKey || event.altKey) return;
@@ -93,11 +97,10 @@
     else if (event.key === 'ArrowLeft') { event.preventDefault(); stepper.move(-1); }
     else if (event.key === 'Home') { event.preventDefault(); stepper.setIndex(0); }
     else if (event.key === 'End') { event.preventDefault(); stepper.setIndex(stepper.all().length - 1); }
-    else if (event.key === 'ArrowDown') { event.preventDefault(); pickNeighbor(1); }
-    else if (event.key === 'ArrowUp') { event.preventDefault(); pickNeighbor(-1); }
   }
 </script>
-<div class="widget trace-widget" role="region" tabindex="0" aria-label="Trace explorer" onkeydown={onTraceKey}>
+<div class="widget trace-widget" role="region" tabindex="0" aria-label="Trace explorer"
+     aria-keyshortcuts="ArrowLeft ArrowRight Home End" aria-describedby="trace-keys" onkeydown={onTraceKey}>
   <div class="trace-hero">
     <div>
       <div class="trace-kicker">final trace</div>
@@ -129,12 +132,12 @@
       </span>
     {/if}
   </div>
-  <div class="trace-keys">keys: ←/→ step · ↑/↓ method · Home/End jump</div>
+  <div class="trace-keys" id="trace-keys">keys: ←/→ step · Home/End jump (use the buttons above to switch method)</div>
 
   <div class="trace-grid">
     <div class="tracepanel trace-source">
       <div class="tplab">① source · the story you wrote</div>
-      <pre class="srccode">{#each M.src as ln, i}<span class="srcline" class:on={i === s.line}>{ln}</span>{/each}</pre>
+      <pre class="srccode">{#each M.src as ln, i}<span class="srcline" class:on={i === s.line} aria-current={i === s.line ? 'true' : undefined}>{ln}</span>{/each}</pre>
       <div class="tvars">{#each Object.entries(s.vars) as [k, v]}<span class="tvar"><div class="k">{k}</div><div class="v">{v}</div></span>{/each}</div>
     </div>
     <div class="tracepanel trace-vm">
@@ -156,7 +159,7 @@
   </div>
 
   <div class="trace-status">
-    <div class="traceresult" class:show={s.result != null}>
+    <div class="traceresult" class:show={s.result != null} role="status" aria-live="polite">
       {#if s.result != null}return value: {rv(s.result)}{s.finale ? '   ✓ and back up the stack →' : ''}{:else}running…{/if}
     </div>
     <div class="csnote" role="status" aria-live="polite">{s.note}</div>

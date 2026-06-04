@@ -37,7 +37,7 @@
 <div class="widget">
   <div class="w-label">a tiny program · press STEP</div>
   <div class="cpu">
-    <div class="rom">{#each s.prog as line, i}<div class="ln {i === s.cur ? 'cur' : ''}"><span class="ad">{String(i).padStart(2,'0')}</span><span class="op">{line}</span></div>{/each}</div>
+    <div class="rom">{#each s.prog as line, i}<div class="ln {i === s.cur ? 'cur' : ''}" aria-current={i === s.cur ? 'true' : undefined}><span class="ad">{String(i).padStart(2,'0')}</span><span class="op">{line}</span></div>{/each}</div>
     <div class="regs">
       <div class="reg"><span class="rn">PC · program counter</span><span class="rv">{s.PC >= s.prog.length ? '—' : s.PC}</span></div>
       <div class="reg"><span class="rn">A · register</span><span class="rv">{s.A}</span></div>
