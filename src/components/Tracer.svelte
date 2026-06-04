@@ -1,4 +1,5 @@
 <script>
+  import { onDestroy } from 'svelte';
   import { createStepper } from '../lib/stepper.svelte.js';
   import { METHODS, METHOD_ORDER, LNAME, LCLASS, LID, LNUM } from '../lib/traces.js';
   import Stepper from './Stepper.svelte';
@@ -17,9 +18,14 @@
   let cur = $state(init.trace);
   const stepper = createStepper(() => METHODS[cur].build(), { speed: 950 });
   const idx = stepper.idx;
+  const version = stepper.version;
   idx.set(Math.min(init.step, stepper.all().length - 1)); // restore shared step
   let M = $derived(METHODS[cur]);
-  let s = $derived(stepper.all()[$idx]);
+  // `$version` is read so the step + count recompute when the steps array is
+  // rebuilt — switching method while on step 0 leaves $idx at 0, which alone
+  // would not retrigger this derived.
+  let stepCount = $derived(($version, stepper.all().length));
+  let s = $derived(($version, stepper.all()[$idx]));
   let copied = $state(false);
   let copyReset;
   function pick(k) { cur = k; stepper.rebuild(() => METHODS[cur].build()); }
@@ -54,6 +60,8 @@
     area.remove();
     return ok;
   }
+
+  onDestroy(() => { stepper.destroy(); clearTimeout(copyReset); });
 
   async function copyTraceLink() {
     if (typeof window === 'undefined') return;
@@ -98,7 +106,7 @@
     </div>
     <div class="trace-progress" aria-label="Trace progress">
       <span>{$idx + 1}</span>
-      <small>of {stepper.all().length} steps</small>
+      <small>of {stepCount} steps</small>
     </div>
   </div>
 

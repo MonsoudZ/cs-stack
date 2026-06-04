@@ -1,4 +1,5 @@
 <script>
+  import { onDestroy } from 'svelte';
   import { createStepper } from '../lib/stepper.svelte.js';
   import Stepper from './Stepper.svelte';
   const FRAG = ['GET ','/cas','es/','42 ','HTTP','/1.1'];
@@ -19,6 +20,7 @@
   const { idx } = stepper;
   let s = $derived(stepper.all()[$idx]);
   let preview = $derived(s.slots.map((f) => f === null ? '····' : f).join(''));
+  onDestroy(() => stepper.destroy());
 </script>
 <div class="widget">
   <div class="csbar"><span class="csmini">the same request, chopped into 6 packets crossing a lossy internet</span></div>

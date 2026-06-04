@@ -1,4 +1,5 @@
 <script>
+  import { onDestroy } from 'svelte';
   import { createStepper } from '../lib/stepper.svelte.js';
   import Stepper from './Stepper.svelte';
   let cacheHit = $state(false);
@@ -26,14 +27,18 @@
   }
   server = -1;
   const stepper = createStepper(buildHops, { speed: 850 });
-  const { idx } = stepper;
-  let hops = $derived(stepper.all());
+  const { idx, version } = stepper;
+  // `$version` is the dependency that makes the hop list recompute when
+  // toggleCache rebuilds the steps (the cache hit/miss path) — without it this
+  // derived has no reactive trigger and the toggle would show stale hops.
+  let hops = $derived(($version, stepper.all()));
   let i = $derived($idx);
   let hop = $derived(hops[i]);
   let visited = $derived(new Set(hops.slice(0, i + 1).map((h) => h.loc)));
   let lat = $derived(hops.slice(0, i + 1).filter((h) => !h.async).reduce((a, h) => a + h.ms, 0));
   function toggleCache() { cacheHit = !cacheHit; server = (server - 1 + 3) % 3; stepper.reset(); }
   const at = (k) => hop.loc === k;
+  onDestroy(() => stepper.destroy());
 </script>
 {#snippet node(key, cn, cd, dim)}
   <div class="cnode {at(key) ? 'active' : (visited.has(key) ? 'visited' : '')} {dim ? 'dim' : ''}"><div class="cn">{cn}</div><div class="cd">{cd}</div></div>

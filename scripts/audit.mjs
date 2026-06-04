@@ -28,7 +28,11 @@ function assertNoSourceMatches() {
     [/outline\s*:\s*none/, 'Do not remove focus outlines without replacement.'],
     [/Run npm run|Astro \+ Svelte|Static prose|hydrated island/, 'Visitor-facing dev boilerplate leaked into source.'],
     [/FIXME|lorem|click here/i, 'Placeholder or weak copy found.'],
-    [/style=/, 'Inline style= found; prefer classes or Svelte style directives.'],
+    // Bans only STATIC inline styles (style="..."). Dynamic `style:` bindings
+    // (e.g. style:background={rgb}) are intentionally allowed — runtime-computed
+    // values can't be a static class — and so do ship as inline styles in the
+    // generated HTML; assertGeneratedHtml() reports that count for transparency.
+    [/style=/, 'Static inline style= found; use a class or a Svelte style: directive.'],
   ];
 
   for (const file of files) {
@@ -63,6 +67,7 @@ function assertGeneratedHtml() {
   const headings = [...html.matchAll(/<h([1-6])\b[^>]*>([\s\S]*?)<\/h\1>/g)];
   const images = [...html.matchAll(/<img\b([^>]*)>/g)];
   const links = [...html.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/g)];
+  const inlineStyles = (html.match(/style="/g) || []).length;
 
   buttons.forEach(([, rawAttrs, body], index) => {
     const a = attrs(rawAttrs);
@@ -95,7 +100,7 @@ function assertGeneratedHtml() {
   if (details !== summaries) fail(`details/summary mismatch: ${details}/${summaries}`);
   if (!headings.some((heading) => heading[1] === '1')) fail('missing h1');
 
-  console.log(`Generated HTML: ${buttons.length} buttons, ${inputs.length} inputs, ${details} details, ${headings.length} headings, ${images.length} images, ${links.length} links`);
+  console.log(`Generated HTML: ${buttons.length} buttons, ${inputs.length} inputs, ${details} details, ${headings.length} headings, ${images.length} images, ${links.length} links, ${inlineStyles} dynamic inline styles`);
 }
 
 assertNoSourceMatches();

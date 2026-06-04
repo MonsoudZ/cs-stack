@@ -16,4 +16,6 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
-      - run: npm run build
+      # `audit` builds the site, then runs the accessibility/quality gate
+      # (scripts/audit.mjs) against the generated HTML — replaces a bare build.
+      - run: npm run audit

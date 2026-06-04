@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { get } from 'svelte/store';
 import { createStepper } from './stepper.svelte.js';
 
@@ -60,5 +60,42 @@ describe('createStepper', () => {
     expect(get(s.idx)).toBe(0);
     expect(s.current()).toEqual({ y: 9 });
     expect(s.isLast()).toBe(true);
+  });
+
+  it('bumps version on rebuild/reset at step 0 (idx alone would not change)', () => {
+    const s = createStepper(build3);
+    expect(get(s.idx)).toBe(0);
+    const v0 = get(s.version);
+    s.stepOrRestart();
+    expect(get(s.version)).toBe(v0); // plain stepping must NOT bump
+    s.reset();
+    expect(get(s.idx)).toBe(0);
+    s.rebuild(() => [{ y: 9 }]);
+    expect(get(s.idx)).toBe(0);            // index never left 0...
+    expect(get(s.version)).toBe(v0 + 2);   // ...but version signals both swaps
+  });
+
+  it('a manual step cancels auto-play instead of double-advancing', () => {
+    vi.useFakeTimers();
+    const s = createStepper(build3, { speed: 100 });
+    s.toggleAuto();
+    expect(get(s.autoOn)).toBe(true);
+    s.stepOrRestart();
+    expect(get(s.autoOn)).toBe(false); // auto stopped
+    expect(get(s.idx)).toBe(1);
+    vi.advanceTimersByTime(500);
+    expect(get(s.idx)).toBe(1);        // timer gone — no extra advance
+    vi.useRealTimers();
+  });
+
+  it('destroy clears the auto-play timer', () => {
+    vi.useFakeTimers();
+    const s = createStepper(build3, { speed: 100 });
+    s.toggleAuto();
+    s.destroy();
+    vi.advanceTimersByTime(1000);
+    expect(get(s.idx)).toBe(0);        // never advanced after destroy
+    expect(get(s.autoOn)).toBe(false);
+    vi.useRealTimers();
   });
 });
