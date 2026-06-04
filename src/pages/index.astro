@@ -25,10 +25,10 @@ import Takeaway from '../components/Takeaway.astro';
     <Takeaway>A MOSFET is the physical trick that turns material into a controllable switch.</Takeaway>
     <p class="aside">Past the threshold, the gate pulls a <span class="hl">channel</span> into existence: current flows.</p>
     <Why
-      problem="Raw silicon does not decide anything; it only barely conducts."
-      idea="Doping creates regions where a gate voltage can open or close a path for electrons."
-      tradeoff="The switch is physical, so heat, leakage, and manufacturing limits always matter."
-      next="Once matter can switch, voltage can become a clean state."
+      problem="Raw silicon is only a material. To build a computer, we need matter that can be pushed between two dependable behaviors: blocking current or letting it pass."
+      idea="Doping changes the material so a gate voltage can pull a temporary channel into place. That turns a tiny patch of silicon into a controllable switch."
+      tradeoff="Because the switch is physical, it has limits: heat, leakage, manufacturing variation, and the fact that smaller parts are harder to control."
+      next="Once matter can switch reliably, electricity can carry a clean state instead of just being messy motion."
     />
   </section>
 
@@ -38,10 +38,10 @@ import Takeaway from '../components/Takeaway.astro';
     <Voltage />
     <Takeaway>Voltage is the physical alphabet: LOW and HIGH are the first two symbols.</Takeaway>
     <Why
-      problem="A computer needs something physical it can measure billions of times per second."
-      idea="Use two voltage ranges: LOW and HIGH. The exact voltage can wobble; the range still means state."
-      tradeoff="Real wires are noisy, so circuits need margins between LOW, unknown, and HIGH."
-      next="A transistor lets one voltage control another voltage."
+      problem="A computer needs a physical signal it can sample again and again without asking a human what it means."
+      idea="Treat voltage as a range, not a perfect value: low enough means LOW, high enough means HIGH. The exact number can wobble while the meaning stays stable."
+      tradeoff="Noise, delay, and weak signals can land in the unsafe middle. Good digital circuits leave enough margin that most wobble is ignored."
+      next="A transistor uses one voltage state to control another, turning representation into action."
     />
   </section>
 
@@ -51,10 +51,10 @@ import Takeaway from '../components/Takeaway.astro';
     <Transistor />
     <Takeaway>A transistor lets one signal decide whether another signal can pass.</Takeaway>
     <Why
-      problem="Voltage alone can represent state, but it cannot choose what happens next."
-      idea="A transistor is a controllable switch: one signal opens or closes another path."
-      tradeoff="One switch is simple; billions of switches create power, timing, and layout problems."
-      next="Wire switches together and they become logic gates."
+      problem="Voltage can say HIGH or LOW, but a computer also needs one signal to influence another signal."
+      idea="A transistor is the basic if-statement of hardware: if the gate is active, current can pass; otherwise the path stays closed."
+      tradeoff="One transistor is easy to understand. Billions together create hard engineering problems around timing, power, heat, and layout."
+      next="When transistors are wired in patterns, they become gates that compute true and false."
     />
   </section>
 
@@ -64,10 +64,10 @@ import Takeaway from '../components/Takeaway.astro';
     <LogicGate client:visible />
     <Takeaway>Logic gates are decisions made out of transistor patterns.</Takeaway>
     <Why
-      problem="A switch is useful, but computation needs repeatable decisions."
-      idea="Logic gates turn input states into output states using fixed transistor patterns."
-      tradeoff="Every gate has delay, so large circuits must manage timing carefully."
-      next="Groups of true/false outputs can be read as binary numbers."
+      problem="Individual switches can control current, but computation needs dependable rules: given these inputs, always produce that output."
+      idea="Logic gates package transistor patterns into reusable decisions like AND, OR, NOT, and XOR. They let circuits answer small questions mechanically."
+      tradeoff="Every gate takes time and consumes power. Large circuits must coordinate thousands of tiny delays so the answer arrives when expected."
+      next="Multiple true/false answers side by side can be treated as a binary number."
     />
   </section>
 
@@ -77,10 +77,10 @@ import Takeaway from '../components/Takeaway.astro';
     <Bits client:visible />
     <Takeaway>Binary is not magic; it is place value applied to on/off wires.</Takeaway>
     <Why
-      problem="Logic gives yes/no, but programs need quantities: counts, addresses, colors, letters."
-      idea="Binary place value turns many on/off wires into one number."
-      tradeoff="Fixed-width numbers can overflow; the machine only stores so many bits at once."
-      next="Once numbers exist, gates can be arranged to do arithmetic on them."
+      problem="Yes/no is enough for decisions, but programs need quantities: how many, which address, what color, which character."
+      idea="Binary place value gives each wire a weight. The pattern 00000101 is not just eight switches; it is a compact way to say five."
+      tradeoff="Machines use fixed widths, so numbers can overflow or lose detail. The hardware only remembers as many bits as the design provides."
+      next="Once bit patterns can mean numbers, logic gates can be arranged to transform those numbers."
     />
   </section>
 
@@ -90,10 +90,10 @@ import Takeaway from '../components/Takeaway.astro';
     <Adder client:visible />
     <Takeaway>Arithmetic is logic arranged so carries move from bit to bit.</Takeaway>
     <Why
-      problem="A computer cannot be useful if it can store numbers but never transform them."
-      idea="Adder circuits combine XOR, AND, and carry logic to make arithmetic physical."
-      tradeoff="Carries take time to move, so faster CPUs use more complex adder designs."
-      next="The same numbers can now stand for data or instructions."
+      problem="A stored number is inert until the machine can change it: add totals, compare values, advance counters, compute addresses."
+      idea="Adder circuits use logic gates to combine two bits plus a carry. Chaining that tiny pattern across a word makes arithmetic happen in hardware."
+      tradeoff="Simple adders wait for carries to ripple across the whole number. Faster designs spend more circuitry to shorten that wait."
+      next="Now numbers can be transformed, so the same bit patterns can represent data, addresses, or instructions."
     />
   </section>
 
@@ -103,10 +103,10 @@ import Takeaway from '../components/Takeaway.astro';
     <NumbersThings client:visible />
     <Takeaway>Meaning comes from interpretation; the same byte can be many things.</Takeaway>
     <Why
-      problem="The hardware only sees numbers, but humans want text, images, code, and meaning."
-      idea="Encoding is an agreement that says how a number should be interpreted."
-      tradeoff="The same bits can be misunderstood if the reader uses the wrong encoding."
-      next="A CPU is the agreement that treats some numbers as commands."
+      problem="Hardware only stores bit patterns, but software needs those patterns to stand for text, colors, sound, files, and commands."
+      idea="An encoding is a shared agreement: this number means the letter A, this triplet means a pixel color, this byte range means an instruction."
+      tradeoff="Meaning lives in the reader. The same bits can become nonsense if decoded with the wrong convention or width."
+      next="The CPU is the special agreement that treats selected numbers as actions to perform."
     />
   </section>
 
@@ -116,10 +116,10 @@ import Takeaway from '../components/Takeaway.astro';
     <Cpu client:visible />
     <Takeaway>A CPU is a tiny loop that treats some numbers as instructions.</Takeaway>
     <Why
-      problem="Circuits can compute, but we need a reusable machine instead of a new circuit for every task."
-      idea="The CPU repeats one loop: fetch an instruction, decode it, execute it, move on."
-      tradeoff="General-purpose control adds complexity: registers, clocks, caches, pipelines, interrupts."
-      next="Instructions need places to read from and write to, so memory becomes the workspace."
+      problem="Without a CPU, every task would need its own custom circuit. We need one machine that can be reused by changing the instructions it reads."
+      idea="The CPU repeats a small loop: fetch a number from memory, decode what it means, execute the operation, then move to the next instruction."
+      tradeoff="General-purpose control is powerful but complicated. Registers, clocks, caches, pipelines, and interrupts exist to keep that loop useful and fast."
+      next="Instructions need a place to live and data to work on, so memory becomes the machine's workspace."
     />
   </section>
 
@@ -129,10 +129,10 @@ import Takeaway from '../components/Takeaway.astro';
     <CallStack client:visible />
     <Takeaway>Memory gives numbers addresses; the stack gives function calls a shape.</Takeaway>
     <Why
-      problem="Programs need somewhere to keep values, arrays, return addresses, and temporary state."
-      idea="Memory gives every byte an address; the stack gives function calls an orderly place to live."
-      tradeoff="Memory is huge but not free: access time, cache locality, and stack limits matter."
-      next="Many programs want memory and CPU time, so the operating system arbitrates."
+      problem="A CPU can execute instructions, but programs need somewhere to keep changing values, arrays, return addresses, and temporary state."
+      idea="Memory gives every byte an address so code can say where to read and write. The call stack gives function calls a disciplined place to pause and resume."
+      tradeoff="Memory feels huge, but distance matters. Cache misses, bad locality, allocation costs, and stack limits can dominate performance."
+      next="Once many programs want CPU time and memory at once, the operating system becomes the referee."
     />
   </section>
 
@@ -142,10 +142,10 @@ import Takeaway from '../components/Takeaway.astro';
     <Scheduler client:visible />
     <Takeaway>The OS makes one machine feel safely shared by many programs.</Takeaway>
     <Why
-      problem="Apps should not each control the whole machine or crash into each other."
-      idea="The OS owns the hardware and gives programs safe slices of CPU, memory, files, and devices."
-      tradeoff="Isolation and fairness cost overhead, context switches, permissions, and system calls."
-      next="Once the OS can manage one machine, the network lets machines talk."
+      problem="If every app controlled the hardware directly, one bug could overwrite another program, freeze the machine, or steal private data."
+      idea="The OS owns the hardware and rents out safe illusions: each program gets its own memory, files, devices, and turns on the CPU."
+      tradeoff="Safety is not free. Isolation, scheduling, permissions, and system calls add overhead and make some operations more indirect."
+      next="With one machine managed safely, the next problem is connecting many machines together."
     />
   </section>
 
@@ -158,10 +158,10 @@ import Takeaway from '../components/Takeaway.astro';
     <Packets client:visible />
     <Takeaway>Packets can arrive late, lost, or out of order; protocols rebuild the original message.</Takeaway>
     <Why
-      problem="Two programs on different machines need to exchange bytes across unreliable links."
-      idea="Layered protocols wrap data with addresses, ports, ordering, and checks."
-      tradeoff="Reliability and routing add headers, latency, retries, and failure modes."
-      next="At scale, many networked machines become a cloud system."
+      problem="Programs often need to talk across machines, but the path between them can drop packets, reorder data, or route through many strangers."
+      idea="Network protocols wrap bytes with context: where they came from, where they are going, which program should receive them, and how to rebuild the stream."
+      tradeoff="Reliability costs extra bytes and time. Headers, handshakes, retries, congestion control, and timeouts are the price of useful communication."
+      next="When many networked machines coordinate to serve users, the stack becomes a cloud system."
     />
   </section>
 
@@ -171,10 +171,10 @@ import Takeaway from '../components/Takeaway.astro';
     <Cloud client:visible />
     <Takeaway>The cloud is the same stack repeated, coordinated, and scaled sideways.</Takeaway>
     <Why
-      problem="One machine can fail, overload, or be too far from users."
-      idea="Cloud systems spread work across load balancers, app servers, caches, databases, and queues."
-      tradeoff="Scale creates distributed-systems problems: consistency, retries, observability, cost."
-      next="A user action now travels through every layer you climbed."
+      problem="One machine is a single point of failure and a single bottleneck. Users may also be far away, making every request slower."
+      idea="Cloud architecture repeats the stack across many machines: load balancers route, app servers compute, caches remember, databases persist, queues smooth bursts."
+      tradeoff="More machines create new failure modes. Consistency, retries, observability, deployments, and cost become design problems, not details."
+      next="A user action can now travel through browsers, networks, operating systems, memory, CPUs, gates, and voltage."
     />
   </section>
 
@@ -184,10 +184,10 @@ import Takeaway from '../components/Takeaway.astro';
     <p class="prose prose-follow">Every layer is a useful story told by the layer beneath it.</p>
     <Takeaway>Abstraction is the useful lie that lets humans build on top of physics.</Takeaway>
     <Why
-      problem="Each layer is too detailed to hold in your head while building real software."
-      idea="Abstractions hide lower-level mess so you can think at the right level for the job."
-      tradeoff="Abstractions leak: performance, bugs, security, and outages force you to look underneath."
-      next="The trace shows one piece of code touching the whole stack."
+      problem="No one can hold electrons, gates, instructions, memory, networks, and distributed systems in their head at the same time."
+      idea="Abstraction lets each layer present a simpler promise upward: a wire becomes a bit, bits become numbers, numbers become instructions, instructions become programs."
+      tradeoff="The promise is useful, not perfect. Performance bugs, security issues, and outages happen when lower-layer details leak through."
+      next="The final trace follows one piece of code as it crosses those promises."
     />
   </section>
 
@@ -198,10 +198,10 @@ import Takeaway from '../components/Takeaway.astro';
     <Tracer client:visible />
     <Takeaway>A line of code is a story retold as VM ops, memory changes, arithmetic, and signals.</Takeaway>
     <Why
-      problem="Code feels like text, but every line becomes work across many hidden layers."
-      idea="Tracing connects the source line to VM operations, memory movement, arithmetic, and systems effects."
-      tradeoff="No trace can show every detail; it chooses the useful slice of reality."
-      next="Use the trace when you want the whole machine to feel connected instead of magical."
+      problem="Source code feels like words on a screen, which makes the machine underneath easy to forget."
+      idea="The trace ties one source line to the lower-level work it triggers: VM operations, data structures, memory movement, arithmetic, and systems effects."
+      tradeoff="A trace is a lens, not the whole universe. It hides details so the important connections stay visible."
+      next="Use it as the bridge back down the stack whenever software starts to feel magical again."
     />
   </section>
 </Base>
