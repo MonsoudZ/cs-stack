@@ -281,9 +281,6 @@
   .binary-val{font-size:20px}
   .mv-small{font-size:14px}.mv-op{font-size:18px}.mv.muted{color:var(--dim)}
   .color-swatch{width:120px;height:80px;margin:0}
-  .graph-svg{width:100%;max-width:340px;height:auto}
-  .struct-row{margin-top:10px}
-  .dot-amber{background:#ffb454}.dot-signal{background:#2ee6c0}
   .empty-note{padding:10px 2px}
   .local-note{color:var(--faint);font-size:11px}
   .cpu-note{margin-top:14px}

@@ -65,25 +65,6 @@
     .cnode{padding:12px 13px}
     .cnode .cn{font-size:14px}
     .carrow{font-size:18px}
-    .trace-widget{padding:20px 14px}
-    .trace-title{font-size:30px}
-    .trace-progress{padding:9px 12px;min-width:88px}
-    .trace-progress span{font-size:28px}
-    .trace-touchbar{align-items:flex-start;flex-direction:column}
-    .tracepanel{padding:15px 13px}
-    .srccode{font-size:12px;line-height:1.75}
-    .vmops{font-size:12px}
-    .alu .aexpr{font-size:21px}
-    .buckets{gap:5px}
-    .bkt{width:58px;min-height:52px}
-    .wcell{width:54px;height:66px}
-    .wcell .wv{font-size:18px}
-    .mosfet{max-width:100%;transform:none}
-    .mos-gate{width:180px}
-    .mos-oxide{width:210px}
-    .mos-body{height:118px}
-    .mos-region{width:82px;margin:8px;font-size:12px}
-    .mos-carriers{letter-spacing:.16em}
   }
 
   @media(max-width:390px){
@@ -93,9 +74,6 @@
     .nb-cell{width:36px;height:42px}
     .carry{width:36px}
     .adlabel .tag{width:44px;font-size:11px}
-    .mos-region{width:68px;margin:7px}
-    .mos-gate{width:160px}
-    .mos-oxide{width:190px}
   }
 
   /* respect users who ask the OS to reduce motion: kill the ambient
