@@ -24,6 +24,10 @@
   let copyReset;
   function pick(k) { cur = k; stepper.rebuild(() => METHODS[cur].build()); }
   const rv = (r) => Array.isArray(r) ? '[' + r.join(', ') + ']' : r;
+  const pickNeighbor = (delta) => {
+    const i = METHOD_ORDER.indexOf(cur);
+    pick(METHOD_ORDER[(i + delta + METHOD_ORDER.length) % METHOD_ORDER.length]);
+  };
   const traceHref = () => {
     const p = new URLSearchParams(location.search);
     p.set('trace', cur);
@@ -73,8 +77,19 @@
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
     el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
   }
+
+  function onTraceKey(event) {
+    const tag = event.target?.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || event.metaKey || event.ctrlKey || event.altKey) return;
+    if (event.key === 'ArrowRight') { event.preventDefault(); stepper.move(1); }
+    else if (event.key === 'ArrowLeft') { event.preventDefault(); stepper.move(-1); }
+    else if (event.key === 'Home') { event.preventDefault(); stepper.setIndex(0); }
+    else if (event.key === 'End') { event.preventDefault(); stepper.setIndex(stepper.all().length - 1); }
+    else if (event.key === 'ArrowDown') { event.preventDefault(); pickNeighbor(1); }
+    else if (event.key === 'ArrowUp') { event.preventDefault(); pickNeighbor(-1); }
+  }
 </script>
-<div class="widget trace-widget">
+<div class="widget trace-widget" role="region" tabindex="0" aria-label="Trace explorer" onkeydown={onTraceKey}>
   <div class="trace-hero">
     <div>
       <div class="trace-kicker">final trace</div>
@@ -106,6 +121,7 @@
       </span>
     {/if}
   </div>
+  <div class="trace-keys">keys: ←/→ step · ↑/↓ method · Home/End jump</div>
 
   <div class="trace-grid">
     <div class="tracepanel trace-source">
@@ -155,6 +171,8 @@
   .trace-share:hover{color:var(--ink)}
   .trace-touchbar{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
     border:1px solid var(--border);border-radius:13px;padding:10px 12px;background:rgba(8,11,18,.46);font-family:var(--mono);font-size:12px;color:var(--faint)}
+  .trace-widget:focus-visible{outline:2px solid var(--blue);outline-offset:5px;box-shadow:0 0 0 4px rgba(91,157,255,.16)}
+  .trace-keys{position:relative;z-index:1;margin-top:9px;font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);opacity:.72}
   .trace-tags{display:inline-flex;align-items:center;gap:5px;flex-wrap:wrap;color:var(--blue)}
   .trace-grid{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1.18fr) minmax(280px,.82fr);gap:14px;margin-top:16px}
   .trace-source{grid-row:span 2}

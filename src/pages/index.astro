@@ -1,13 +1,13 @@
 ---
 import Base from '../layouts/Base.astro';
 import Mosfet from '../components/Mosfet.svelte';
-import Voltage from '../components/Voltage.svelte';
+import Voltage from '../components/Voltage.astro';
 import LogicGate from '../components/LogicGate.svelte';
 import Bits from '../components/Bits.svelte';
 import CallStack from '../components/CallStack.svelte';
 import Scheduler from '../components/Scheduler.svelte';
 import Tracer from '../components/Tracer.svelte';
-import Transistor from '../components/Transistor.svelte';
+import Transistor from '../components/Transistor.astro';
 import Adder from '../components/Adder.svelte';
 import NumbersThings from '../components/NumbersThings.svelte';
 import Cpu from '../components/Cpu.svelte';
@@ -35,7 +35,7 @@ import Takeaway from '../components/Takeaway.astro';
   <section class="layer zone-physical" id="L0" data-title="Voltage">
     <div class="layer-head"><div class="layer-idx">00</div><div class="layer-titles"><h2>A wire that is either pushed or not</h2><div class="sub">physical · electricity</div></div></div>
     <p class="prose">At the bottom there are no zeros and ones — just <b>voltage</b> read as <span class="hl">HIGH</span> or <span class="hl">LOW</span>.</p>
-    <Voltage client:visible />
+    <Voltage />
     <Takeaway>Voltage is the physical alphabet: LOW and HIGH are the first two symbols.</Takeaway>
     <Why
       problem="A computer needs something physical it can measure billions of times per second."
@@ -48,7 +48,7 @@ import Takeaway from '../components/Takeaway.astro';
   <section class="layer zone-physical" id="L1" data-title="Transistor">
     <div class="layer-head"><div class="layer-idx">01</div><div class="layer-titles"><h2>The transistor: a wire that controls another wire</h2><div class="sub">physical · the switch</div></div></div>
     <p class="prose">A transistor is a switch with no moving parts: one voltage controls whether another can flow.</p>
-    <Transistor client:visible />
+    <Transistor />
     <Takeaway>A transistor lets one signal decide whether another signal can pass.</Takeaway>
     <Why
       problem="Voltage alone can represent state, but it cannot choose what happens next."

@@ -1,0 +1,29 @@
+<div class="widget voltage-static">
+  <div class="w-label">tap the wire to drive it HIGH / LOW</div>
+  <input id="voltage-toggle" class="state-check" type="checkbox" />
+  <div class="w-row">
+    <div class="tube">
+      <div class="lead"><div class="node voltage-node"></div><small>source</small></div>
+      <label for="voltage-toggle" class="wire voltage-wire"><span class="sr-only">Toggle wire voltage</span></label>
+      <div class="lead"><div class="node voltage-node"></div><small><span class="state-high">≈ 3.3V</span><span class="state-low">≈ 0V</span></small></div>
+    </div>
+    <div class="lead">
+      <div class="toggle display-toggle voltage-state"><div class="st">STATE</div><div class="v"><span class="state-high">HIGH</span><span class="state-low">LOW</span></div></div>
+      <small><span class="state-high">≈ 3.3 volts</span><span class="state-low">≈ 0 volts</span></small>
+    </div>
+  </div>
+</div>
+
+<style>
+  .state-check{position:absolute;inline-size:1px;block-size:1px;opacity:0;pointer-events:none}
+  .sr-only{position:absolute;inline-size:1px;block-size:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+  .state-high{display:none}
+  .state-check:checked ~ .w-row .state-high{display:inline}
+  .state-check:checked ~ .w-row .state-low{display:none}
+  .state-check:checked ~ .w-row .voltage-node,
+  .state-check:checked ~ .w-row .voltage-wire{background:var(--signal);box-shadow:0 0 20px var(--signal)}
+  .state-check:checked ~ .w-row .voltage-state{border-color:var(--border-hot);background:var(--signal-d);box-shadow:0 0 18px var(--signal-d)}
+  .state-check:checked ~ .w-row .voltage-state .v{color:var(--signal);text-shadow:0 0 12px var(--signal)}
+  .state-check:checked ~ .w-row .voltage-state .st{color:var(--signal)}
+  .state-check:focus-visible ~ .w-row .voltage-wire{outline:2px solid var(--signal);outline-offset:6px;box-shadow:0 0 0 4px var(--signal-d)}
+</style>

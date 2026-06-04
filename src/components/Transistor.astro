@@ -1,0 +1,30 @@
+<div class="widget transistor-static">
+  <div class="w-label">flip the gate voltage — watch the channel open</div>
+  <input id="transistor-toggle" class="state-check" type="checkbox" />
+  <div class="w-row">
+    <label for="transistor-toggle" class="toggle gate-toggle">
+      <span class="st">GATE</span><span class="v"><span class="state-high">1</span><span class="state-low">0</span></span>
+    </label>
+    <div class="tube">
+      <div class="lead"><div class="node live"></div><small>in</small></div>
+      <div class="wire live"></div>
+      <div class="gate-sym static-gate"><div class="ctrl"></div><div class="body"><span class="state-high">on</span><span class="state-low">off</span></div></div>
+      <div class="wire transistor-output"></div>
+      <div class="lead"><div class="node transistor-output"></div><small>out</small></div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .state-check{position:absolute;inline-size:1px;block-size:1px;opacity:0;pointer-events:none}
+  .state-high{display:none}
+  .state-check:checked ~ .w-row .state-high{display:inline}
+  .state-check:checked ~ .w-row .state-low{display:none}
+  .state-check:checked ~ .w-row .gate-toggle{border-color:var(--border-hot);background:var(--signal-d);box-shadow:0 0 18px var(--signal-d)}
+  .state-check:checked ~ .w-row .gate-toggle .v{color:var(--signal);text-shadow:0 0 12px var(--signal)}
+  .state-check:checked ~ .w-row .gate-toggle .st{color:var(--signal)}
+  .state-check:checked ~ .w-row .static-gate .body{border-color:var(--signal);color:var(--signal);box-shadow:0 0 16px var(--signal-d)}
+  .state-check:checked ~ .w-row .static-gate .ctrl,
+  .state-check:checked ~ .w-row .transistor-output{background:var(--signal);box-shadow:0 0 12px var(--signal)}
+  .state-check:focus-visible ~ .w-row .gate-toggle{outline:2px solid var(--signal);outline-offset:3px;box-shadow:0 0 0 4px var(--signal-d)}
+</style>

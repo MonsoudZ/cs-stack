@@ -12,6 +12,8 @@ export function createStepper(buildFn, { speed = 900 } = {}) {
   function step() { if (i < steps.length - 1) { i++; render(); } else stop(); }
   function stop() { if (timer) { clearInterval(timer); timer = null; autoOn.set(false); } }
   function reset() { stop(); steps = buildFn(); i = 0; render(); }
+  function setIndex(next) { stop(); i = Math.max(0, Math.min(next, steps.length - 1)); render(); }
+  function move(delta) { setIndex(i + delta); }
   function stepOrRestart() { if (i >= steps.length - 1) { i = 0; render(); } else step(); }
   function toggleAuto() {
     if (timer) { stop(); return; }
@@ -24,5 +26,5 @@ export function createStepper(buildFn, { speed = 900 } = {}) {
   function isLast() { return i >= steps.length - 1; }
   function all() { return steps; }
 
-  return { idx, autoOn, stepOrRestart, reset, toggleAuto, rebuild, current, isLast, all };
+  return { idx, autoOn, stepOrRestart, reset, toggleAuto, rebuild, move, setIndex, current, isLast, all };
 }

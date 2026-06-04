@@ -33,6 +33,26 @@ describe('createStepper', () => {
     expect(calls).toBe(2);
   });
 
+  it('moves by delta and clamps to the available steps', () => {
+    const s = createStepper(build3);
+    s.move(2);
+    expect(get(s.idx)).toBe(2);
+    s.move(1);
+    expect(get(s.idx)).toBe(2);
+    s.move(-5);
+    expect(get(s.idx)).toBe(0);
+  });
+
+  it('sets the index directly and clamps out-of-range values', () => {
+    const s = createStepper(build3);
+    s.setIndex(99);
+    expect(get(s.idx)).toBe(2);
+    s.setIndex(1);
+    expect(get(s.idx)).toBe(1);
+    s.setIndex(-1);
+    expect(get(s.idx)).toBe(0);
+  });
+
   it('rebuild swaps the source and resets to the start', () => {
     const s = createStepper(build3);
     s.stepOrRestart();
