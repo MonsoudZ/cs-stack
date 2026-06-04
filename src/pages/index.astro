@@ -10,6 +10,7 @@ import Tracer from '../components/Tracer.svelte';
 import Transistor from '../components/Transistor.astro';
 import Adder from '../components/Adder.svelte';
 import NumbersThings from '../components/NumbersThings.svelte';
+import RuntimePipeline from '../components/RuntimePipeline.astro';
 import Cpu from '../components/Cpu.svelte';
 import MemoryHierarchy from '../components/MemoryHierarchy.astro';
 import Encapsulation from '../components/Encapsulation.svelte';
@@ -108,6 +109,19 @@ import Takeaway from '../components/Takeaway.astro';
       idea="An encoding is a shared agreement: this number means the letter A, this triplet means a pixel color, this byte range means an instruction."
       tradeoff="Meaning lives in the reader. The same bits can become nonsense if decoded with the wrong convention or width."
       next="The CPU is the special agreement that treats selected numbers as actions to perform."
+    />
+  </section>
+
+  <section class="layer zone-meaning" id="L5b" data-title="Compilation / runtime">
+    <div class="layer-head"><div class="layer-idx">05.5</div><div class="layer-titles"><h2>Runtime: how code stops being text</h2><div class="sub">meaning · parsing · bytecode · machine code</div></div></div>
+    <p class="prose">Your source code is for humans. Before the CPU can obey it, language tools have to turn that text into structured operations.</p>
+    <RuntimePipeline />
+    <Takeaway>A runtime is the bridge between human language and machine operations.</Takeaway>
+    <Why
+      problem="The CPU cannot execute JavaScript, Ruby, Python, or C source text. It only follows lower-level operations."
+      idea="Language tools parse the text, check structure, lower it into simpler steps, and either interpret, compile, or JIT those steps into CPU work."
+      tradeoff="Runtimes buy portability and developer speed, but they add startup cost, memory overhead, optimization complexity, and sometimes pauses."
+      next="After code becomes instructions or bytecode operations, the CPU loop has something concrete to fetch, decode, and execute."
     />
   </section>
 

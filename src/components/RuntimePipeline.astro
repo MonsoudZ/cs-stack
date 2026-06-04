@@ -1,0 +1,53 @@
+---
+const stages = [
+  ['source', 'Source code', 'Human-readable text: functions, variables, loops, imports.'],
+  ['parse', 'Parse', 'The language turns text into structure and checks whether it makes sense.'],
+  ['lower', 'Lower', 'High-level ideas become simpler operations the runtime or compiler can handle.'],
+  ['run', 'Run', 'A VM interprets bytecode, a JIT compiles hot paths, or native code reaches the CPU.'],
+];
+---
+<div class="widget runtime-widget">
+  <div class="w-label">compilation/runtime — how code stops being text</div>
+  <div class="runtime-flow">
+    {stages.map(([key, name, copy], i) => (
+      <>
+        <div class={`runtime-stage stage-${key}`}>
+          <div class="stage-num">{String(i + 1).padStart(2, '0')}</div>
+          <div>
+            <div class="stage-name">{name}</div>
+            <p>{copy}</p>
+          </div>
+        </div>
+        {i < stages.length - 1 && <div class="runtime-arrow" aria-hidden="true">→</div>}
+      </>
+    ))}
+  </div>
+  <div class="runtime-split">
+    <div>
+      <span>Interpreted / VM path</span>
+      <p>Source becomes bytecode or an intermediate form; the runtime executes it and manages services like garbage collection.</p>
+    </div>
+    <div>
+      <span>Compiled path</span>
+      <p>Source becomes machine code ahead of time or just-in-time, so the CPU can execute instructions directly.</p>
+    </div>
+  </div>
+</div>
+
+<style>
+  .runtime-widget{border-color:rgba(183,123,255,.3)}
+  .runtime-flow{position:relative;z-index:1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:stretch}
+  .runtime-stage{border:1px solid var(--border);border-radius:14px;padding:15px;background:rgba(8,11,18,.58);
+    display:flex;gap:11px;min-height:150px}
+  .stage-num{font-family:var(--mono);font-size:11px;color:var(--violet);border:1px solid rgba(183,123,255,.35);
+    background:var(--violet-d);border-radius:9px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  .stage-name{font-family:var(--disp);font-weight:800;font-size:21px;color:var(--ink);letter-spacing:-.01em}
+  .runtime-stage p{margin:8px 0 0;color:var(--dim);font-size:14px;line-height:1.55}
+  .runtime-arrow{display:none}
+  .runtime-split{position:relative;z-index:1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
+  .runtime-split div{border:1px solid rgba(183,123,255,.28);border-radius:13px;padding:14px 15px;background:var(--violet-d)}
+  .runtime-split span{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--violet)}
+  .runtime-split p{margin:7px 0 0;color:var(--dim);font-size:14px;line-height:1.6}
+  @media(max-width:900px){.runtime-flow{grid-template-columns:1fr}.runtime-arrow{display:block;text-align:center;color:var(--violet);font-family:var(--mono)}.runtime-stage{min-height:0}}
+  @media(max-width:620px){.runtime-split{grid-template-columns:1fr}}
+</style>
