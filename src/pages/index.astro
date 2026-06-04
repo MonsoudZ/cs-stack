@@ -18,6 +18,7 @@ import DataStructures from '../components/DataStructures.astro';
 import Encapsulation from '../components/Encapsulation.svelte';
 import Packets from '../components/Packets.svelte';
 import Cloud from '../components/Cloud.svelte';
+import DatabaseSystem from '../components/DatabaseSystem.astro';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
 ---
@@ -231,6 +232,19 @@ import Takeaway from '../components/Takeaway.astro';
       idea="Cloud architecture repeats the stack across many machines: load balancers route, app servers compute, caches remember, databases persist, queues smooth bursts."
       tradeoff="More machines create new failure modes. Consistency, retries, observability, deployments, and cost become design problems, not details."
       next="A user action can now travel through browsers, networks, operating systems, memory, CPUs, gates, and voltage."
+    />
+  </section>
+
+  <section class="layer zone-system" id="L10b" data-title="Databases">
+    <div class="layer-head"><div class="layer-idx">10.5</div><div class="layer-titles"><h2>Databases: memory that survives questions</h2><div class="sub">systems · indexes · transactions · durability</div></div></div>
+    <p class="prose">A database is where an app stores durable truth and asks for slices of it quickly.</p>
+    <DatabaseSystem />
+    <Takeaway>Databases turn storage into reliable questions, updates, and recovery.</Takeaway>
+    <Why
+      problem="Apps need more than files. They need shared, durable state that can be queried, updated safely, and recovered after failure."
+      idea="A database adds structure around storage: schemas or documents, indexes for lookup, transactions for correctness, and replication for survival."
+      tradeoff="Correct durable data costs work. Indexes take space, transactions coordinate locks or versions, and distributed databases must choose consistency tradeoffs."
+      next="The final user-facing layer is the browser, where data becomes interface and pixels."
     />
   </section>
 

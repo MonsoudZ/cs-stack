@@ -1,0 +1,44 @@
+---
+const parts = [
+  ['Tables / documents', 'Organize facts so programs can ask for them later.'],
+  ['Indexes', 'Precomputed shortcuts that make common lookups fast.'],
+  ['Transactions', 'Group changes so data moves from one valid state to another.'],
+  ['Replication', 'Copy data so reads, backups, and failover do not depend on one machine.'],
+];
+---
+<div class="widget db-widget">
+  <div class="w-label">databases — durable memory with questions</div>
+  <div class="db-layout">
+    <div class="db-cylinder" aria-hidden="true">
+      <div class="db-top"></div>
+      <div class="db-body">DB</div>
+      <div class="db-bottom"></div>
+    </div>
+    <div class="db-parts">
+      {parts.map(([name, copy]) => (
+        <div class="db-part">
+          <span>{name}</span>
+          <p>{copy}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+  <div class="query-line"><span>SELECT</span> useful rows <span>WHERE</span> constraints match <span>ORDER BY</span> meaning</div>
+</div>
+
+<style>
+  .db-widget{border-color:rgba(91,157,255,.32)}
+  .db-layout{position:relative;z-index:1;display:grid;grid-template-columns:minmax(150px,.26fr) minmax(0,1fr);gap:16px;align-items:center}
+  .db-cylinder{font-family:var(--mono);color:var(--blue);filter:drop-shadow(0 18px 24px rgba(0,0,0,.22))}
+  .db-top,.db-bottom{height:34px;border:1px solid var(--blue);background:var(--blue-d);border-radius:50%}
+  .db-body{height:120px;margin-top:-17px;margin-bottom:-17px;border-left:1px solid var(--blue);border-right:1px solid var(--blue);
+    background:linear-gradient(180deg,var(--blue-d),rgba(8,11,18,.62));display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:800}
+  .db-parts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .db-part{border:1px solid var(--border);border-radius:14px;padding:15px;background:rgba(8,11,18,.62)}
+  .db-part span{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--blue)}
+  .db-part p{margin:8px 0 0;color:var(--dim);font-size:14px;line-height:1.58}
+  .query-line{position:relative;z-index:1;margin-top:14px;border:1px solid rgba(91,157,255,.28);border-radius:13px;padding:13px 15px;
+    background:var(--blue-d);font-family:var(--mono);font-size:13px;color:var(--dim);line-height:1.7}
+  .query-line span{color:var(--blue);font-weight:700}
+  @media(max-width:760px){.db-layout{grid-template-columns:1fr}.db-cylinder{max-width:190px;margin:auto}.db-parts{grid-template-columns:1fr}}
+</style>
