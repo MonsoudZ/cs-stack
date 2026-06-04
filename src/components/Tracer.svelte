@@ -20,8 +20,16 @@
   idx.set(Math.min(init.step, stepper.all().length - 1)); // restore shared step
   let M = $derived(METHODS[cur]);
   let s = $derived(stepper.all()[$idx]);
+  let copied = $state(false);
+  let copyReset;
   function pick(k) { cur = k; stepper.rebuild(() => METHODS[cur].build()); }
   const rv = (r) => Array.isArray(r) ? '[' + r.join(', ') + ']' : r;
+  const traceHref = () => {
+    const p = new URLSearchParams(location.search);
+    p.set('trace', cur);
+    p.set('step', String($idx));
+    return location.origin + location.pathname + '?' + p + location.hash;
+  };
 
   // Keep the URL in sync so the current trace + step is always shareable.
   $effect(() => {
@@ -30,6 +38,33 @@
     p.set('step', String($idx));
     history.replaceState(null, '', location.pathname + '?' + p + location.hash);
   });
+
+  function fallbackCopy(text) {
+    const area = document.createElement('textarea');
+    area.value = text;
+    area.setAttribute('readonly', '');
+    area.style.cssText = 'position:fixed;left:-9999px;top:0';
+    document.body.appendChild(area);
+    area.select();
+    const ok = document.execCommand('copy');
+    area.remove();
+    return ok;
+  }
+
+  async function copyTraceLink() {
+    if (typeof window === 'undefined') return;
+    let ok = false;
+    const href = traceHref();
+    try {
+      await navigator.clipboard.writeText(href);
+      ok = true;
+    } catch {
+      ok = fallbackCopy(href);
+    }
+    copied = ok;
+    clearTimeout(copyReset);
+    copyReset = setTimeout(() => copied = false, 1800);
+  }
 
   // A step's `touches` are the real layers it exercises — jump to them.
   function gotoLayer(t) {
@@ -57,6 +92,9 @@
     <span class="idxbtns">
       {#each METHOD_ORDER as k}<button type="button" class="btn" class:sel={cur === k} onclick={() => pick(k)}>{METHODS[k].name}</button>{/each}
     </span>
+    <button type="button" class="btn trace-share" onclick={copyTraceLink} aria-label="Copy link to current trace step">
+      {copied ? 'copied ✓' : 'copy current trace link'}
+    </button>
   </div>
 
   <div class="trace-touchbar">
@@ -113,6 +151,8 @@
   .trace-progress span{display:block;font-size:34px;font-weight:800;line-height:1;color:var(--blue)}
   .trace-progress small{display:block;margin-top:4px;color:var(--faint);font-size:11px}
   .trace-controls{position:relative;z-index:1;display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;opacity:.9}
+  .trace-share{margin-left:auto;border-color:rgba(91,157,255,.55);color:var(--blue);background:var(--blue-d)}
+  .trace-share:hover{color:var(--ink)}
   .trace-touchbar{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
     border:1px solid var(--border);border-radius:13px;padding:10px 12px;background:rgba(8,11,18,.46);font-family:var(--mono);font-size:12px;color:var(--faint)}
   .trace-tags{display:inline-flex;align-items:center;gap:5px;flex-wrap:wrap;color:var(--blue)}
@@ -153,6 +193,7 @@
   @media(max-width:560px){
     .trace-widget{padding:20px 14px}
     .trace-title{font-size:30px}
+    .trace-share{width:100%;margin-left:0}
     .trace-progress{padding:9px 12px;min-width:88px}
     .trace-progress span{font-size:28px}
     .trace-touchbar{align-items:flex-start;flex-direction:column}
