@@ -1,32 +1,14 @@
 <script>
   import { onDestroy } from 'svelte';
   import { createStepper } from '../lib/stepper.svelte.js';
+  import { buildCloudHops } from '../lib/widgets.js';
   import Stepper from './Stepper.svelte';
   let cacheHit = $state(false);
-  let server = $state(0);
-  function buildHops() {
-    server = (server + 1) % 3;
-    const sv = server, h = [], add = (loc, ms, note, async) => h.push({ loc, ms, note, async: !!async });
-    add('browser', 0, 'a user clicks — the browser fires GET /cases/42');
-    add('lb', 2, 'across the internet to the load balancer — the one public door');
-    add('app', 1, 'load balancer forwards to app server #' + (sv + 1) + ' of 3 (spreading the load)');
-    add('app', 3, 'Rails routes it → CasesController#show — your code starts running');
-    add('redis', 1, 'check Redis: is case 42 already cached?');
-    if (cacheHit) { add('redis', 0, 'cache HIT ✓ — answer is in memory, skip the database entirely'); }
-    else {
-      add('redis', 0, 'cache MISS ✗ — Redis does not have it, must ask the database');
-      add('pg', 20, 'Postgres runs the SQL and returns the row — the slow part (~20ms)');
-      add('redis', 1, 'write the result into Redis so the next request is a hit (cache now warm)');
-    }
-    add('sidekiq', 1, 'enqueue an audit-log job to Sidekiq — fire-and-forget, returns instantly');
-    add('app', 4, 'render the response — JSON for the case');
-    add('lb', 2, 'response travels back up through the load balancer');
-    add('browser', 2, 'the browser receives the response and paints the screen ✓');
-    add('sidekiq', 0, 'meanwhile, async: a Sidekiq worker pulls the job off the queue and runs it — the user already has their answer', true);
-    return h;
-  }
-  server = -1;
-  const stepper = createStepper(buildHops, { speed: 850 });
+  // round-robin app-server index, bumped on each (re)build so successive
+  // requests land on different servers. Starts at -1 so the first build → 0.
+  let server = $state(-1);
+  const nextHops = () => { server = (server + 1) % 3; return buildCloudHops({ cacheHit, server }); };
+  const stepper = createStepper(nextHops, { speed: 850 });
   const { idx, version } = stepper;
   // `$version` is the dependency that makes the hop list recompute when
   // toggleCache rebuilds the steps (the cache hit/miss path) — without it this
