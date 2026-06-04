@@ -144,7 +144,7 @@
   .buckets{display:flex;gap:6px;flex-wrap:wrap}
   .bkt{width:76px;height:auto;min-height:54px;padding:7px 4px;border:1px solid var(--border);border-radius:11px;display:flex;flex-direction:column;
     align-items:center;justify-content:center;font-family:var(--mono);background:var(--panel2);transition:.15s}
-  .bkt .bn{font-size:9px;color:var(--faint)}.bkt .bv{font-size:13px;color:var(--amber);margin-top:3px}
+  .bkt .bn{font-size:11px;color:var(--faint)}.bkt .bv{font-size:13px;color:var(--amber);margin-top:3px}
   .bkt.filled{border-color:var(--amber)}
   .bkt.active{border-color:var(--blue);box-shadow:0 0 16px var(--blue-d)}
   .bkt.hit{border-color:var(--signal);background:var(--signal-d)}.bkt.hit .bv{color:var(--signal)}
@@ -153,18 +153,18 @@
   .bent.m{color:var(--signal)}.bent.dotc{color:var(--faint);font-weight:400}
   .wcell{width:66px;height:78px;border:1px solid var(--border);border-radius:11px;display:flex;flex-direction:column;
     align-items:center;justify-content:center;font-family:var(--mono);background:var(--panel2);transition:.15s}
-  .wcell.out{opacity:.28}
+  .wcell.out{opacity:.55}
   .wcell.mid{border-color:var(--blue);background:var(--blue-d);box-shadow:0 0 16px var(--blue-d)}
-  .wcell .wn{font-size:9px;color:var(--faint)}
+  .wcell .wn{font-size:11px;color:var(--faint)}
   .wcell .wv{font-size:22px;font-weight:700;color:var(--amber);margin-top:3px}
-  .wcell .wm{font-size:9px;color:var(--blue);margin-top:3px;min-height:11px;letter-spacing:.03em}
+  .wcell .wm{font-size:11px;color:var(--blue);margin-top:3px;min-height:11px;letter-spacing:.03em}
   .wcell.cmp{border-color:var(--blue);background:var(--blue-d);box-shadow:0 0 14px var(--blue-d)}
   .wcell.cmp .wv{color:var(--blue)}
   .wcell.sorted{border-color:var(--signal);background:var(--signal-d)}
   .wcell.sorted .wv{color:var(--signal)}
   .wcell.win{border-color:var(--amber);background:var(--amber-d)}
   .wcell.win .wv{color:var(--amber)}
-  .wcell.dimx{opacity:.32}
+  .wcell.dimx{opacity:.55}
   .graph-svg{width:100%;max-width:340px;height:auto}
   .struct-row{margin-top:10px}
   .dot-amber{background:#ffb454}.dot-signal{background:#2ee6c0}

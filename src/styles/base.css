@@ -76,7 +76,7 @@
     color:var(--faint);font-size:12.5px;transition:color .18s;border:none;background:none;text-align:left;width:100%}
   .rung:hover{color:var(--ink)}
   .rung .num{position:absolute;left:-26px;width:16px;height:16px;border-radius:50%;border:1px solid var(--border);
-    background:var(--bg);font-size:9px;display:flex;align-items:center;justify-content:center;color:var(--faint);
+    background:var(--bg);font-size:11px;display:flex;align-items:center;justify-content:center;color:var(--faint);
     transition:.18s;line-height:1}
   .rung.on{color:var(--ink)}
   .rung.on .num{border-color:var(--signal);color:var(--signal);box-shadow:0 0 10px var(--signal-d)}
