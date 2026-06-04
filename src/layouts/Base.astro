@@ -1,13 +1,20 @@
 ---
 // Self-hosted fonts (no render-blocking third-party request to Google Fonts,
-// no privacy leak). Weights match what the design system actually uses.
-import '@fontsource-variable/bricolage-grotesque'; // display — optical-size + weight axes
-import '@fontsource/jetbrains-mono/400.css';
-import '@fontsource/jetbrains-mono/500.css';
-import '@fontsource/jetbrains-mono/700.css';
-import '@fontsource/spline-sans/400.css';
-import '@fontsource/spline-sans/500.css';
+// no privacy leak). Latin-only subsets — the site is English, so the
+// cyrillic/greek/vietnamese/latin-ext subsets and the legacy .woff fallbacks
+// (the subset CSS is woff2-only) are never needed. Only the weight axis of the
+// variable display font is used (no optical-size/width in the CSS).
+import '@fontsource-variable/bricolage-grotesque/wght.css'; // display — weight axis
+import '@fontsource/jetbrains-mono/latin-400.css';
+import '@fontsource/jetbrains-mono/latin-500.css';
+import '@fontsource/jetbrains-mono/latin-700.css';
+import '@fontsource/spline-sans/latin-400.css';
+import '@fontsource/spline-sans/latin-500.css';
 import '../styles/global.css';
+// Preload the above-the-fold faces (hero display + body) so they aren't
+// discovered only after the stylesheet parses — avoids the hero FOUT/swap.
+import bricolageHero from '@fontsource-variable/bricolage-grotesque/files/bricolage-grotesque-latin-wght-normal.woff2?url';
+import splineBody from '@fontsource/spline-sans/files/spline-sans-latin-400-normal.woff2?url';
 const {
   title = 'THE STACK — electrons to the cloud',
   description = 'An explorable explanation of the computing stack, from silicon to the cloud. Climb the layers — transistors, gates, bits, the CPU, memory, the OS, the network — and trace a real algorithm all the way down.',
@@ -21,6 +28,8 @@ const ogImage = new URL('/og.png', base);
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preload" href={bricolageHero} as="font" type="font/woff2" crossorigin="anonymous" />
+  <link rel="preload" href={splineBody} as="font" type="font/woff2" crossorigin="anonymous" />
   <title>{title}</title>
   <meta name="description" content={description} />
   <meta name="theme-color" content="#070a10" />
