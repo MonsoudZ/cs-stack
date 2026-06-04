@@ -1,6 +1,6 @@
 <script>
   import { createStepper } from '../lib/stepper.svelte.js';
-  import { METHODS, METHOD_ORDER, LNAME, LCLASS } from '../lib/traces.js';
+  import { METHODS, METHOD_ORDER, LNAME, LCLASS, LID, LNUM } from '../lib/traces.js';
   import Stepper from './Stepper.svelte';
   import Struct from './Struct.svelte';
   // Read a shareable starting point from the URL: ?trace=bfs&step=4
@@ -72,7 +72,7 @@
 
   // A step's `touches` are the real layers it exercises — jump to them.
   function gotoLayer(t) {
-    const el = document.getElementById('L' + t);
+    const el = document.getElementById(LID[t] || 'L' + t);
     if (!el) return;
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
     el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
@@ -117,7 +117,7 @@
     {#if s.touches.length}
       <span class="trace-tags">
         touches
-        {#each s.touches as t}<button type="button" class="ttag {LCLASS[t] || ''}" onclick={() => gotoLayer(t)} title="jump to layer {String(t).padStart(2,'0')} · {LNAME[t] || ''}">{String(t).padStart(2,'0')} {LNAME[t] || ''}</button>{/each}
+        {#each s.touches as t}<button type="button" class="ttag {LCLASS[t] || ''}" onclick={() => gotoLayer(t)} title="jump to layer {LNUM[t] || String(t).padStart(2,'0')} · {LNAME[t] || ''}">{LNUM[t] || String(t).padStart(2,'0')} {LNAME[t] || ''}</button>{/each}
       </span>
     {/if}
   </div>
@@ -202,6 +202,7 @@
   .ttag.t-sys{border-color:var(--blue);color:var(--blue)}
   .ttag.t-mean{border-color:var(--violet);color:var(--violet)}
   .ttag.t-phys{border-color:var(--signal);color:var(--signal)}
+  .ttag.t-sec{border-color:var(--amber);color:var(--amber)}
   @media(max-width:860px){
     .trace-hero{grid-template-columns:1fr}
     .trace-progress{justify-self:start}

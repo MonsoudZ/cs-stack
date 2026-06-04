@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { METHODS, METHOD_ORDER, STRUCT_KINDS } from './traces.js';
+import { METHODS, METHOD_ORDER, STRUCT_KINDS, LID, LNAME } from './traces.js';
 
 // The README's central claim is that the traced algorithm logic is "validated"
 // and "untouched from the tested single-file original." These tests lock that in:
@@ -57,6 +57,20 @@ describe.each(METHOD_ORDER)('METHODS.%s', (key) => {
       expect(typeof s.note).toBe('string');
       expect(s.struct).toBeTypeOf('object');
     }
+  });
+
+  it('only references known layer touch targets', () => {
+    for (const s of steps) {
+      for (const touch of s.touches) {
+        expect(LNAME[touch], `missing label for touch ${touch}`).toBeTruthy();
+        expect(LID[touch], `missing target id for touch ${touch}`).toBeTruthy();
+      }
+    }
+  });
+
+  it('finale touches prove the result climbs through the expanded stack', () => {
+    const finale = steps.at(-1);
+    expect(finale.touches).toEqual(expect.arrayContaining([5.5, 6.5, 7.5, 8.5, 10.5, 10.8]));
   });
 
   it('every structure step declares a kind the Struct view can render', () => {
