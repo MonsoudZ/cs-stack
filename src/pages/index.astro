@@ -6,6 +6,7 @@ import LogicGate from '../components/LogicGate.svelte';
 import Bits from '../components/Bits.svelte';
 import CallStack from '../components/CallStack.svelte';
 import Scheduler from '../components/Scheduler.svelte';
+import SecurityBoundaries from '../components/SecurityBoundaries.astro';
 import Tracer from '../components/Tracer.svelte';
 import Transistor from '../components/Transistor.astro';
 import Adder from '../components/Adder.svelte';
@@ -188,6 +189,19 @@ import Takeaway from '../components/Takeaway.astro';
       idea="The OS owns the hardware and rents out safe illusions: each program gets its own memory, files, devices, and turns on the CPU."
       tradeoff="Safety is not free. Isolation, scheduling, permissions, and system calls add overhead and make some operations more indirect."
       next="With one machine managed safely, the next problem is connecting many machines together."
+    />
+  </section>
+
+  <section class="layer zone-system" id="L8b" data-title="Security">
+    <div class="layer-head"><div class="layer-idx">08.5</div><div class="layer-titles"><h2>Security: boundaries that make sharing safe</h2><div class="sub">systems · permissions · isolation · trust</div></div></div>
+    <p class="prose">Security is what stops useful sharing from becoming accidental exposure.</p>
+    <SecurityBoundaries />
+    <Takeaway>Security is boundary design: who can do what, with which data, under whose trust.</Takeaway>
+    <Why
+      problem="The same abstractions that make computers useful also create danger: shared memory, files, devices, networks, users, and secrets."
+      idea="Security adds boundaries around those abstractions: isolation, permissions, authentication, validation, encryption, and audit trails."
+      tradeoff="Stronger boundaries add friction. Users need prompts, programs need checks, systems need keys, and developers must handle failure paths."
+      next="Once machines communicate across trust boundaries, network protocols have to carry identity, privacy, and integrity."
     />
   </section>
 
