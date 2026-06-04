@@ -19,6 +19,7 @@ import Encapsulation from '../components/Encapsulation.svelte';
 import Packets from '../components/Packets.svelte';
 import Cloud from '../components/Cloud.svelte';
 import DatabaseSystem from '../components/DatabaseSystem.astro';
+import BrowserUi from '../components/BrowserUi.astro';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
 ---
@@ -245,6 +246,19 @@ import Takeaway from '../components/Takeaway.astro';
       idea="A database adds structure around storage: schemas or documents, indexes for lookup, transactions for correctness, and replication for survival."
       tradeoff="Correct durable data costs work. Indexes take space, transactions coordinate locks or versions, and distributed databases must choose consistency tradeoffs."
       next="The final user-facing layer is the browser, where data becomes interface and pixels."
+    />
+  </section>
+
+  <section class="layer zone-meaning" id="L10c" data-title="Browser/UI">
+    <div class="layer-head"><div class="layer-idx">10.8</div><div class="layer-titles"><h2>Browser/UI: the stack becomes pixels</h2><div class="sub">meaning · DOM · CSS · events · paint</div></div></div>
+    <p class="prose">The browser turns documents, styles, and behavior into an interface a human can see and touch.</p>
+    <BrowserUi />
+    <Takeaway>The UI is the top of the stack: machine work shaped into human perception.</Takeaway>
+    <Why
+      problem="Users do not experience packets, syscalls, memory addresses, or CPU instructions. They experience screens, gestures, latency, and feedback."
+      idea="The browser builds a live model from HTML, applies CSS rules, runs JavaScript, handles events, lays out boxes, and paints pixels."
+      tradeoff="UI hides the machine, but performance leaks through as jank, slow loads, layout shifts, broken accessibility, and confusing state."
+      next="Now the whole loop is visible: a click can descend through every layer and return as changed pixels."
     />
   </section>
 

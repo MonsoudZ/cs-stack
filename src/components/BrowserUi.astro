@@ -1,0 +1,43 @@
+---
+const pipeline = [
+  ['HTML', 'structure', 'What exists on the page.'],
+  ['CSS', 'style', 'How those boxes look and respond.'],
+  ['JS', 'behavior', 'What changes when users interact.'],
+  ['DOM', 'live tree', 'The browser’s editable model of the page.'],
+  ['Pixels', 'paint', 'What finally appears on screen.'],
+];
+---
+<div class="widget browser-widget">
+  <div class="w-label">browser/UI — code becomes pixels</div>
+  <div class="browser-frame">
+    <div class="browser-bar"><span></span><span></span><span></span></div>
+    <div class="render-flow">
+      {pipeline.map(([name, role, copy]) => (
+        <div class="render-step">
+          <div class="render-name">{name}</div>
+          <div class="render-role">{role}</div>
+          <p>{copy}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+  <div class="paint-note">Every click starts at the top of this layer, then may travel down through network, OS, memory, CPU, and physics before the screen changes.</div>
+</div>
+
+<style>
+  .browser-widget{border-color:rgba(183,123,255,.3)}
+  .browser-frame{position:relative;z-index:1;border:1px solid var(--border);border-radius:16px;overflow:hidden;background:rgba(8,11,18,.62)}
+  .browser-bar{display:flex;gap:7px;border-bottom:1px solid var(--border);padding:12px;background:rgba(255,255,255,.025)}
+  .browser-bar span{width:10px;height:10px;border-radius:50%;background:var(--faint);opacity:.7}
+  .browser-bar span:first-child{background:var(--violet)}
+  .browser-bar span:nth-child(2){background:var(--amber)}
+  .browser-bar span:nth-child(3){background:var(--signal)}
+  .render-flow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:1px;background:var(--border)}
+  .render-step{background:rgba(8,11,18,.86);padding:16px 14px;min-height:142px}
+  .render-name{font-family:var(--disp);font-size:24px;font-weight:800;color:var(--ink)}
+  .render-role{margin-top:4px;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--violet)}
+  .render-step p{margin:12px 0 0;color:var(--dim);font-size:14px;line-height:1.55}
+  .paint-note{position:relative;z-index:1;margin-top:14px;border:1px solid rgba(183,123,255,.3);border-radius:13px;padding:13px 15px;
+    background:var(--violet-d);color:var(--dim);font-size:14px;line-height:1.6}
+  @media(max-width:980px){.render-flow{grid-template-columns:1fr}.render-step{min-height:0}}
+</style>
