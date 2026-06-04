@@ -7,12 +7,11 @@
   <div class="w-label">flip bits — the number reads itself</div>
   <div class="bits">
     {#each bits as b, i}
-      <div class="bit" class:set={b} role="button" tabindex="0"
-           aria-pressed={!!b} aria-label="bit worth {128 >> i}"
+      <button type="button" class="bit" class:set={b} aria-pressed={!!b} aria-label={`bit ${i + 1}, place value ${128 >> i}, ${b ? 'on' : 'off'}`}
            onclick={() => bits[i] = b ? 0 : 1}
-           onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); bits[i] = b ? 0 : 1; } }}>
+      >
         <div class="cell">{b}</div><div class="pv">{128 >> i}</div>
-      </div>
+      </button>
     {/each}
   </div>
   <div class="readout">

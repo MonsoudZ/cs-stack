@@ -14,94 +14,194 @@ import Cpu from '../components/Cpu.svelte';
 import Encapsulation from '../components/Encapsulation.svelte';
 import Packets from '../components/Packets.svelte';
 import Cloud from '../components/Cloud.svelte';
+import Why from '../components/Why.astro';
+import Takeaway from '../components/Takeaway.astro';
 ---
 <Base>
   <section class="layer zone-physical" id="Lsi" data-title="Silicon">
     <div class="layer-head"><div class="layer-idx">−01</div><div class="layer-titles"><h2>Before the switch: a rock we taught to decide</h2><div class="sub">physical · semiconductors · the MOSFET</div></div></div>
-    <p class="prose">One rung below the transistor is the material it's carved from. Dope silicon with a trace of impurity and you get spare electrons (<span class="hl">n-type</span>) or spare holes (<span class="hl">p-type</span>). Arrange them right and a gate voltage decides whether a conducting channel forms — a faucet for electrons.</p>
+    <p class="prose">Silicon becomes useful when tiny impurities let a gate voltage open or close a path for electrons.</p>
     <Mosfet client:visible />
-    <p class="aside">Past the threshold, the gate's field pulls a <span class="hl">channel</span> into existence and current flows. That on/off, controlled by a voltage, is exactly the switch layer 01 calls a transistor.</p>
+    <Takeaway>A MOSFET is the physical trick that turns material into a controllable switch.</Takeaway>
+    <p class="aside">Past the threshold, the gate pulls a <span class="hl">channel</span> into existence: current flows.</p>
+    <Why
+      problem="Raw silicon does not decide anything; it only barely conducts."
+      idea="Doping creates regions where a gate voltage can open or close a path for electrons."
+      tradeoff="The switch is physical, so heat, leakage, and manufacturing limits always matter."
+      next="Once matter can switch, voltage can become a clean state."
+    />
   </section>
 
   <section class="layer zone-physical" id="L0" data-title="Voltage">
     <div class="layer-head"><div class="layer-idx">00</div><div class="layer-titles"><h2>A wire that is either pushed or not</h2><div class="sub">physical · electricity</div></div></div>
-    <p class="prose">At the bottom there are no zeros and ones — just <b>voltage</b>. Near the reference: <span class="hl">HIGH</span>. Near ground: <span class="hl">LOW</span>. That's the entire physical alphabet.</p>
+    <p class="prose">At the bottom there are no zeros and ones — just <b>voltage</b> read as <span class="hl">HIGH</span> or <span class="hl">LOW</span>.</p>
     <Voltage client:visible />
+    <Takeaway>Voltage is the physical alphabet: LOW and HIGH are the first two symbols.</Takeaway>
+    <Why
+      problem="A computer needs something physical it can measure billions of times per second."
+      idea="Use two voltage ranges: LOW and HIGH. The exact voltage can wobble; the range still means state."
+      tradeoff="Real wires are noisy, so circuits need margins between LOW, unknown, and HIGH."
+      next="A transistor lets one voltage control another voltage."
+    />
   </section>
 
   <section class="layer zone-physical" id="L1" data-title="Transistor">
     <div class="layer-head"><div class="layer-idx">01</div><div class="layer-titles"><h2>The transistor: a wire that controls another wire</h2><div class="sub">physical · the switch</div></div></div>
-    <p class="prose">A small voltage on the gate decides whether current flows across the other two terminals — a switch with no moving parts. Pack a few billion onto silicon and you have a CPU.</p>
+    <p class="prose">A transistor is a switch with no moving parts: one voltage controls whether another can flow.</p>
     <Transistor client:visible />
+    <Takeaway>A transistor lets one signal decide whether another signal can pass.</Takeaway>
+    <Why
+      problem="Voltage alone can represent state, but it cannot choose what happens next."
+      idea="A transistor is a controllable switch: one signal opens or closes another path."
+      tradeoff="One switch is simple; billions of switches create power, timing, and layout problems."
+      next="Wire switches together and they become logic gates."
+    />
   </section>
 
   <section class="layer zone-physical" id="L2" data-title="Logic gates">
     <div class="layer-head"><div class="layer-idx">02</div><div class="layer-titles"><h2>Gates: transistors that compute true & false</h2><div class="sub">logic · boolean algebra</div></div></div>
-    <p class="prose">Wire transistors into a fixed pattern and the output stops being current and becomes a <b>decision</b>. This is where electricity becomes logic.</p>
+    <p class="prose">Wire switches into patterns and electricity starts making <b>decisions</b>.</p>
     <LogicGate client:visible />
+    <Takeaway>Logic gates are decisions made out of transistor patterns.</Takeaway>
+    <Why
+      problem="A switch is useful, but computation needs repeatable decisions."
+      idea="Logic gates turn input states into output states using fixed transistor patterns."
+      tradeoff="Every gate has delay, so large circuits must manage timing carefully."
+      next="Groups of true/false outputs can be read as binary numbers."
+    />
   </section>
 
   <section class="layer zone-number" id="L3" data-title="Bits → numbers">
     <div class="layer-head"><div class="layer-idx">03</div><div class="layer-titles"><h2>Eight wires become a number</h2><div class="sub">numbers · binary place value</div></div></div>
-    <p class="prose">Line up 8 true/false wires, agree each is worth twice the one to its right, and the pattern of HIGHs and LOWs <b>is a number</b>. Nothing physical changed — we just decided how to read it.</p>
+    <p class="prose">Line up on/off wires, give each one a place value, and the pattern <b>is a number</b>.</p>
     <Bits client:visible />
+    <Takeaway>Binary is not magic; it is place value applied to on/off wires.</Takeaway>
+    <Why
+      problem="Logic gives yes/no, but programs need quantities: counts, addresses, colors, letters."
+      idea="Binary place value turns many on/off wires into one number."
+      tradeoff="Fixed-width numbers can overflow; the machine only stores so many bits at once."
+      next="Once numbers exist, gates can be arranged to do arithmetic on them."
+    />
   </section>
 
   <section class="layer zone-number" id="L4" data-title="Arithmetic">
     <div class="layer-head"><div class="layer-idx">04</div><div class="layer-titles"><h2>Gates that add — arithmetic from logic</h2><div class="sub">numbers · the ripple-carry adder</div></div></div>
-    <p class="prose">XOR gives the sum bit, AND gives the carry. Chain them and the carry ripples left exactly like grade-school addition. Math is a side effect of wiring.</p>
+    <p class="prose">Addition is logic with memory of a carry, chained from bit to bit.</p>
     <Adder client:visible />
+    <Takeaway>Arithmetic is logic arranged so carries move from bit to bit.</Takeaway>
+    <Why
+      problem="A computer cannot be useful if it can store numbers but never transform them."
+      idea="Adder circuits combine XOR, AND, and carry logic to make arithmetic physical."
+      tradeoff="Carries take time to move, so faster CPUs use more complex adder designs."
+      next="The same numbers can now stand for data or instructions."
+    />
   </section>
 
   <section class="layer zone-meaning" id="L5" data-title="Numbers → things">
     <div class="layer-head"><div class="layer-idx">05</div><div class="layer-titles"><h2>The same number, pretending to be many things</h2><div class="sub">meaning · encoding</div></div></div>
-    <p class="prose">A number means nothing alone. <code>01000001</code> is 65, the letter <b>A</b>, a shade of gray, or an instruction — depending only on what code decides to do with it. Encoding is just an agreement.</p>
+    <p class="prose">The same byte can be a number, a letter, a color, or an instruction — meaning is an agreement.</p>
     <NumbersThings client:visible />
+    <Takeaway>Meaning comes from interpretation; the same byte can be many things.</Takeaway>
+    <Why
+      problem="The hardware only sees numbers, but humans want text, images, code, and meaning."
+      idea="Encoding is an agreement that says how a number should be interpreted."
+      tradeoff="The same bits can be misunderstood if the reader uses the wrong encoding."
+      next="A CPU is the agreement that treats some numbers as commands."
+    />
   </section>
 
   <section class="layer zone-system" id="L6" data-title="The CPU">
     <div class="layer-head"><div class="layer-idx">06</div><div class="layer-titles"><h2>The CPU: a loop that obeys numbers</h2><div class="sub">systems · fetch · decode · execute</div></div></div>
-    <p class="prose">A program is just numbers the CPU agreed to treat as commands. Forever: fetch the instruction, decode it, execute it, bump the counter.</p>
+    <p class="prose">A CPU loops over numbers and treats each one as a command to fetch, decode, and execute.</p>
     <Cpu client:visible />
+    <Takeaway>A CPU is a tiny loop that treats some numbers as instructions.</Takeaway>
+    <Why
+      problem="Circuits can compute, but we need a reusable machine instead of a new circuit for every task."
+      idea="The CPU repeats one loop: fetch an instruction, decode it, execute it, move on."
+      tradeoff="General-purpose control adds complexity: registers, clocks, caches, pipelines, interrupts."
+      next="Instructions need places to read from and write to, so memory becomes the workspace."
+    />
   </section>
 
   <section class="layer zone-system" id="L7" data-title="Memory">
     <div class="layer-head"><div class="layer-idx">07</div><div class="layer-titles"><h2>Memory: numbers with addresses</h2><div class="sub">systems · arrays · the call stack</div></div></div>
-    <p class="prose">RAM is one gigantic numbered array of bytes. An array is a run of consecutive addresses; the call stack is where recursion lives — it descends to a base case, then unwinds back up.</p>
+    <p class="prose">Memory is bytes with addresses; the stack is where function calls pile up and unwind.</p>
     <CallStack client:visible />
-    <p class="aside">Each call pushes a frame; values bubble back up — exactly the "down, then back up to a result" shape the tracer animates.</p>
+    <Takeaway>Memory gives numbers addresses; the stack gives function calls a shape.</Takeaway>
+    <Why
+      problem="Programs need somewhere to keep values, arrays, return addresses, and temporary state."
+      idea="Memory gives every byte an address; the stack gives function calls an orderly place to live."
+      tradeoff="Memory is huge but not free: access time, cache locality, and stack limits matter."
+      next="Many programs want memory and CPU time, so the operating system arbitrates."
+    />
   </section>
 
   <section class="layer zone-system" id="L8" data-title="Operating system">
     <div class="layer-head"><div class="layer-idx">08</div><div class="layer-titles"><h2>The operating system: the referee</h2><div class="sub">systems · the scheduler · syscalls</div></div></div>
-    <p class="prose">One core runs one thing at a time, yet your machine juggles hundreds. The OS slices time into quanta and switches between them — concurrency on a single core is a fast lie.</p>
+    <p class="prose">The OS slices one machine into safe little turns so many programs can pretend they are running at once.</p>
     <Scheduler client:visible />
+    <Takeaway>The OS makes one machine feel safely shared by many programs.</Takeaway>
+    <Why
+      problem="Apps should not each control the whole machine or crash into each other."
+      idea="The OS owns the hardware and gives programs safe slices of CPU, memory, files, and devices."
+      tradeoff="Isolation and fairness cost overhead, context switches, permissions, and system calls."
+      next="Once the OS can manage one machine, the network lets machines talk."
+    />
   </section>
 
   <section class="layer zone-system" id="L9" data-title="The network">
     <div class="layer-head"><div class="layer-idx">09</div><div class="layer-titles"><h2>The network: numbers that leave the building</h2><div class="sub">systems · encapsulation · packets · TCP/IP</div></div></div>
-    <p class="prose">Data leaves wrapped like a parcel inside a parcel — each layer adds its own header, then it's chopped into packets, routed, and reassembled on the far side.</p>
+    <p class="prose">Network data travels as wrapped packets: addressed, routed, dropped, retried, and reassembled.</p>
     <Encapsulation client:visible />
-    <p class="aside">Notice the overhead: a 22-byte request rides inside ~80 bytes once every header is attached — the price of routing and reliability.</p>
+    <Takeaway>Networking works by wrapping data with just enough context to survive the trip.</Takeaway>
+    <p class="aside">Headers are overhead, but they buy routing, ordering, and reliability.</p>
     <Packets client:visible />
+    <Takeaway>Packets can arrive late, lost, or out of order; protocols rebuild the original message.</Takeaway>
+    <Why
+      problem="Two programs on different machines need to exchange bytes across unreliable links."
+      idea="Layered protocols wrap data with addresses, ports, ordering, and checks."
+      tradeoff="Reliability and routing add headers, latency, retries, and failure modes."
+      next="At scale, many networked machines become a cloud system."
+    />
   </section>
 
   <section class="layer zone-system" id="L10" data-title="The cloud">
     <div class="layer-head"><div class="layer-idx">10</div><div class="layer-titles"><h2>The cloud: someone else's machines, at scale</h2><div class="sub">systems · load balancers · app servers · datastores</div></div></div>
-    <p class="prose">"The cloud" is just a lot of the machine you climbed, rented by the hour: a load balancer, identical app servers, a cache, a database, a background queue.</p>
+    <p class="prose">"The cloud" is the same machine repeated: load balancers, app servers, caches, databases, and queues.</p>
     <Cloud client:visible />
+    <Takeaway>The cloud is the same stack repeated, coordinated, and scaled sideways.</Takeaway>
+    <Why
+      problem="One machine can fail, overload, or be too far from users."
+      idea="Cloud systems spread work across load balancers, app servers, caches, databases, and queues."
+      tradeoff="Scale creates distributed-systems problems: consistency, retries, observability, cost."
+      next="A user action now travels through every layer you climbed."
+    />
   </section>
 
   <section class="layer zone-physical" id="L11" data-title="…and back down">
     <div class="layer-head"><div class="layer-idx">11</div><div class="layer-titles"><h2>The lie, all the way down</h2><div class="sub">the whole picture</div></div></div>
-    <p class="prose">A click fires a packet across the network into a cloud load balancer, to a process on a CPU that fetches numbers from memory, does arithmetic with gates built from transistors toggled by voltage — and the answer climbs back up, becoming bytes, becoming pixels.</p>
-    <p class="prose" style="margin-top:14px">Every level is a story the level below agreed to tell. <span class="hl">↓ watch one real method make the whole trip.</span></p>
+    <p class="prose">A click becomes packets, processes, memory, arithmetic, gates, transistors, voltage — then climbs back up as pixels.</p>
+    <p class="prose" style="margin-top:14px">Every layer is a useful story told by the layer beneath it.</p>
+    <Takeaway>Abstraction is the useful lie that lets humans build on top of physics.</Takeaway>
+    <Why
+      problem="Each layer is too detailed to hold in your head while building real software."
+      idea="Abstractions hide lower-level mess so you can think at the right level for the job."
+      tradeoff="Abstractions leak: performance, bugs, security, and outages force you to look underneath."
+      next="The trace shows one piece of code touching the whole stack."
+    />
   </section>
 
   <section class="layer zone-all" id="L12" data-title="Trace a method">
     <div class="layer-head"><div class="layer-idx">★</div><div class="layer-titles"><h2>Watch it happen: one method, every layer</h2><div class="sub">the capstone · real algorithms, traced top to bottom</div></div></div>
-    <p class="prose">Pick an algorithm and a single clock drives every layer at once: the Ruby line, the VM ops, the data structure mutating in memory, and the integer arithmetic the CPU runs. One step, re-told all the way down.</p>
+    <div class="capstone-ribbon">all layers converge here</div>
+    <p class="prose">Pick an algorithm and watch one line of code echo through the machine.</p>
     <Tracer client:visible />
-    <p class="aside">Loops over arrays, hashes that turn keys into bucket indices, queues and call stacks, comparisons and sums — all riding on numbers that are really just wires that are either pushed or not.</p>
+    <Takeaway>A line of code is a story retold as VM ops, memory changes, arithmetic, and signals.</Takeaway>
+    <Why
+      problem="Code feels like text, but every line becomes work across many hidden layers."
+      idea="Tracing connects the source line to VM operations, memory movement, arithmetic, and systems effects."
+      tradeoff="No trace can show every detail; it chooses the useful slice of reality."
+      next="Use the trace when you want the whole machine to feel connected instead of magical."
+    />
   </section>
 </Base>

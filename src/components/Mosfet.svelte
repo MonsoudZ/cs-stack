@@ -23,8 +23,8 @@
   <div class="w-row" style="margin-top:18px;gap:24px;align-items:center">
     <div style="flex:1;min-width:200px">
       <div class="rgb-row">
-        <label style="width:auto" for="mosV">V<sub>gate</sub></label>
-        <input type="range" min="0" max="33" bind:value={raw} class="slider" id="mosV" aria-label="gate voltage" />
+        <label for="mosV" style="width:auto">V<sub>gate</sub></label>
+        <input type="range" min="0" max="33" bind:value={raw} class="slider" id="mosV" aria-valuetext={(+raw / 10).toFixed(1) + ' volts'} />
         <span style="font-family:var(--mono);color:var(--signal)">{(+raw / 10).toFixed(1)} V</span>
       </div>
       <div style="font-family:var(--mono);font-size:11px;color:var(--faint);margin-top:6px">threshold ≈ 1.5 V — below it, no channel</div>

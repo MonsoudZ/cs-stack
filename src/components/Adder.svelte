@@ -13,8 +13,8 @@
   <div class="w-label">click A and B bits — the sum computes through carries</div>
   <div class="adder-grid">
     <div class="adlabel"><span class="tag"></span><div class="carry-row">{#each r.carries as c}<div class="carry {c ? 'on' : ''}">{c ? '1' : ''}</div>{/each}</div></div>
-    <div class="adlabel"><span class="tag">A</span><div class="nybble">{#each A as v, i}<div class="nb-cell {v ? 'set' : ''}" role="button" tabindex="0" aria-pressed={!!v} aria-label="A bit worth {8 >> i}" onclick={() => A[i] = v ? 0 : 1} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); A[i] = v ? 0 : 1; } }}>{v}</div>{/each}</div><span class="dec">= {dec(A)}</span></div>
-    <div class="adlabel"><span class="tag">+ B</span><div class="nybble">{#each B as v, i}<div class="nb-cell {v ? 'set' : ''}" role="button" tabindex="0" aria-pressed={!!v} aria-label="B bit worth {8 >> i}" onclick={() => B[i] = v ? 0 : 1} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); B[i] = v ? 0 : 1; } }}>{v}</div>{/each}</div><span class="dec">= {dec(B)}</span></div>
+    <div class="adlabel"><span class="tag">A</span><div class="nybble">{#each A as v, i}<button type="button" class="nb-cell {v ? 'set' : ''}" aria-pressed={!!v} aria-label={`A bit ${i + 1}, ${v ? 'on' : 'off'}`} onclick={() => A[i] = v ? 0 : 1}>{v}</button>{/each}</div><span class="dec">= {dec(A)}</span></div>
+    <div class="adlabel"><span class="tag">+ B</span><div class="nybble">{#each B as v, i}<button type="button" class="nb-cell {v ? 'set' : ''}" aria-pressed={!!v} aria-label={`B bit ${i + 1}, ${v ? 'on' : 'off'}`} onclick={() => B[i] = v ? 0 : 1}>{v}</button>{/each}</div><span class="dec">= {dec(B)}</span></div>
     <div class="adlabel"><span class="tag">= SUM</span><div class="nybble">
       <div class="nb-cell sum ro {r.overflow ? 'set' : ''}" style={r.overflow ? '' : 'opacity:.25'}>{r.overflow ? 1 : 0}</div>
       {#each r.sum as v}<div class="nb-cell sum ro {v ? 'set' : ''}">{v}</div>{/each}

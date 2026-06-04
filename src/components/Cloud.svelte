@@ -42,7 +42,7 @@
   <div class="csbar">
     <span class="csmini">a real Rails request lifecycle · GET /cases/42</span>
     <span style="flex:1"></span>
-    <button class="btn" onclick={toggleCache}>cache: {cacheHit ? 'WARM (hit)' : 'COLD (miss)'}</button>
+    <button type="button" class="btn" onclick={toggleCache}>cache: {cacheHit ? 'WARM (hit)' : 'COLD (miss)'}</button>
   </div>
   <div class="w-label">step a request → through the stack, and the response back ←</div>
   <div class="cloudwrap"><div class="cloud">

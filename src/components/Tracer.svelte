@@ -16,7 +16,7 @@
   const init = fromUrl();
   let cur = $state(init.trace);
   const stepper = createStepper(() => METHODS[cur].build(), { speed: 950 });
-  const { idx } = stepper;
+  const idx = stepper.idx;
   idx.set(Math.min(init.step, stepper.all().length - 1)); // restore shared step
   let M = $derived(METHODS[cur]);
   let s = $derived(stepper.all()[$idx]);
@@ -39,46 +39,65 @@
     el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
   }
 </script>
-<div class="widget">
-  <div class="csbar" style="gap:8px">
-    <span class="csmini">trace:</span>
-    <span class="idxbtns">
-      {#each METHOD_ORDER as k}<button class="btn" class:sel={cur === k} onclick={() => pick(k)}>{METHODS[k].name}</button>{/each}
-    </span>
+<div class="widget trace-widget">
+  <div class="trace-hero">
+    <div>
+      <div class="trace-kicker">final trace</div>
+      <div class="trace-title">{METHODS[cur].name}</div>
+      <p>{M.intro}</p>
+    </div>
+    <div class="trace-progress" aria-label="Trace progress">
+      <span>{$idx + 1}</span>
+      <small>of {stepper.all().length} steps</small>
+    </div>
   </div>
-  <p class="prose" style="margin:6px 0 0;font-size:14px">{M.intro}</p>
-  <div class="csbar" style="margin-top:10px">
-    <span class="csmini">{M.header}</span>
-    <span style="flex:1"></span>
-    <span class="csmini">
-      {#if s.touches.length}touches: {#each s.touches as t}<button class="ttag {LCLASS[t] || ''}" onclick={() => gotoLayer(t)} title="jump to layer {String(t).padStart(2,'0')} · {LNAME[t] || ''}">{String(t).padStart(2,'0')} {LNAME[t] || ''}</button>{/each}{/if}
+
+  <div class="trace-controls">
+    <span class="csmini">choose a method</span>
+    <span class="idxbtns">
+      {#each METHOD_ORDER as k}<button type="button" class="btn" class:sel={cur === k} onclick={() => pick(k)}>{METHODS[k].name}</button>{/each}
     </span>
   </div>
 
-  <div class="tracepanel">
-    <div class="tplab">① source · Ruby — the story you wrote</div>
-    <pre class="srccode">{#each M.src as ln, i}<span class="srcline" class:on={i === s.line}>{ln}</span>{/each}</pre>
-    <div class="tvars">{#each Object.entries(s.vars) as [k, v]}<span class="tvar"><div class="k">{k}</div><div class="v">{v}</div></span>{/each}</div>
-  </div>
-  <div class="tracepanel">
-    <div class="tplab">② virtual machine · what the line becomes</div>
-    <div class="vmops">{#each s.vm as o}<div class="vmop">{o}</div>{/each}</div>
-  </div>
-  <div class="tracepanel">
-    <div class="tplab">{M.structLabel}</div>
-    <div><Struct struct={s.struct} /></div>
-  </div>
-  <div class="tracepanel">
-    <div class="tplab">④ CPU · the actual arithmetic on numbers (layers 03–06)</div>
-    {#if s.cpu}
-      <div class="alu"><div class="albits">{s.cpu.label}</div><div class="aexpr">{s.cpu.expr}</div></div>
-    {:else}
-      <div class="alu idle"><div class="albits">— no arithmetic this step —</div></div>
+  <div class="trace-touchbar">
+    <span>{M.header}</span>
+    {#if s.touches.length}
+      <span class="trace-tags">
+        touches
+        {#each s.touches as t}<button type="button" class="ttag {LCLASS[t] || ''}" onclick={() => gotoLayer(t)} title="jump to layer {String(t).padStart(2,'0')} · {LNAME[t] || ''}">{String(t).padStart(2,'0')} {LNAME[t] || ''}</button>{/each}
+      </span>
     {/if}
   </div>
-  <div class="traceresult" class:show={s.result != null}>
-    {#if s.result != null}return value: {rv(s.result)}{s.finale ? '   ✓ and back up the stack →' : ''}{:else}(running…){/if}
+
+  <div class="trace-grid">
+    <div class="tracepanel trace-source">
+      <div class="tplab">① source · the story you wrote</div>
+      <pre class="srccode">{#each M.src as ln, i}<span class="srcline" class:on={i === s.line}>{ln}</span>{/each}</pre>
+      <div class="tvars">{#each Object.entries(s.vars) as [k, v]}<span class="tvar"><div class="k">{k}</div><div class="v">{v}</div></span>{/each}</div>
+    </div>
+    <div class="tracepanel trace-vm">
+      <div class="tplab">② VM · source becomes operations</div>
+      <div class="vmops">{#each s.vm as o}<div class="vmop">{o}</div>{/each}</div>
+    </div>
+    <div class="tracepanel trace-structure">
+      <div class="tplab">{M.structLabel}</div>
+      <Struct struct={s.struct} />
+    </div>
+    <div class="tracepanel trace-cpu">
+      <div class="tplab">④ CPU · arithmetic on bits</div>
+      {#if s.cpu}
+        <div class="alu"><div class="albits">{s.cpu.label}</div><div class="aexpr">{s.cpu.expr}</div></div>
+      {:else}
+        <div class="alu idle"><div class="albits">— no arithmetic this step —</div></div>
+      {/if}
+    </div>
   </div>
-  <div class="csnote" role="status" aria-live="polite">{s.note}</div>
+
+  <div class="trace-status">
+    <div class="traceresult" class:show={s.result != null}>
+      {#if s.result != null}return value: {rv(s.result)}{s.finale ? '   ✓ and back up the stack →' : ''}{:else}running…{/if}
+    </div>
+    <div class="csnote" role="status" aria-live="polite">{s.note}</div>
+  </div>
   <Stepper {stepper} />
 </div>

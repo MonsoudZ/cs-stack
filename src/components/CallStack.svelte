@@ -14,7 +14,7 @@
     <span style="flex:1"></span>
     <span class="csmini">start depth:</span>
     <span class="idxbtns">
-      {#each [3,4,5] as n}<button class="btn" class:sel={N === n} onclick={() => setDepth(n)}>{n}</button>{/each}
+      {#each [3,4,5] as n}<button type="button" class="btn" class:sel={N === n} onclick={() => setDepth(n)}>{n}</button>{/each}
     </span>
   </div>
   <div class="w-label">the call stack — recursion grows down, then unwinds back up</div>

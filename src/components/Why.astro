@@ -1,0 +1,20 @@
+---
+const { problem, idea, tradeoff, next } = Astro.props;
+const rows = [
+  ['Problem', problem],
+  ['Idea', idea],
+  ['Tradeoff', tradeoff],
+  ['Next', next],
+].filter(([, value]) => value);
+---
+<details class="why">
+  <summary>Why this exists</summary>
+  <div class="why-grid">
+    {rows.map(([label, value]) => (
+      <div class="why-item">
+        <div class="why-k">{label}</div>
+        <div class="why-v">{value}</div>
+      </div>
+    ))}
+  </div>
+</details>
