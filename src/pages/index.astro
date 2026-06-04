@@ -13,6 +13,7 @@ import NumbersThings from '../components/NumbersThings.svelte';
 import RuntimePipeline from '../components/RuntimePipeline.astro';
 import Cpu from '../components/Cpu.svelte';
 import MemoryHierarchy from '../components/MemoryHierarchy.astro';
+import DataStructures from '../components/DataStructures.astro';
 import Encapsulation from '../components/Encapsulation.svelte';
 import Packets from '../components/Packets.svelte';
 import Cloud from '../components/Cloud.svelte';
@@ -161,6 +162,19 @@ import Takeaway from '../components/Takeaway.astro';
       idea="Memory gives every byte an address so code can say where to read and write. The call stack gives function calls a disciplined place to pause and resume."
       tradeoff="Memory feels huge, but distance matters. Cache misses, bad locality, allocation costs, and stack limits can dominate performance."
       next="Once many programs want CPU time and memory at once, the operating system becomes the referee."
+    />
+  </section>
+
+  <section class="layer zone-system" id="L7b" data-title="Data structures">
+    <div class="layer-head"><div class="layer-idx">07.5</div><div class="layer-titles"><h2>Data structures: shapes made of addresses</h2><div class="sub">systems · arrays · hash maps · trees</div></div></div>
+    <p class="prose">A data structure is a promise about where data lives and how you will find it again.</p>
+    <DataStructures />
+    <Takeaway>Data structures are memory layouts plus rules for moving through them.</Takeaway>
+    <Why
+      problem="Raw memory is just numbered boxes. Programs need ways to find, group, order, and update related values without thinking about every byte."
+      idea="Data structures impose shape: arrays put neighbors together, hash maps compute a bucket from a key, and trees connect nodes through choices."
+      tradeoff="Every shape favors some operations and punishes others. Fast lookup, ordered traversal, easy insertion, and locality rarely all come for free."
+      next="Once many programs use memory and structures at once, the OS has to isolate and coordinate them."
     />
   </section>
 
