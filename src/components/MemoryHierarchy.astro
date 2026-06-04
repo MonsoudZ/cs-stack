@@ -1,0 +1,95 @@
+---
+const tiers = [
+  {
+    key: 'registers',
+    name: 'Registers',
+    distance: 'inside the CPU',
+    latency: '≈ 1 cycle',
+    size: 'tiny',
+    job: 'Hold the values an instruction is using right now.',
+  },
+  {
+    key: 'cache',
+    name: 'Cache',
+    distance: 'next to the CPU',
+    latency: 'a few cycles',
+    size: 'small',
+    job: 'Keep recently used memory close so the CPU does not wait as often.',
+  },
+  {
+    key: 'ram',
+    name: 'RAM',
+    distance: 'main memory',
+    latency: 'tens to hundreds of cycles',
+    size: 'large',
+    job: 'Store the active program, heap, stack, and data while power is on.',
+  },
+  {
+    key: 'disk',
+    name: 'Disk / SSD',
+    distance: 'persistent storage',
+    latency: 'thousands+ of cycles',
+    size: 'huge',
+    job: 'Remember files and databases after the program or machine stops.',
+  },
+];
+---
+<div class="widget hierarchy-widget">
+  <div class="w-label">memory hierarchy — speed, size, and distance from the CPU</div>
+  <div class="hierarchy">
+    {tiers.map((tier, i) => (
+      <div class={`tier-row tier-${tier.key}`}>
+        <div class="tier-rank">{String(i + 1).padStart(2, '0')}</div>
+        <div class="tier-core">
+          <div class="tier-head">
+            <span class="tier-name">{tier.name}</span>
+            <span class="tier-distance">{tier.distance}</span>
+          </div>
+          <div class="tier-bar" aria-hidden="true"><span></span></div>
+          <p>{tier.job}</p>
+        </div>
+        <div class="tier-facts">
+          <span><b>speed</b>{tier.latency}</span>
+          <span><b>space</b>{tier.size}</span>
+        </div>
+      </div>
+    ))}
+  </div>
+  <div class="hierarchy-rule">
+    The CPU is fast because it mostly touches nearby data. When it reaches farther away, the machine pays in waiting.
+  </div>
+</div>
+
+<style>
+  .hierarchy-widget{border-color:rgba(91,157,255,.28)}
+  .hierarchy{position:relative;z-index:1;display:grid;gap:10px;font-family:var(--mono)}
+  .tier-row{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(150px,.28fr);gap:14px;align-items:center;
+    border:1px solid var(--border);border-radius:14px;padding:14px;background:rgba(8,11,18,.55)}
+  .tier-rank{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+    color:var(--blue);border:1px solid rgba(91,157,255,.34);background:var(--blue-d);font-size:12px;font-weight:700}
+  .tier-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:8px}
+  .tier-name{font-family:var(--disp);font-weight:800;font-size:22px;color:var(--ink);letter-spacing:-.01em}
+  .tier-distance{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+  .tier-core p{margin:8px 0 0;color:var(--dim);font-family:var(--body);font-size:14px;line-height:1.55}
+  .tier-bar{height:8px;border-radius:999px;background:rgba(255,255,255,.05);overflow:hidden}
+  .tier-bar span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--blue),var(--signal))}
+  .tier-registers .tier-bar span{width:22%}
+  .tier-cache .tier-bar span{width:42%}
+  .tier-ram .tier-bar span{width:68%}
+  .tier-disk .tier-bar span{width:100%}
+  .tier-facts{display:grid;gap:8px}
+  .tier-facts span{border:1px solid var(--border);border-radius:10px;padding:8px 10px;color:var(--dim);background:rgba(255,255,255,.025)}
+  .tier-facts b{display:block;margin-bottom:3px;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--faint)}
+  .hierarchy-rule{position:relative;z-index:1;margin-top:14px;border:1px solid rgba(91,157,255,.32);border-radius:13px;
+    padding:13px 15px;background:var(--blue-d);color:var(--dim);font-size:14px;line-height:1.6}
+  @media(max-width:760px){
+    .tier-row{grid-template-columns:auto minmax(0,1fr)}
+    .tier-facts{grid-column:2;grid-template-columns:1fr 1fr}
+  }
+  @media(max-width:520px){
+    .tier-row{grid-template-columns:1fr;gap:10px}
+    .tier-rank{width:auto;height:auto;justify-content:flex-start;padding:7px 10px}
+    .tier-head{align-items:flex-start;flex-direction:column;gap:4px}
+    .tier-facts{grid-column:auto}
+  }
+</style>

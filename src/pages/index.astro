@@ -11,6 +11,7 @@ import Transistor from '../components/Transistor.astro';
 import Adder from '../components/Adder.svelte';
 import NumbersThings from '../components/NumbersThings.svelte';
 import Cpu from '../components/Cpu.svelte';
+import MemoryHierarchy from '../components/MemoryHierarchy.astro';
 import Encapsulation from '../components/Encapsulation.svelte';
 import Packets from '../components/Packets.svelte';
 import Cloud from '../components/Cloud.svelte';
@@ -120,6 +121,19 @@ import Takeaway from '../components/Takeaway.astro';
       idea="The CPU repeats a small loop: fetch a number from memory, decode what it means, execute the operation, then move to the next instruction."
       tradeoff="General-purpose control is powerful but complicated. Registers, clocks, caches, pipelines, and interrupts exist to keep that loop useful and fast."
       next="Instructions need a place to live and data to work on, so memory becomes the machine's workspace."
+    />
+  </section>
+
+  <section class="layer zone-system" id="L6b" data-title="Memory hierarchy">
+    <div class="layer-head"><div class="layer-idx">06.5</div><div class="layer-titles"><h2>Memory hierarchy: the CPU hates waiting</h2><div class="sub">systems · registers · cache · RAM · disk</div></div></div>
+    <p class="prose">Memory is not one place. The machine keeps the hottest data closest to the CPU, then spills outward into slower, larger storage.</p>
+    <MemoryHierarchy />
+    <Takeaway>The memory hierarchy is a speed bargain: tiny and close is fast; huge and far away is slow.</Takeaway>
+    <Why
+      problem="The CPU can execute instructions much faster than main memory or disk can feed it data."
+      idea="Use layers of storage. Registers hold the current values, caches keep recent data nearby, RAM holds active programs, and disk keeps long-term state."
+      tradeoff="The hierarchy is only fast when programs reuse nearby data. Random access, cache misses, and disk reads turn computation into waiting."
+      next="Memory addresses now have performance meaning, which is why stacks, arrays, and locality matter."
     />
   </section>
 
