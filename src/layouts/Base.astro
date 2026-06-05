@@ -179,6 +179,17 @@ const jsonLd = {
       if (e.key === 'j') { e.preventDefault(); jumpLayer(1); }
       else if (e.key === 'k') { e.preventDefault(); jumpLayer(-1); }
     });
+
+    // Expand every Why panel for printing, then restore on the way out.
+    let printOpened = [];
+    window.addEventListener('beforeprint', () => {
+      printOpened = $$('details:not([open])');
+      printOpened.forEach((d) => { d.open = true; });
+    });
+    window.addEventListener('afterprint', () => {
+      printOpened.forEach((d) => { d.open = false; });
+      printOpened = [];
+    });
     function onScroll() {
       const stage = $('.stage'); if (!stage) return;
       const r = stage.getBoundingClientRect();

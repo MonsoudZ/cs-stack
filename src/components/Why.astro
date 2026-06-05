@@ -33,4 +33,10 @@ const rows = [
   .why-k{font-family:var(--mono);font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--faint);margin-bottom:7px}
   .why-v{color:var(--dim);line-height:1.6;font-size:14px}
   @media(max-width:680px){.why-grid{grid-template-columns:1fr}}
+  /* the panel backgrounds are hardcoded dark; lighten them for the print theme */
+  @media print{
+    .why{background:#fff}
+    .why-item{background:#fff}
+    .why[open] summary{background:#f3f5f7}
+  }
 </style>

@@ -69,6 +69,16 @@ test('Spine nav: clicking a rung deep-links the layer into the URL', async ({ pa
   await expect(page).toHaveURL(/#L12$/);
 });
 
+test('Print: Why panels expand on beforeprint and restore on afterprint', async ({ page }) => {
+  await page.goto('/');
+  const why = page.locator('details.why').first();
+  await expect(why).toHaveJSProperty('open', false);
+  await page.evaluate(() => window.dispatchEvent(new Event('beforeprint')));
+  await expect(why).toHaveJSProperty('open', true);
+  await page.evaluate(() => window.dispatchEvent(new Event('afterprint')));
+  await expect(why).toHaveJSProperty('open', false);
+});
+
 test('Keyboard nav: j jumps from the first layer to the next', async ({ page }) => {
   await page.goto('/');
   await page.keyboard.press('j');

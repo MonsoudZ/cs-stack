@@ -133,3 +133,26 @@
   .tour-stop{color:var(--red);border-color:rgba(255,107,107,.4)}
   .tour-stop:hover{color:var(--red);border-color:var(--red)}
   @media(max-width:900px){ .tourbar{bottom:64px} }
+
+  /* ---------- PRINT: a readable, ink-light field guide ---------- */
+  @media print {
+    /* swap the dark palette for a light, low-ink one */
+    :root{
+      --bg:#fff;--bg2:#fff;--panel:#fff;--panel2:#f3f5f7;
+      --border:rgba(0,0,0,.2);--border-hot:rgba(0,0,0,.32);
+      --ink:#0d1116;--dim:#2f3a45;--faint:#55636f;
+      --signal:#0a7d68;--amber:#8a5a00;--violet:#5733c4;--blue:#1f5fd0;--red:#b32d20;
+      --signal-d:rgba(10,125,104,.08);--amber-d:rgba(138,90,0,.08);--violet-d:rgba(87,51,196,.08);--blue-d:rgba(31,95,208,.08);
+    }
+    body{background:#fff;color:var(--ink)}
+    /* drop the decorations and interactive-only chrome */
+    .bg-grid,.bg-glow,.scan,nav.spine,.tourbar,.tour-start,.kbd-hint,.noscript-note,
+    .cpu-ctrl,.trace-controls,.trace-share,.trace-keys{display:none!important}
+    .stage{display:block;padding:0;max-width:none}
+    header.hero{padding:0 0 16px}
+    section.layer{break-inside:avoid-page}
+    .widget,.tracepanel,.widget-card,.takeaway,.why{break-inside:avoid}
+    /* expand the Why panels even if a browser ignores the beforeprint hook */
+    .why .why-grid{display:grid!important}
+    a{color:var(--blue)}
+  }
