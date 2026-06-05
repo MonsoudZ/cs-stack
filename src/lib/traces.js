@@ -324,7 +324,31 @@ const MORE = {
         push({line:3,vm:['cur = max(arr['+i+'], cur + arr['+i+'])'],vars:{arr:'['+arr.join(', ')+']',i,cur,best:nb},touches:[3,4,6],cpu:{label:'ALU · extend or restart',expr:'max('+arr[i]+', '+ext+') = '+cur+(fresh?'  → restart':'  → extend')},note:fresh?'arr['+i+']='+arr[i]+' beats the extended run ('+ext+') → start a fresh run here':'extend the run: cur + '+arr[i]+' = '+cur,cells:cells(runStart,i),info:'cur = '+cur});
         if(nb>best){ best=nb; push({line:4,vm:['best = max(best, cur) = '+best],vars:{arr:'['+arr.join(', ')+']',i,cur,best},touches:[4,6],cpu:{label:'ALU · max',expr:'best = '+best},note:'new best subarray sum so far: '+best,cells:cells(runStart,i),info:'best = '+best}); }
       }
-      push({line:6,vm:['return best'],vars:{arr:'['+arr.join(', ')+']',i:arr.length-1,cur,best},touches:[10.8,10.5,10,9,8.5,7.5,7,6.5,6,5.5,5,3],result:best,finale:true,note:'best subarray sum = '+best+' (the run [4, −1, 2, 1]) climbs back up',cells:arr.map((_,k)=>({role:(k>=3&&k<=6)?'sorted':'',mark:''})),info:'answer = '+best}); return steps; } }
+      push({line:6,vm:['return best'],vars:{arr:'['+arr.join(', ')+']',i:arr.length-1,cur,best},touches:[10.8,10.5,10,9,8.5,7.5,7,6.5,6,5.5,5,3],result:best,finale:true,note:'best subarray sum = '+best+' (the run [4, −1, 2, 1]) climbs back up',cells:arr.map((_,k)=>({role:(k>=3&&k<=6)?'sorted':'',mark:''})),info:'answer = '+best}); return steps; } },
+
+  dijkstra:{ name:'Dijkstra', header:"dijkstra(weighted graph, 'A') → shortest path to E = 9",
+    intro:'Greedy shortest paths on a weighted graph: always finalize the nearest unvisited node, then relax its edges. A tentative distance only ever shrinks — never grows.',
+    structLabel:'③ the weighted graph + priority queue · the nearest node is finalized each step (layer 07)',
+    src:['def dijkstra(graph, start)','  dist = Hash.new(Float::INFINITY)','  dist[start] = 0','  pq = [start]','  until pq.empty?','    u = pq.min_by { |n| dist[n] }','    pq.delete(u)','    graph[u].each do |v, w|','      next if dist[u] + w >= dist[v]','      dist[v] = dist[u] + w','      pq << v unless pq.include?(v)','    end','  end','  dist','end'],
+    build(){ const W={'A-B':4,'A-C':1,'B-D':4,'C-D':2,'C-E':8};
+      const G={A:[['B',4],['C',1]],B:[['A',4],['D',4]],C:[['A',1],['D',2],['E',8]],D:[['B',4],['C',2]],E:[['C',8]]};
+      const dist={A:0,B:Infinity,C:Infinity,D:Infinity,E:Infinity},visited=[],pq=['A'],steps=[];
+      const push=o=>steps.push(step(o,{kind:'graph',visited:visited.slice(),frontier:pq.slice(),frontierKind:'pq',current:o.current||null,dist:{...dist},weights:W},[6.5,7,7.5]));
+      push({line:2,vm:['dist[A] = 0','pq = [A]'],vars:{start:'A',u:'–'},note:'A is distance 0; every other node starts at ∞ until a route reaches it'});
+      while(pq.length){
+        let u=pq[0]; for(const n of pq) if(dist[n]<dist[u]) u=n;
+        pq.splice(pq.indexOf(u),1); visited.push(u);
+        push({line:5,vm:['u = pq.min_by(dist) → '+u,'pq.delete('+u+')'],vars:{start:'A',u},current:u,touches:[4,6.5,7],cpu:{label:'pick nearest',expr:'min tentative distance → '+u+' = '+dist[u]},note:'finalize '+u+' — the nearest unvisited node ('+dist[u]+'). its shortest path is now locked in'});
+        for(const [v,w] of G[u]){ if(visited.includes(v)) continue;
+          const nd=dist[u]+w;
+          if(nd<dist[v]){ const old=dist[v]; dist[v]=nd; if(!pq.includes(v)) pq.push(v);
+            push({line:9,vm:['dist['+v+'] = dist['+u+'] + '+w+' = '+nd],vars:{start:'A',u},current:u,touches:[3,4,6,7],cpu:{label:'relax '+u+'→'+v,expr:dist[u]+' + '+w+' = '+nd+(old===Infinity?'  (was ∞)':'  < '+old)},note:'relax '+u+'→'+v+': '+dist[u]+' + '+w+' = '+nd+(old===Infinity?' — first route to '+v:' beats the old '+old)+' → update'});
+          } else {
+            push({line:8,vm:['dist['+u+'] + '+w+' ≥ dist['+v+'] → skip'],vars:{start:'A',u},current:u,touches:[4,6],cpu:{label:'relax '+u+'→'+v,expr:dist[u]+' + '+w+' = '+nd+' ≥ '+dist[v]},note:'edge '+u+'→'+v+': '+nd+' is no better than '+v+' at '+dist[v]+' → leave it'});
+          }
+        }
+      }
+      push({line:13,vm:['return dist'],vars:{start:'A',u:'–'},touches:[10.8,10.5,10,9,8.5,7.5,7,6.5,6,5.5,5,3],result:dist.E,finale:true,note:'all nodes finalized — shortest path A→E = '+dist.E+' climbs back up the layers'}); return steps; } }
 };
 Object.assign(METHODS, MORE);
-METHOD_ORDER.push('twopointer','sliding','dfs','dp','insort','linear','bubble','kadane');
+METHOD_ORDER.push('twopointer','sliding','dfs','dp','insort','linear','bubble','kadane','dijkstra');

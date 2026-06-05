@@ -46,6 +46,13 @@
   // ---- graph (BFS/DFS) ----
   let frontier = $derived(struct.frontier || struct.queue || []);
   let frontierKind = $derived(struct.frontierKind || 'queue');
+  // Optional weighted-graph extras (Dijkstra); absent for BFS/DFS so they render nothing.
+  let dist = $derived(struct.dist || null);
+  let weights = $derived(struct.weights || null);
+  const wlabel = (a, b) => (weights ? (weights[a + '-' + b] ?? weights[b + '-' + a] ?? '') : '');
+  const dlabel = (n) => (dist && dist[n] !== undefined ? (dist[n] === Infinity ? '∞' : dist[n]) : '');
+  const frontierLabel = (k) =>
+    k === 'pq' ? 'Priority queue · nearest first' : k === 'stack' ? 'Stack · LIFO (top→)' : 'Queue · FIFO front→back';
   const gState = (n) =>
     n === struct.current ? 'cur' : struct.visited.includes(n) ? 'vis' : frontier.includes(n) ? 'q' : '';
 </script>
@@ -94,22 +101,24 @@
 
 {:else if struct.kind === 'graph'}
   <svg viewBox="0 0 310 150" class="graph-svg" role="img"
-       aria-label="Graph traversal. {struct.current ? 'Now exploring ' + struct.current + '. ' : ''}Visited: {struct.visited.length ? struct.visited.join(', ') : 'none'}. {frontierKind === 'stack' ? 'Stack' : 'Queue'}: {frontier.length ? frontier.join(', ') : 'empty'}.">
+       aria-label="Graph traversal. {struct.current ? 'Now exploring ' + struct.current + '. ' : ''}Visited: {struct.visited.length ? struct.visited.join(', ') : 'none'}. {frontierKind === 'stack' ? 'Stack' : frontierKind === 'pq' ? 'Priority queue' : 'Queue'}: {frontier.length ? frontier.join(', ') : 'empty'}.">
     {#each GEDGES as [a, b]}
       <line x1={GPOS[a][0]} y1={GPOS[a][1]} x2={GPOS[b][0]} y2={GPOS[b][1]} stroke="rgba(120,200,255,.22)" stroke-width="2" />
+      {#if weights}<text x={(GPOS[a][0] + GPOS[b][0]) / 2} y={(GPOS[a][1] + GPOS[b][1]) / 2 - 3} text-anchor="middle" font-family="monospace" font-size="10" fill="#9aa8ba">{wlabel(a, b)}</text>{/if}
     {/each}
     {#each Object.entries(GPOS) as [n, xy]}
       {@const s = gState(n)}
       {@const c = GCOL[s] || '#39465a'}
       <circle cx={xy[0]} cy={xy[1]} r="15" fill={s ? c + '33' : '#0d1623'} stroke={c} stroke-width="2" />
       <text x={xy[0]} y={xy[1] + 4} text-anchor="middle" font-family="monospace" font-size="13" fill={s ? c : '#9aa8ba'}>{n}</text>
+      {#if dist}<text x={xy[0]} y={xy[1] + 27} text-anchor="middle" font-family="monospace" font-size="10" fill={s ? c : '#9aa8ba'}>{dlabel(n)}</text>{/if}
     {/each}
   </svg>
   <div class="qrow struct-row">
-    <div class="qlab">{frontierKind === 'stack' ? 'Stack · LIFO (top→)' : 'Queue · FIFO front→back'}</div>
+    <div class="qlab">{frontierLabel(frontierKind)}</div>
     <div class="qchips">
       {#if frontier.length}
-        {#each frontier as n}<span class="pchip"><span class="dot dot-amber"></span>{n}</span>{/each}
+        {#each frontier as n}<span class="pchip"><span class="dot dot-amber"></span>{n}{#if dist}<span class="sub">{dlabel(n)}</span>{/if}</span>{/each}
       {:else}<span class="csmini">empty</span>{/if}
     </div>
   </div>
