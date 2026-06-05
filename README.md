@@ -19,6 +19,8 @@ npm install
 npm run dev      # http://localhost:4321
 npm run build    # static site -> dist/ (deploy anywhere, incl. Railway)
 npm test         # vitest — verifies every traced algorithm produces its stated answer
+npm run audit    # build + regex gate + axe-core accessibility checks on the HTML
+npm run test:e2e # playwright — drives chromium to confirm the widgets hydrate & respond
 ```
 
 ## Layout
