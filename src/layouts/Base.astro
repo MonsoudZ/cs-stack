@@ -25,6 +25,38 @@ const {
 const base = Astro.site ?? Astro.url;
 const canonical = new URL(Astro.url.pathname, base);
 const ogImage = new URL('/og.png', base);
+// Structured data (schema.org). URLs derive from `canonical`, so they update
+// automatically once `site` is set. The topic list reuses the layer data so
+// it can't drift from the page; the two meta-layers (recap, tracer) are left
+// out as they aren't standalone subjects.
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'WebSite',
+      '@id': `${canonical}#website`,
+      url: canonical.href,
+      name: 'THE STACK',
+      description,
+      inLanguage: 'en',
+    },
+    {
+      '@type': ['TechArticle', 'LearningResource'],
+      '@id': `${canonical}#article`,
+      isPartOf: { '@id': `${canonical}#website` },
+      mainEntityOfPage: canonical.href,
+      headline: title,
+      description,
+      inLanguage: 'en',
+      image: ogImage.href,
+      learningResourceType: 'explorable explanation',
+      educationalLevel: 'beginner',
+      about: layers
+        .filter((l) => !['L11', 'L12'].includes(l.id))
+        .map((l) => ({ '@type': 'Thing', name: l.navLabel })),
+    },
+  ],
+};
 ---
 <!doctype html>
 <html lang="en">
@@ -53,6 +85,9 @@ const ogImage = new URL('/og.png', base);
   <meta name="twitter:description" content={description} />
   <meta name="twitter:image" content={ogImage} />
   <meta name="twitter:image:alt" content="THE STACK — from electrons to the cloud" />
+
+  <!-- schema.org structured data for search engines -->
+  <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
 </head>
 <body>
   <div class="bg-grid"></div>
