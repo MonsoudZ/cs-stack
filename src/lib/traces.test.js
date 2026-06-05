@@ -19,6 +19,7 @@ const EXPECTED = {
   bubble: '[1, 2, 4, 5, 8]',
   kadane: 6,
   dijkstra: 9,
+  prim: 15,
 };
 
 describe('method registry', () => {

@@ -49,6 +49,8 @@
   // Optional weighted-graph extras (Dijkstra); absent for BFS/DFS so they render nothing.
   let dist = $derived(struct.dist || null);
   let weights = $derived(struct.weights || null);
+  let treeEdges = $derived(struct.treeEdges || null); // chosen MST edges (Prim)
+  const inTree = (a, b) => !!treeEdges && (treeEdges.includes(a + '-' + b) || treeEdges.includes(b + '-' + a));
   const wlabel = (a, b) => (weights ? (weights[a + '-' + b] ?? weights[b + '-' + a] ?? '') : '');
   const dlabel = (n) => (dist && dist[n] !== undefined ? (dist[n] === Infinity ? '∞' : dist[n]) : '');
   const frontierLabel = (k) =>
@@ -103,8 +105,9 @@
   <svg viewBox="0 0 310 150" class="graph-svg" role="img"
        aria-label="Graph traversal. {struct.current ? 'Now exploring ' + struct.current + '. ' : ''}Visited: {struct.visited.length ? struct.visited.join(', ') : 'none'}. {frontierKind === 'stack' ? 'Stack' : frontierKind === 'pq' ? 'Priority queue' : 'Queue'}: {frontier.length ? frontier.join(', ') : 'empty'}.">
     {#each GEDGES as [a, b]}
-      <line x1={GPOS[a][0]} y1={GPOS[a][1]} x2={GPOS[b][0]} y2={GPOS[b][1]} stroke="rgba(120,200,255,.22)" stroke-width="2" />
-      {#if weights}<text x={(GPOS[a][0] + GPOS[b][0]) / 2} y={(GPOS[a][1] + GPOS[b][1]) / 2 - 3} text-anchor="middle" font-family="monospace" font-size="10" fill="#9aa8ba">{wlabel(a, b)}</text>{/if}
+      {@const t = inTree(a, b)}
+      <line x1={GPOS[a][0]} y1={GPOS[a][1]} x2={GPOS[b][0]} y2={GPOS[b][1]} stroke={t ? '#2ee6c0' : 'rgba(120,200,255,.22)'} stroke-width={t ? 3 : 2} />
+      {#if weights}<text x={(GPOS[a][0] + GPOS[b][0]) / 2} y={(GPOS[a][1] + GPOS[b][1]) / 2 - 3} text-anchor="middle" font-family="monospace" font-size="10" fill={t ? '#2ee6c0' : '#9aa8ba'}>{wlabel(a, b)}</text>{/if}
     {/each}
     {#each Object.entries(GPOS) as [n, xy]}
       {@const s = gState(n)}

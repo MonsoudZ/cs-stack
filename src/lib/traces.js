@@ -348,7 +348,32 @@ const MORE = {
           }
         }
       }
-      push({line:13,vm:['return dist'],vars:{start:'A',u:'–'},touches:[10.8,10.5,10,9,8.5,7.5,7,6.5,6,5.5,5,3],result:dist.E,finale:true,note:'all nodes finalized — shortest path A→E = '+dist.E+' climbs back up the layers'}); return steps; } }
+      push({line:13,vm:['return dist'],vars:{start:'A',u:'–'},touches:[10.8,10.5,10,9,8.5,7.5,7,6.5,6,5.5,5,3],result:dist.E,finale:true,note:'all nodes finalized — shortest path A→E = '+dist.E+' climbs back up the layers'}); return steps; } },
+
+  prim:{ name:'Prim (MST)', header:"prim(weighted graph, 'A') → minimum spanning tree weight = 15",
+    intro:'Build a minimum spanning tree: repeatedly add the cheapest edge that joins a new node to the growing tree. Same priority queue as Dijkstra, but a node’s key is its connecting edge weight — not a path length. (The chosen tree edges glow.)',
+    structLabel:'③ the weighted graph + priority queue · the cheapest edge grows the tree (layer 07)',
+    src:['def prim(graph, start)','  key = Hash.new(Float::INFINITY)','  key[start] = 0','  pq, mst = [start], []','  until pq.empty?','    u = pq.min_by { |n| key[n] }','    pq.delete(u)','    mst << u','    graph[u].each do |v, w|','      next if mst.include?(v) || w >= key[v]','      key[v] = w','      pq << v unless pq.include?(v)','    end','  end','  mst','end'],
+    build(){ const W={'A-B':4,'A-C':1,'B-D':4,'C-D':2,'C-E':8};
+      const G={A:[['B',4],['C',1]],B:[['A',4],['D',4]],C:[['A',1],['D',2],['E',8]],D:[['B',4],['C',2]],E:[['C',8]]};
+      const key={A:0,B:Infinity,C:Infinity,D:Infinity,E:Infinity},from={},mst=[],pq=['A'],tree=[],steps=[]; let total=0;
+      const ek=(a,b)=>[a,b].sort().join('-');
+      const push=o=>steps.push(step(o,{kind:'graph',visited:mst.slice(),frontier:pq.slice(),frontierKind:'pq',current:o.current||null,dist:{...key},weights:W,treeEdges:tree.slice()},[6.5,7,7.5]));
+      push({line:2,vm:['key[A] = 0','pq = [A]'],vars:{start:'A',u:'–',mst:'[]'},note:'A joins for free (key 0); every other node’s key is ∞ until an edge reaches it'});
+      while(pq.length){
+        let u=pq[0]; for(const n of pq) if(key[n]<key[u]) u=n;
+        pq.splice(pq.indexOf(u),1); mst.push(u);
+        if(from[u]!=null){ tree.push(ek(from[u],u)); total+=key[u]; }
+        push({line:8,vm:['u = pq.min_by(key) → '+u,'mst << '+u],vars:{start:'A',u,mst:'['+mst.join(', ')+']'},current:u,touches:[4,6.5,7],cpu:from[u]!=null?{label:'add cheapest edge',expr:from[u]+'–'+u+' (weight '+key[u]+')  ·  total '+total}:{label:'seed the tree',expr:'start at '+u},note:from[u]!=null?'add '+u+' via edge '+from[u]+'–'+u+' (weight '+key[u]+') — running tree weight '+total:'start the tree at '+u});
+        for(const [v,w] of G[u]){ if(mst.includes(v)) continue;
+          if(w<key[v]){ const old=key[v]; key[v]=w; from[v]=u; if(!pq.includes(v)) pq.push(v);
+            push({line:11,vm:['key['+v+'] = '+w],vars:{start:'A',u,mst:'['+mst.join(', ')+']'},current:u,touches:[4,7],cpu:{label:'cheaper link to '+v,expr:'edge '+u+'–'+v+' = '+w+(old===Infinity?'  (was ∞)':'  < '+old)},note:'edge '+u+'–'+v+' (weight '+w+') is '+(old===Infinity?'the first link to '+v:'cheaper than '+v+'’s old '+old)+' → '+v+' now hangs off '+u});
+          } else {
+            push({line:9,vm:['w ≥ key['+v+'] → skip'],vars:{start:'A',u,mst:'['+mst.join(', ')+']'},current:u,touches:[4],cpu:{label:'link to '+v,expr:'edge '+u+'–'+v+' = '+w+' ≥ '+key[v]},note:'edge '+u+'–'+v+' (weight '+w+') is no cheaper than '+v+'’s current '+key[v]+' → leave it'});
+          }
+        }
+      }
+      push({line:15,vm:['return mst'],vars:{start:'A',u:'–',mst:'['+mst.join(', ')+']'},touches:[10.8,10.5,10,9,8.5,7.5,7,6.5,6,5.5,5,3],result:total,finale:true,note:'spanning tree complete — minimum total weight '+total+' climbs back up the layers'}); return steps; } }
 };
 Object.assign(METHODS, MORE);
-METHOD_ORDER.push('twopointer','sliding','dfs','dp','insort','linear','bubble','kadane','dijkstra');
+METHOD_ORDER.push('twopointer','sliding','dfs','dp','insort','linear','bubble','kadane','dijkstra','prim');
