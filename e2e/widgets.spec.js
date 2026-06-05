@@ -69,6 +69,16 @@ test('Spine nav: clicking a rung deep-links the layer into the URL', async ({ pa
   await expect(page).toHaveURL(/#L12$/);
 });
 
+test('Skip link: focuses, slides in, and jumps focus to the content', async ({ page }) => {
+  await page.goto('/');
+  const skip = page.locator('.skip-link');
+  await skip.focus();
+  await expect(skip).toBeFocused();
+  await skip.click();
+  await expect(page).toHaveURL(/#main$/);
+  await expect(page.locator('#main')).toBeFocused();
+});
+
 test('Print: Why panels expand on beforeprint and restore on afterprint', async ({ page }) => {
   await page.goto('/');
   const why = page.locator('details.why').first();

@@ -16,6 +16,7 @@ const shapes = [
       </div>
     ))}
   </div>
+  <div class="ds-memlabel">raw memory — <span class="ds-key-val">blue</span> cells hold values in a row; <span class="ds-key-ptr">green</span> cells hold the address of another cell (a pointer)</div>
   <div class="ds-memory">
     <span class="mcell active">0x10</span>
     <span class="mcell active">0x11</span>
@@ -33,7 +34,10 @@ const shapes = [
   .ds-name{font-family:var(--disp);font-size:24px;font-weight:800;color:var(--ink);letter-spacing:-.01em}
   .ds-model{margin-top:5px;font-family:var(--mono);font-size:11px;color:var(--blue);letter-spacing:.08em;text-transform:uppercase}
   .ds-card p{margin:12px 0 0;color:var(--dim);font-size:14px;line-height:1.6}
-  .ds-memory{position:relative;z-index:1;display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;font-family:var(--mono)}
+  .ds-memlabel{position:relative;z-index:1;font-family:var(--mono);font-size:12px;color:var(--faint);margin-top:16px}
+  .ds-key-val{color:var(--blue)}
+  .ds-key-ptr{color:var(--signal)}
+  .ds-memory{position:relative;z-index:1;display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;font-family:var(--mono)}
   .mcell{border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--faint);background:rgba(255,255,255,.025)}
   .mcell.active{border-color:var(--blue);color:var(--blue);background:var(--blue-d)}
   .mcell.link{border-color:var(--signal);color:var(--signal);background:var(--signal-d)}
