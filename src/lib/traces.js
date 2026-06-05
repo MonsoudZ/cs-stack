@@ -81,6 +81,23 @@ export const LCLASS = {
   '10.8':'t-mean',
 };
 
+// Normalizes one step's common fields so every builder's push() stays a
+// one-liner; `struct` is the per-method view payload, `touchDefault` the
+// fallback layer-touches for steps that don't name their own (graphs use it).
+function step(o, struct, touchDefault = []) {
+  return {
+    line: o.line,
+    vars: { ...o.vars },
+    vm: o.vm || [],
+    cpu: o.cpu || null,
+    note: o.note,
+    touches: o.touches || touchDefault,
+    result: o.result !== undefined ? o.result : null,
+    finale: !!o.finale,
+    struct,
+  };
+}
+
 export const METHODS = {
   twosum:{ name:'Two Sum', header:'two_sum([2, 10, 7, 8], 18) → expect [1, 3]',
     intro:'This run is rigged so keys 2 and 10 collide in bucket 2 — watch the chain form, then get walked on lookup.',
@@ -88,7 +105,7 @@ export const METHODS = {
     src:['def two_sum(nums, target)','  seen = {}','  nums.each_with_index do |n, i|','    complement = target - n','    return [seen[complement], i] if seen.key?(complement)','    seen[n] = i','  end','end'],
     build(){ const nums=[2,10,7,8],target=18,buckets=Array.from({length:8},()=>[]),steps=[];
       const snap=()=>buckets.map(ch=>ch.map(e=>({...e})));
-      const push=o=>steps.push({line:o.line,vars:{...o.vars},vm:o.vm||[],cpu:o.cpu||null,note:o.note,touches:o.touches||[],result:o.result!=null?o.result:null,finale:!!o.finale,struct:{kind:'hash',buckets:snap(),op:o.op||null}});
+      const push=o=>steps.push(step(o,{kind:'hash',buckets:snap(),op:o.op||null}));
       let vars={nums:'['+nums.join(', ')+']',target,i:'–',n:'–',complement:'–'};
       push({line:0,vm:['method entry','push a stack frame'],vars,touches:[5.5,6.5,7,7.5],note:'call two_sum(['+nums.join(', ')+'], '+target+') — a frame is pushed'});
       push({line:1,vm:['newhash','setlocal seen'],vars,touches:[5.5,6.5,7,7.5],note:'allocate an empty hash — an 8-slot bucket array in memory'});
@@ -114,7 +131,7 @@ export const METHODS = {
     structLabel:'③ the array · the search window halves each step (layers 06.5/07/07.5)',
     src:['def bsearch(arr, target)','  lo, hi = 0, arr.length - 1','  while lo <= hi','    mid = (lo + hi) / 2','    return mid if arr[mid] == target','    if arr[mid] < target','      lo = mid + 1','    else','      hi = mid - 1','    end','  end','  -1','end'],
     build(){ const arr=[1,3,5,7,9,11,13],target=9,steps=[]; let lo=0,hi=arr.length-1,mid=-1;
-      const push=o=>steps.push({line:o.line,vars:{...o.vars},vm:o.vm||[],cpu:o.cpu||null,note:o.note,touches:o.touches||[],result:o.result!==undefined?o.result:null,finale:!!o.finale,struct:{kind:'window',arr:arr.slice(),lo,hi,mid:o.mid!==undefined?o.mid:mid,target,compared:!!o.compared}});
+      const push=o=>steps.push(step(o,{kind:'window',arr:arr.slice(),lo,hi,mid:o.mid!==undefined?o.mid:mid,target,compared:!!o.compared}));
       let vars={arr:'['+arr.join(', ')+']',target,lo:'–',hi:'–',mid:'–'};
       push({line:0,vm:['method entry'],vars,touches:[5.5,6.5,7,7.5],note:'binary search needs a SORTED array — that is the whole premise'});
       vars={...vars,lo,hi}; push({line:1,vm:['setlocal lo=0','setlocal hi='+hi],vars,note:'whole array in play: lo=0, hi='+hi});
@@ -134,7 +151,7 @@ export const METHODS = {
     src:['def bfs(graph, start)','  visited = [start]','  queue = [start]','  until queue.empty?','    node = queue.shift','    graph[node].each do |nbr|','      next if visited.include?(nbr)','      visited << nbr','      queue.push(nbr)','    end','  end','  visited','end'],
     build(){ const G={A:['B','C'],B:['A','D'],C:['A','D','E'],D:['B','C'],E:['C']},start='A',visited=[start],queue=[start],steps=[];
       const vstr=()=>'['+visited.join(', ')+']',qstr=()=>'['+queue.join(', ')+']';
-      const push=o=>steps.push({line:o.line,vars:{...o.vars},vm:o.vm||[],cpu:null,note:o.note,touches:o.touches||[6.5,7,7.5],result:o.result||null,finale:!!o.finale,struct:{kind:'graph',visited:visited.slice(),queue:queue.slice(),current:o.current||null}});
+      const push=o=>steps.push(step(o,{kind:'graph',visited:visited.slice(),queue:queue.slice(),current:o.current||null},[6.5,7,7.5]));
       push({line:1,vm:['visited = [A]'],vars:{start,visited:vstr(),queue:qstr(),node:'–'},note:'seed visited with the start node A'});
       push({line:2,vm:['queue = [A]'],vars:{start,visited:vstr(),queue:qstr(),node:'–'},note:'seed the queue with A — the frontier to explore'});
       while(queue.length){ const cur=queue.shift();
@@ -150,7 +167,7 @@ export const METHODS = {
     structLabel:'③ the call stack · frames push, then pop on the way up (layers 06.5/07/07.5)',
     src:['def sum_to(n)','  return 0 if n == 0','  n + sum_to(n - 1)','end'],
     build(){ const frames=[],steps=[]; const snap=()=>frames.map(f=>({...f}));
-      const push=o=>steps.push({line:o.line,vars:{...o.vars},vm:o.vm||[],cpu:o.cpu||null,note:o.note,touches:o.touches||[],result:o.result!==undefined?o.result:null,finale:!!o.finale,struct:{kind:'stack',frames:snap()}});
+      const push=o=>steps.push(step(o,{kind:'stack',frames:snap()}));
       (function rec(n){ frames.push({n,val:null,ret:false});
         push({line:0,vm:['push frame','remember n='+n],vars:{n},touches:[5.5,6.5,7,7.5],note:'call sum_to('+n+') → push a frame holding n='+n});
         push({line:1,vm:['getlocal n','opt_eq 0?','branchif'],vars:{n},touches:[4,6],cpu:{label:'compare',expr:'n == 0 ?  → '+(n===0)},note:n===0?'base case: n is 0 → return 0':'n is '+n+', not 0 → must recurse deeper first'});
@@ -172,7 +189,7 @@ const MORE = {
     src:['def two_sum_sorted(arr, target)','  lo, hi = 0, arr.length - 1','  while lo < hi','    s = arr[lo] + arr[hi]','    return [lo, hi] if s == target','    s < target ? lo += 1 : hi -= 1','  end','end'],
     build(){ const arr=[2,5,8,11,15],target=16,steps=[]; let lo=0,hi=arr.length-1;
       const cells=(cmp)=>arr.map((_,i)=>{let role='',mark=''; if(i<lo||i>hi)role='dimx'; if(i===lo)mark='L'; if(i===hi)mark=(mark?mark+' ':'')+'R'; if(cmp&&(i===lo||i===hi))role='cmp'; return {role,mark};});
-      const push=o=>steps.push({line:o.line,vars:{...o.vars},vm:o.vm||[],cpu:o.cpu||null,note:o.note,touches:o.touches||[],result:o.result!==undefined?o.result:null,finale:!!o.finale,struct:{kind:'array',arr:arr.slice(),cells:o.cells,info:o.info}});
+      const push=o=>steps.push(step(o,{kind:'array',arr:arr.slice(),cells:o.cells,info:o.info}));
       let vars={arr:'['+arr.join(', ')+']',target,lo,hi,sum:'–'};
       push({line:0,vm:['method entry'],vars,touches:[5.5,6.5,7,7.5],note:'a SORTED array lets two pointers replace the hash — no extra memory',cells:cells(),info:'lo='+lo+'  hi='+hi});
       push({line:1,vm:['setlocal lo=0','setlocal hi='+hi],vars,note:'pointers start at both ends',cells:cells(),info:'lo='+lo+'  hi='+hi});
@@ -192,7 +209,7 @@ const MORE = {
     src:['def max_window(arr, k)','  sum = arr[0...k].sum','  best = sum','  (k...arr.length).each do |r|','    sum += arr[r] - arr[r - k]','    best = [best, sum].max','  end','  best','end'],
     build(){ const arr=[2,1,5,1,3,2],k=3,steps=[];
       const win=(L,R,cur)=>arr.map((_,i)=>{let role='',mark=''; if(i>=L&&i<=R)role='win'; if(cur!=null&&i===cur)role='cmp'; if(i===L)mark='L'; if(i===R)mark=(mark?mark+' ':'')+'R'; return {role,mark};});
-      const push=o=>steps.push({line:o.line,vars:{...o.vars},vm:o.vm||[],cpu:o.cpu||null,note:o.note,touches:o.touches||[],result:o.result!==undefined?o.result:null,finale:!!o.finale,struct:{kind:'array',arr:arr.slice(),cells:o.cells,info:o.info}});
+      const push=o=>steps.push(step(o,{kind:'array',arr:arr.slice(),cells:o.cells,info:o.info}));
       let sum=arr.slice(0,k).reduce((a,b)=>a+b,0),best=sum;
       let vars={arr:'['+arr.join(', ')+']',k,sum,best};
       push({line:1,vm:['arr[0...k].sum'],vars,touches:[3,4,6.5,7,7.5],cpu:{label:'ALU sum',expr:arr.slice(0,k).join(' + ')+' = '+sum},note:'seed: sum the first '+k+' items = '+sum,cells:win(0,k-1),info:'window [0..'+(k-1)+'] sum = '+sum});
@@ -209,7 +226,7 @@ const MORE = {
     src:['def dfs(graph, start)','  visited = []','  stack = [start]','  until stack.empty?','    node = stack.pop','    next if visited.include?(node)','    visited << node','    graph[node].reverse_each { |n| stack.push(n) }','  end','  visited','end'],
     build(){ const G={A:['B','C'],B:['A','D'],C:['A','D','E'],D:['B','C'],E:['C']},start='A',visited=[],stack=[start],steps=[];
       const vstr=()=>'['+visited.join(', ')+']',sstr=()=>'['+stack.join(', ')+']';
-      const push=o=>steps.push({line:o.line,vars:{...o.vars},vm:o.vm||[],cpu:null,note:o.note,touches:o.touches||[6.5,7,7.5],result:o.result||null,finale:!!o.finale,struct:{kind:'graph',visited:visited.slice(),frontier:stack.slice(),frontierKind:'stack',current:o.current||null}});
+      const push=o=>steps.push(step(o,{kind:'graph',visited:visited.slice(),frontier:stack.slice(),frontierKind:'stack',current:o.current||null},[6.5,7,7.5]));
       push({line:2,vm:['stack = [A]'],vars:{start,visited:vstr(),stack:sstr(),node:'–'},note:'seed an explicit LIFO stack with A'});
       while(stack.length){ const node=stack.pop();
         if(visited.includes(node)){push({line:5,vm:['stack.pop → '+node,'already visited → next'],vars:{start,visited:vstr(),stack:sstr(),node},current:node,note:node+' already visited → skip'});continue;}
@@ -227,7 +244,7 @@ const MORE = {
     build(){ const n=6,memo=[0,1],steps=[];
       const view=()=>{const a=[];for(let i=0;i<=n;i++)a.push(memo[i]!==undefined?memo[i]:'·');return a;};
       const cells=(cur)=>{const a=[];for(let i=0;i<=n;i++){a.push({role:i===cur?'cmp':(memo[i]!==undefined?'sorted':''),mark:i<=1&&memo[i]!==undefined?'base':(i===cur?'i':'')});}return a;};
-      const push=o=>steps.push({line:o.line,vars:{...o.vars},vm:o.vm||[],cpu:o.cpu||null,note:o.note,touches:o.touches||[],result:o.result!==undefined?o.result:null,finale:!!o.finale,struct:{kind:'array',arr:view(),cells:o.cells,info:o.info}});
+      const push=o=>steps.push(step(o,{kind:'array',arr:view(),cells:o.cells,info:o.info}));
       let vars={n,i:'–'};
       push({line:1,vm:['memo = [0, 1]'],vars,touches:[5.5,6.5,7,7.5],note:'cache the two base cases so we never recompute a subproblem',cells:cells(-1),info:'memo seeded: fib(0)=0, fib(1)=1'});
       for(let i=2;i<=n;i++){ memo[i]=memo[i-1]+memo[i-2]; vars={...vars,i};
@@ -241,7 +258,7 @@ const MORE = {
     src:['def insertion_sort(arr)','  (1...arr.length).each do |i|','    key = arr[i]','    j = i - 1','    while j >= 0 && arr[j] > key','      arr[j + 1] = arr[j]','      j -= 1','    end','    arr[j + 1] = key','  end','  arr','end'],
     build(){ const arr=[5,2,4,1,3],steps=[];
       const cells=(sortedUpto,key,cmp)=>arr.map((_,i)=>{let role='',mark=''; if(i<=sortedUpto)role='sorted'; if(i===key){role='cmp';mark='key';} if(cmp!=null&&i===cmp)role='cmp'; return {role,mark};});
-      const push=o=>steps.push({line:o.line,vars:{...o.vars},vm:o.vm||[],cpu:o.cpu||null,note:o.note,touches:o.touches||[],result:o.result!==undefined?o.result:null,finale:!!o.finale,struct:{kind:'array',arr:arr.slice(),cells:o.cells,info:o.info}});
+      const push=o=>steps.push(step(o,{kind:'array',arr:arr.slice(),cells:o.cells,info:o.info}));
       let vars={arr:'['+arr.join(', ')+']'};
       push({line:0,vm:['method entry'],vars,touches:[5.5,6.5,7,7.5],note:'arr[0] alone is trivially sorted — grow that prefix',cells:cells(0),info:'sorted prefix: [0..0]'});
       for(let i=1;i<arr.length;i++){ const key=arr[i]; vars={arr:'['+arr.join(', ')+']',i,key};
@@ -263,7 +280,7 @@ const MORE = {
     src:['def linear_search(arr, target)','  arr.each_with_index do |v, i|','    return i if v == target','  end','  -1','end'],
     build(){ const arr=[8,3,11,7,5,9],target=7,steps=[];
       const cells=(cur,found)=>arr.map((_,i)=>{let role='',mark=''; if(i<cur)role='dimx'; if(i===cur){role=found?'sorted':'cmp';mark=found?'found':'i';} return {role,mark};});
-      const push=o=>steps.push({line:o.line,vars:{...o.vars},vm:o.vm||[],cpu:o.cpu||null,note:o.note,touches:o.touches||[],result:o.result!==undefined?o.result:null,finale:!!o.finale,struct:{kind:'array',arr:arr.slice(),cells:o.cells,info:o.info}});
+      const push=o=>steps.push(step(o,{kind:'array',arr:arr.slice(),cells:o.cells,info:o.info}));
       let vars={arr:'['+arr.join(', ')+']',target,i:'–',v:'–'};
       push({line:0,vm:['method entry'],vars,touches:[5.5,6.5,7,7.5],note:'no shortcuts — walk the array from the front',cells:cells(-1),info:'searching for '+target});
       for(let i=0;i<arr.length;i++){ const v=arr[i],eq=v===target; vars={...vars,i,v};
@@ -278,7 +295,7 @@ const MORE = {
     src:['def bubble_sort(arr)','  loop do','    swapped = false','    (1...arr.length).each do |i|','      next unless arr[i - 1] > arr[i]','      arr[i - 1], arr[i] = arr[i], arr[i - 1]','      swapped = true','    end','    break unless swapped','  end','  arr','end'],
     build(){ const arr=[5,1,4,2,8],n=arr.length,steps=[];
       const cells=(a,b,settled,swap)=>arr.map((_,i)=>{let role='',mark=''; if(i>=n-settled)role='sorted'; if(i===a||i===b)role='cmp'; if(swap&&(i===a||i===b))mark='swap'; return {role,mark};});
-      const push=o=>steps.push({line:o.line,vars:{...o.vars},vm:o.vm||[],cpu:o.cpu||null,note:o.note,touches:o.touches||[],result:o.result!==undefined?o.result:null,finale:!!o.finale,struct:{kind:'array',arr:arr.slice(),cells:o.cells,info:o.info}});
+      const push=o=>steps.push(step(o,{kind:'array',arr:arr.slice(),cells:o.cells,info:o.info}));
       push({line:0,vm:['method entry'],vars:{arr:'['+arr.join(', ')+']'},touches:[5.5,6.5,7,7.5],note:'compare neighbours and swap the bigger rightward, pass after pass',cells:cells(-1,-1,0),info:'unsorted'});
       let settled=0,swapped=true;
       while(swapped){ swapped=false;
@@ -300,7 +317,7 @@ const MORE = {
     src:['def max_subarray(arr)','  best = cur = arr[0]','  (1...arr.length).each do |i|','    cur = [arr[i], cur + arr[i]].max','    best = [best, cur].max','  end','  best','end'],
     build(){ const arr=[-2,1,-3,4,-1,2,1,-5,4],steps=[];
       const cells=(runStart,cur)=>arr.map((_,k)=>{let role='',mark=''; if(runStart!=null&&k>=runStart&&k<=cur)role='win'; if(k===cur){role='cmp';mark='i';} return {role,mark};});
-      const push=o=>steps.push({line:o.line,vars:{...o.vars},vm:o.vm||[],cpu:o.cpu||null,note:o.note,touches:o.touches||[],result:o.result!==undefined?o.result:null,finale:!!o.finale,struct:{kind:'array',arr:arr.slice(),cells:o.cells,info:o.info}});
+      const push=o=>steps.push(step(o,{kind:'array',arr:arr.slice(),cells:o.cells,info:o.info}));
       let cur=arr[0],best=arr[0],runStart=0;
       push({line:1,vm:['best = cur = arr[0] = '+arr[0]],vars:{arr:'['+arr.join(', ')+']',i:0,cur,best},touches:[5.5,6.5,7,7.5],note:'seed best and the current run with the first element',cells:cells(0,0),info:'cur = '+cur+'  best = '+best});
       for(let i=1;i<arr.length;i++){ const ext=cur+arr[i],fresh=arr[i]>ext; cur=Math.max(arr[i],ext); if(fresh)runStart=i; const nb=Math.max(best,cur);
