@@ -206,6 +206,7 @@ import Takeaway from '../components/Takeaway.astro';
     <p class="prose">The OS slices one machine into safe little turns so many programs can pretend they are running at once.</p>
     <Scheduler client:visible />
     <Takeaway>The OS makes one machine feel safely shared by many programs.</Takeaway>
+    <p class="prose prose-follow"><a href="/os">→ go deeper: <b>the OS stack</b></a> — processes, context switches, system calls and the interrupts that keep the kernel in charge.</p>
     <Why
       problem="If every app controlled the hardware directly, one bug could overwrite another program, freeze the machine, or steal private data."
       idea="The OS owns the hardware and rents out safe illusions: each program gets its own memory, files, devices, and turns on the CPU."

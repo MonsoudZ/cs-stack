@@ -397,3 +397,23 @@ export function buildAddressTranslation({ pageBits = 4 } = {}) {
   translate(40); // page 2, offset 8 → TLB hit
   return out;
 }
+
+// --- OS STACK (/os) ---
+
+// A system call: the user/kernel boundary. User code can't touch hardware
+// directly, so read() is really a TRAP that switches the CPU into kernel mode,
+// runs the privileged handler, then returns. Snapshots track the mode (ring),
+// so the widget can show control crossing the line and coming back.
+export function buildSyscall() {
+  const out = [];
+  const snap = (mode, loc, note, o = {}) => out.push({ mode, loc, note, ...o });
+  snap('user', 'program', 'your program runs in user mode — it cannot touch the disk directly');
+  snap('user', 'program', 'it calls read(fd) — which is really a TRAP instruction, a deliberate request to the kernel');
+  snap('kernel', 'trap', 'the CPU switches to kernel mode and saves the user program’s registers', { switched: true });
+  snap('kernel', 'handler', 'the kernel’s syscall handler validates the arguments (is fd really open? is the buffer yours?)');
+  snap('kernel', 'io', 'the kernel asks the disk for the data and blocks this process until it arrives', { blocked: true });
+  snap('kernel', 'handler', 'the bytes arrive; the kernel copies them into your buffer and sets the return value');
+  snap('user', 'program', 'return-from-trap: restore the saved registers, switch back to user mode', { switched: true });
+  snap('user', 'program', 'your program resumes with the bytes — never having seen the disk itself');
+  return out;
+}

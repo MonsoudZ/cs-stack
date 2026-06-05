@@ -64,6 +64,7 @@ src/
     crypto.astro          a /crypto deep-dive (hashing → keys → exchange → certs → TLS)
     database.astro        a /database deep-dive (tables → indexes → queries → txns → replication)
     memory.astro          a /memory deep-dive (addresses → cache → hierarchy → virtual memory → TLB)
+    os.astro              an /os deep-dive (processes → scheduler → context switch → syscalls → interrupts)
     robots.txt.js         robots.txt generated from `site`
 scripts/
   audit.mjs               regex source/HTML quality gate (used by `npm run audit`)

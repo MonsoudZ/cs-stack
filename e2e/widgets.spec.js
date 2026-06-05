@@ -111,6 +111,31 @@ test('Memory page: own nav, a cache access hits, a virtual address translates to
   await expect(vm.locator('.vmt-phys')).toContainText('122');
 });
 
+test('OS page: own nav, the scheduler runs a process, a syscall traps into the kernel', async ({ page }) => {
+  await page.goto('/os');
+  await expect(page.locator('h1.title')).toContainText('OS');
+  await expect(page.locator('.spine .rung')).toHaveCount(6);
+  // scheduler: stepping puts a process on the core
+  const sch = page.locator('#O1');
+  await sch.scrollIntoViewIfNeeded();
+  for (let i = 0; i < 3; i++) {
+    await sch.locator('.cpu-ctrl button').first().click();
+    if (await sch.locator('.proc-core').count()) break;
+    await page.waitForTimeout(40);
+  }
+  await expect(sch.locator('.proc-core')).toBeVisible();
+  // syscall: stepping crosses into kernel mode and blocks on I/O
+  const sc = page.locator('#O3');
+  await sc.scrollIntoViewIfNeeded();
+  for (let i = 0; i < 6; i++) {
+    await sc.locator('.cpu-ctrl button').first().click();
+    if (await sc.locator('.sc-marker.blocked').count()) break;
+    await page.waitForTimeout(40);
+  }
+  await expect(sc.locator('.sc-lane.kern.active')).toBeVisible();
+  await expect(sc.locator('.sc-marker.blocked')).toContainText('blocked');
+});
+
 test('Crypto page: own nav, hash avalanches, DH agrees on a shared secret', async ({ page }) => {
   await page.goto('/crypto');
   await expect(page.locator('h1.title')).toContainText('CRYPTO');

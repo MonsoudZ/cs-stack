@@ -1,0 +1,92 @@
+---
+import Base from '../layouts/Base.astro';
+import LayerSection from '../components/LayerSection.astro';
+import { osLayers } from '../data/osLayers.js';
+import Scheduler from '../components/Scheduler.svelte';
+import Syscall from '../components/Syscall.svelte';
+import Why from '../components/Why.astro';
+import Takeaway from '../components/Takeaway.astro';
+const L = Object.fromEntries(osLayers.map((l) => [l.id, l]));
+const title = 'THE STACK — operating system';
+const description = 'A deep dive into the operating system: processes, the scheduler that shares one CPU, context switches, system calls across the user/kernel boundary, and the interrupts that let the OS stay in charge.';
+---
+<Base {title} {description} layers={osLayers}>
+  <div slot="hero">
+    <div class="kicker">A deep dive into layer 08</div>
+    <h1 class="title">THE <em>OS</em><br />STACK</h1>
+    <p class="lede">Your program thinks it owns the machine. It doesn't — the operating system does, and lends out a convincing illusion. Underneath: turns on the CPU, register save-and-restore, a guarded door into the kernel, and a hardware alarm clock that keeps the referee in control.</p>
+    <div class="hero-meta"><a class="back-link" href="/">← back to the full stack</a> · processes → scheduler → context switch → syscalls → interrupts</div>
+  </div>
+
+  <LayerSection {...L.O0}>
+    <p class="prose">A program on disk is inert text. A <b>process</b> is that program <i>running</i>: its machine code, plus live <span class="hl">state</span> — registers, a program counter, a stack, and its own private slice of memory the OS hands it.</p>
+    <Takeaway>A process is a program in motion — code plus the running state and isolated memory the OS gives it.</Takeaway>
+    <Why
+      problem="A machine runs many programs, and each must believe it has the CPU and memory to itself without seeing the others."
+      idea="Wrap each running program in a process: a bundle of execution state and a private address space the OS owns and protects."
+      tradeoff="Every process costs memory and bookkeeping, and switching between them isn’t free — which is exactly the scheduler’s problem."
+      next="With many processes ready, who actually gets the CPU?"
+    />
+  </LayerSection>
+
+  <LayerSection {...L.O1}>
+    <p class="prose">There's usually one core but many ready processes, so the OS <b>time-slices</b>: it runs each for a short <span class="hl">quantum</span>, then moves on. Switch fast enough and everything <i>looks</i> simultaneous — though a process can also step aside early to wait on I/O.</p>
+    <Scheduler client:visible />
+    <Takeaway>The scheduler fakes "everything at once" by giving each process a quick turn in a relentless rotation.</Takeaway>
+    <Why
+      problem="One CPU can run only one instruction stream at a time, yet a dozen programs all want to make progress now."
+      idea="Slice time into small quanta and rotate the ready processes through the CPU, parking any that block on I/O until they’re ready again."
+      tradeoff="Slices too long feel laggy; too short and the overhead of switching eats the gains. The switch itself has a real cost."
+      next="What does it actually take to swap one process out for another?"
+    />
+  </LayerSection>
+
+  <LayerSection {...L.O2}>
+    <p class="prose">To pause process A and run B, the OS performs a <b>context switch</b>: it copies A's live registers and program counter into A's saved state, then loads B's back into the CPU. The hardware can't tell — B simply resumes as if it never stopped.</p>
+    <Takeaway>A context switch is save-A's-registers, load-B's: the CPU is reused, the illusion of continuity preserved.</Takeaway>
+    <Why
+      problem="The CPU has exactly one set of registers, but a paused process must later resume exactly where it left off."
+      idea="Snapshot the outgoing process’s register state into memory and restore the incoming one’s, so each picks up mid-thought."
+      tradeoff="It’s pure overhead — no user work happens during a switch — and it pollutes caches and the TLB, so switching too often is expensive."
+      next="Switching is triggered by two things: the program asking the kernel for something, and the hardware demanding attention."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.O3}>
+    <p class="prose">A program can't touch the disk or network itself — that's privileged. So <code>read()</code> is really a <b>trap</b>: it switches the CPU into <span class="hl">kernel mode</span>, runs the kernel's handler, and returns. The boundary is what makes sharing safe.</p>
+    <Syscall client:visible />
+    <Takeaway>A system call is a guarded doorway: user code traps into the kernel, which does the privileged work and hands control back.</Takeaway>
+    <Why
+      problem="If any program could drive the hardware directly, one bug or one bad actor could corrupt the disk, spy on others, or crash the machine."
+      idea="Run user code in an unprivileged mode and force every privileged request through a trap into the kernel, which checks it before acting."
+      tradeoff="Each crossing costs a mode switch and validation, making syscalls far slower than a plain function call — which is why fast code batches them."
+      next="The program asks for the kernel on purpose. But sometimes the hardware barges in uninvited."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.O4}>
+    <p class="prose">An <b>interrupt</b> is the hardware yanking the CPU's attention: a key is pressed, a packet lands, or — crucially — a <span class="hl">timer</span> fires. The CPU drops what it's doing, jumps to the kernel's handler, and the kernel decides what happens next.</p>
+    <Takeaway>Interrupts let hardware (especially the timer) seize the CPU, so the OS never has to trust a program to give it back.</Takeaway>
+    <Why
+      problem="A program stuck in a tight loop would hold the CPU forever, and waiting on devices by constantly polling them would waste it."
+      idea="Let devices raise interrupts that force control into the kernel, and have a periodic timer interrupt guarantee the OS regains control."
+      tradeoff="Handlers must be fast and careful — they run at awkward moments — and too many interrupts (interrupt storms) can swamp the system."
+      next="Put the timer, the switch, and the scheduler together and watch one tick of the whole loop."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.O5}>
+    <p class="prose">One tick, end to end: a process is running, the <b>timer interrupt</b> fires, control traps into the kernel, the kernel <b>context-switches</b> the running process out, the <b>scheduler</b> picks the next one, and a return-from-trap resumes it — over and over, thousands of times a second.</p>
+    <Takeaway>The OS stays in charge through one repeating loop: interrupt, save, choose, restore — the heartbeat under every running program.</Takeaway>
+    <Why
+      problem="The illusion that many programs run at once, safely and fairly, has to be maintained continuously without any program’s cooperation."
+      idea="Drive everything from the timer interrupt: each tick is a chance to switch contexts and reschedule, so control always comes back to the kernel."
+      tradeoff="The loop’s overhead is the price of the illusion — every tick spends cycles on switching and scheduling instead of the program’s own work."
+      next="Zoom back out: this is what the main stack’s OS layer is doing under every process on the machine."
+    />
+  </LayerSection>
+</Base>
+
+<style>
+  .back-link{color:var(--accent,var(--signal))}
+</style>

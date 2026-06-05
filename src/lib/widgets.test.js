@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation } from './widgets.js';
+import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall } from './widgets.js';
 
 const popcount = (n) => { let c = 0; n >>>= 0; while (n) { c += n & 1; n >>>= 1; } return c; };
 
@@ -271,6 +271,21 @@ describe('buildAddressTranslation (virtual memory)', () => {
     expect(steps.some((s) => s.tlbHit === true)).toBe(true);
     const second = steps.find((s) => s.vaddr === 40 && s.phys !== undefined);
     expect(second.phys).toBe(120); // frame 7; 7*16 + 8
+  });
+});
+
+describe('buildSyscall (user/kernel boundary)', () => {
+  const steps = buildSyscall();
+  it('starts and ends in user mode', () => {
+    expect(steps[0].mode).toBe('user');
+    expect(steps[steps.length - 1].mode).toBe('user');
+  });
+  it('crosses into the kernel to do the privileged I/O, and blocks there', () => {
+    expect(steps.some((s) => s.mode === 'kernel')).toBe(true);
+    expect(steps.some((s) => s.blocked)).toBe(true);
+  });
+  it('switches mode exactly twice — trap in, return-from-trap out', () => {
+    expect(steps.filter((s) => s.switched)).toHaveLength(2);
   });
 });
 
