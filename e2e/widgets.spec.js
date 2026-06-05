@@ -69,6 +69,12 @@ test('Spine nav: clicking a rung deep-links the layer into the URL', async ({ pa
   await expect(page).toHaveURL(/#L12$/);
 });
 
+test('Keyboard nav: j jumps from the first layer to the next', async ({ page }) => {
+  await page.goto('/');
+  await page.keyboard.press('j');
+  await expect(page).toHaveURL(/#L0$/); // Lsi → L0
+});
+
 test('Guided tour: reveals, starts, advances with Next, and stops', async ({ page }) => {
   await page.goto('/');
   const start = page.locator('#tourStart');

@@ -106,6 +106,7 @@ const jsonLd = {
     </ol>
     <!-- Enhancement only: revealed by the script, since the tour needs JS. -->
     <button type="button" id="tourStart" class="tour-start" aria-expanded="false" hidden>▶ Play the climb</button>
+    <p class="kbd-hint">Tip: press <kbd>j</kbd> / <kbd>k</kbd> to jump between layers.</p>
   </header>
 
   <noscript>
@@ -125,7 +126,7 @@ const jsonLd = {
         ))}
       </div>
     </nav>
-    <main id="main">
+    <main id="main" aria-keyshortcuts="j k">
       <slot />
     </main>
   </div>
@@ -149,7 +150,7 @@ const jsonLd = {
     const rungs = $$('.rung');
     const fill = $('#spineFill'), pulse = $('#spinePulse');
     const sections = rungs.map((rg) => document.getElementById((rg.getAttribute('href') || '').slice(1)));
-    let activeId = null;
+    let activeId = null, activeBest = 0;
     // Don't write the hash until the user actually scrolls — otherwise the
     // first onScroll() would clobber an inbound deep-link anchor (e.g. #L12)
     // before the browser gets to scroll there.
@@ -164,6 +165,20 @@ const jsonLd = {
         history.replaceState(null, '', location.pathname + location.search + '#' + el.id);
       });
     });
+    // Keyboard layer nav: j / k jump to the next / previous layer.
+    function jumpLayer(delta) {
+      const el = sections[Math.max(0, Math.min(activeBest + delta, sections.length - 1))];
+      if (!el) return;
+      userScrolled = true;
+      el.scrollIntoView({ behavior: reduceMotion() ? 'auto' : 'smooth', block: 'start' });
+    }
+    document.addEventListener('keydown', (e) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const t = e.target, tag = t && t.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (t && t.isContentEditable)) return;
+      if (e.key === 'j') { e.preventDefault(); jumpLayer(1); }
+      else if (e.key === 'k') { e.preventDefault(); jumpLayer(-1); }
+    });
     function onScroll() {
       const stage = $('.stage'); if (!stage) return;
       const r = stage.getBoundingClientRect();
@@ -176,6 +191,7 @@ const jsonLd = {
       pulse.style.top = progressY + 'px';
       let best = 0, bestD = 1e9;
       sections.forEach((s, i) => { if (!s) return; const d = Math.abs(s.getBoundingClientRect().top - 90); if (d < bestD) { bestD = d; best = i; } });
+      activeBest = best;
       rungs.forEach((rg, i) => { const on = i === best; rg.classList.toggle('on', on); rg.setAttribute('aria-current', on ? 'true' : 'false'); });
       // Reflect the layer you're reading in the URL so it's deep-linkable/shareable.
       const id = sections[best] && sections[best].id;
