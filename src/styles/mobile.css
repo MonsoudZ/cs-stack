@@ -44,10 +44,6 @@
     .rom{font-size:12px}
     .rom .ln{padding:8px 10px;gap:10px}
     .reg .rv{font-size:24px}
-    .stepbox{min-width:0;padding:15px}
-    .memscroll{margin-left:-4px;margin-right:-4px}
-    .mcell{width:62px;padding:9px 4px}
-    .mcell .vl{font-size:24px}
     .csbar{align-items:flex-start}
     .csframe{font-size:12px;align-items:flex-start;flex-direction:column;gap:5px}
     .cpucore .core{width:100%;max-width:240px}
@@ -86,5 +82,4 @@
       transition-duration:.001ms !important;
       scroll-behavior:auto !important;
     }
-    .scrollcue{animation:none}
   }

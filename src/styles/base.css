@@ -58,9 +58,6 @@
   .reader-guide b{color:var(--signal);font-weight:700;margin-right:5px}
   .noscript-note{max-width:1180px;margin:0 auto;padding:14px 18px;font-family:var(--mono);font-size:13px;
     line-height:1.6;color:var(--dim);border:1px solid var(--border-hot);border-radius:12px;background:var(--amber-d)}
-  .scrollcue{font-family:var(--mono);font-size:11px;letter-spacing:.2em;color:var(--faint);margin-top:46px;
-    animation:bob 2.4s ease-in-out infinite;display:inline-block}
-  @keyframes bob{0%,100%{transform:translateY(0);opacity:.5}50%{transform:translateY(6px);opacity:1}}
 
   /* ---------- LAYOUT: SPINE + LAYERS ---------- */
   .stage{position:relative;z-index:2;max-width:1180px;margin:0 auto;padding:0 24px 120px;
