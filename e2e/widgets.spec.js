@@ -58,6 +58,30 @@ test('Adder island: setting the high A bit carries into a sum of 16', async ({ p
   }).toPass({ timeout: 8000 });
 });
 
+test('RaceCondition island: no lock loses an update; a lock prevents it', async ({ page }) => {
+  await page.goto('/');
+  const race = page.locator('#L8a');
+  await race.scrollIntoViewIfNeeded();
+  const counter = race.locator('.counter');
+  const step = () => race.locator('.cpu-ctrl button').first();
+  // step the racy interleaving until the lost-update appears (loop absorbs hydration, breaks before restart)
+  for (let i = 0; i < 14; i++) {
+    await step().click();
+    if (await counter.evaluate((el) => el.classList.contains('lost'))) break;
+    await page.waitForTimeout(40);
+  }
+  await expect(counter).toHaveText('1'); // an increment was lost
+  await expect(counter).toHaveClass(/lost/);
+  // turn the lock on (rebuilds at step 0) and run again → both increments count
+  await race.getByRole('button', { name: /lock:/ }).click();
+  for (let i = 0; i < 16; i++) {
+    await step().click();
+    if (((await counter.textContent()) || '').trim() === '2') break;
+    await page.waitForTimeout(40);
+  }
+  await expect(counter).toHaveText('2');
+});
+
 test('FlipFlop island: Q holds its bit until the clock ticks', async ({ page }) => {
   await page.goto('/');
   const ff = page.locator('#L2b');

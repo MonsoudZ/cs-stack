@@ -23,6 +23,7 @@ export const layers = [
   { id: 'L7', num: '07', navLabel: 'Memory', zone: 'system', title: 'Memory: numbers with addresses', sub: 'systems · arrays · the call stack' },
   { id: 'L7b', num: '07.5', navLabel: 'Structures', zone: 'system', title: 'Data structures: shapes made of addresses', sub: 'systems · arrays · hash maps · trees' },
   { id: 'L8', num: '08', navLabel: 'OS', zone: 'system', title: 'The operating system: the referee', sub: 'systems · the scheduler · syscalls' },
+  { id: 'L8a', num: '08.2', navLabel: 'Concurrency', zone: 'system', title: 'Concurrency: two threads, one memory', sub: 'systems · threads · race conditions · locks' },
   { id: 'L8b', num: '08.5', navLabel: 'Security', zone: 'system', title: 'Security: boundaries that make sharing safe', sub: 'systems · permissions · isolation · trust' },
   { id: 'L9', num: '09', navLabel: 'Network', zone: 'system', title: 'The network: numbers that leave the building', sub: 'systems · encapsulation · packets · TCP/IP' },
   { id: 'L10', num: '10', navLabel: 'Cloud', zone: 'system', title: "The cloud: someone else's machines, at scale", sub: 'systems · load balancers · app servers · datastores' },

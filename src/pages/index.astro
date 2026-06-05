@@ -9,6 +9,7 @@ import FlipFlop from '../components/FlipFlop.svelte';
 import Bits from '../components/Bits.svelte';
 import CallStack from '../components/CallStack.svelte';
 import Scheduler from '../components/Scheduler.svelte';
+import RaceCondition from '../components/RaceCondition.svelte';
 import SecurityBoundaries from '../components/SecurityBoundaries.astro';
 import Tracer from '../components/Tracer.svelte';
 import Transistor from '../components/Transistor.astro';
@@ -208,6 +209,19 @@ import Takeaway from '../components/Takeaway.astro';
       idea="The OS owns the hardware and rents out safe illusions: each program gets its own memory, files, devices, and turns on the CPU."
       tradeoff="Safety is not free. Isolation, scheduling, permissions, and system calls add overhead and make some operations more indirect."
       next="With one machine managed safely, the next problem is connecting many machines together."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.L8a}>
+    <p class="prose">The scheduler can pause a thread <b>mid-instruction</b>. When two threads touch the same memory, the order their steps interleave in can quietly corrupt it — even <code>counter += 1</code> is really read, add, write.</p>
+    <RaceCondition client:visible />
+    <Takeaway>A race condition is a bug that depends on timing; a lock serializes the critical section so only one thread is inside at a time.</Takeaway>
+    <p class="aside">Locks fix races but bring their own hazards: held too long they kill performance, and two locks taken in opposite orders can <span class="hl">deadlock</span>.</p>
+    <Why
+      problem="One core fakes many threads by switching between them, and real machines have many cores. Either way, a thread can be interrupted partway through updating shared state."
+      idea="Mark the read-modify-write as a critical section and guard it with a lock (or an atomic instruction) so only one thread executes it at a time."
+      tradeoff="Synchronization is subtle and costly: contention, deadlock, priority inversion, and bugs that only appear under rare timings make concurrency famously hard."
+      next="Coordinating access on one machine is hard enough; doing it across many machines is the network and the cloud."
     />
   </LayerSection>
 

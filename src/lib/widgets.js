@@ -114,3 +114,37 @@ export function decodeMiniFloat(bits) {
   }
   return { value: sign * (1 + m / 8) * 2 ** (e - FLOAT_BIAS), kind: 'normal', sign: s, e, m, exp: e - FLOAT_BIAS, frac: 1 + m / 8 };
 }
+
+// --- 08.2 Concurrency: two threads each run `counter += 1` (read · add · write)
+// on shared memory. Without a lock, a bad interleaving loses an update (final 1
+// instead of 2); a lock serializes the critical section (final 2). Pure: the
+// component owns the `locked` toggle and steps through the returned snapshots. ---
+export function buildRace({ locked = false } = {}) {
+  const out = [];
+  let counter = 0, tmpA = '–', tmpB = '–', held = null;
+  const snap = (note, o = {}) => out.push({ thread: o.thread ?? null, op: o.op ?? null, tmpA, tmpB, counter, held, lost: !!o.lost, note });
+  if (locked) {
+    snap('Each thread must grab the lock before touching counter — only one inside the critical section at a time.');
+    held = 'A'; snap('Thread A acquires the lock', { thread: 'A', op: 'lock' });
+    tmpA = counter; snap('A reads counter = ' + counter + ' into its tmp', { thread: 'A', op: 'read' });
+    tmpA = tmpA + 1; snap('A computes tmp + 1 = ' + tmpA, { thread: 'A', op: 'add' });
+    counter = tmpA; snap('A writes ' + counter + ' back to counter', { thread: 'A', op: 'write' });
+    held = null; snap('A releases the lock', { thread: 'A', op: 'unlock' });
+    held = 'B'; snap('Only now can Thread B take the lock', { thread: 'B', op: 'lock' });
+    tmpB = counter; snap('B reads counter = ' + counter, { thread: 'B', op: 'read' });
+    tmpB = tmpB + 1; snap('B computes tmp + 1 = ' + tmpB, { thread: 'B', op: 'add' });
+    counter = tmpB; snap('B writes ' + counter, { thread: 'B', op: 'write' });
+    held = null; snap('B releases the lock', { thread: 'B', op: 'unlock' });
+    snap('counter = ' + counter + ' ✓ — the lock made each read-modify-write atomic, so both increments counted');
+  } else {
+    snap('Both threads run counter += 1 with no lock — and that is really three steps: read, add, write.');
+    tmpA = counter; snap('A reads counter = ' + counter, { thread: 'A', op: 'read' });
+    tmpB = counter; snap('B reads counter = ' + counter + ' — before A has written anything back', { thread: 'B', op: 'read' });
+    tmpA = tmpA + 1; snap('A computes tmp + 1 = ' + tmpA, { thread: 'A', op: 'add' });
+    counter = tmpA; snap('A writes counter = ' + counter, { thread: 'A', op: 'write' });
+    tmpB = tmpB + 1; snap('B computes tmp + 1 = ' + tmpB + ' — from its stale read', { thread: 'B', op: 'add' });
+    counter = tmpB; snap('B writes counter = ' + counter + ' — it never saw A’s update', { thread: 'B', op: 'write', lost: true });
+    snap('counter = ' + counter + ', but += 1 ran twice. One increment was lost — that is a race condition.', { lost: true });
+  }
+  return out;
+}

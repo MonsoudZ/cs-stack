@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat } from './widgets.js';
+import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace } from './widgets.js';
 
 const sum = (arr) => arr.reduce((a, b) => a + b, 0);
 
@@ -125,6 +125,25 @@ describe('decodeMiniFloat (toy 8-bit IEEE-754)', () => {
     expect(decodeMiniFloat([0, 1, 1, 1, 1, 1, 0, 0]).kind).toBe('nan');
   });
 
+});
+
+describe('buildRace (concurrency)', () => {
+  it('without a lock, a bad interleaving loses an update → counter ends at 1', () => {
+    const steps = buildRace({ locked: false });
+    expect(steps.at(-1).counter).toBe(1); // two increments, one lost
+    expect(steps.some((s) => s.lost)).toBe(true);
+  });
+
+  it('with a lock, the critical section is serialized → counter ends at 2', () => {
+    const steps = buildRace({ locked: true });
+    expect(steps.at(-1).counter).toBe(2);
+    expect(steps.some((s) => s.lost)).toBe(false);
+    // only one thread ever holds the lock at a time (never both, never overlapping)
+    expect(steps.every((s) => s.held === null || s.held === 'A' || s.held === 'B')).toBe(true);
+  });
+});
+
+describe('decodeMiniFloat spacing', () => {
   it('representable steps are non-uniform (the "lie"): the gap doubles each octave', () => {
     // 1.0 (0 0111 000) → next code 0 0111 001 is 1.125; gap 0.125
     const a = decodeMiniFloat([0, 0, 1, 1, 1, 0, 0, 0]).value; // 1.0
