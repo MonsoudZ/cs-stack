@@ -46,6 +46,18 @@ test('LogicGate island: AND of 1 and 1 lights the output', async ({ page }) => {
   await expect(lamp).toHaveText('1'); // 1 AND 1 = 1
 });
 
+test('Adder island: setting the high A bit carries into a sum of 16', async ({ page }) => {
+  await page.goto('/');
+  const adder = page.locator('#L4');
+  await adder.scrollIntoViewIfNeeded();
+  await expect(adder).toContainText('= 8'); // 5 + 3
+  const highBit = adder.getByRole('button', { name: /A bit 1,/ }); // worth 8
+  await expect(async () => {
+    await highBit.click();
+    await expect(adder).toContainText('= 16', { timeout: 400 }); // 13 + 3, carry sets the overflow bit
+  }).toPass({ timeout: 8000 });
+});
+
 test('Voltage (CSS-only): tapping the wire flips LOW to HIGH with no JS', async ({ page }) => {
   await page.goto('/');
   const widget = page.locator('.voltage-static');
