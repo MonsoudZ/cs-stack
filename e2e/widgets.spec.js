@@ -111,6 +111,38 @@ test('Memory page: own nav, a cache access hits, a virtual address translates to
   await expect(vm.locator('.vmt-phys')).toContainText('122');
 });
 
+test('Silicon page: own nav, doping adds carriers, the diode conducts forward, CMOS inverts', async ({ page }) => {
+  await page.goto('/silicon');
+  await expect(page.locator('h1.title')).toContainText('SILICON');
+  await expect(page.locator('.spine .rung')).toHaveCount(5);
+  // doping: choosing n-type reveals a free-electron carrier
+  const dope = page.locator('#SI1');
+  await dope.scrollIntoViewIfNeeded();
+  await expect(async () => {
+    await dope.getByRole('button', { name: 'n-type' }).click();
+    await expect(dope.locator('.dope-carrier.el')).toBeVisible({ timeout: 400 });
+  }).toPass({ timeout: 8000 });
+  await expect(dope.locator('.dope-v.el')).toContainText('free electrons');
+  // diode: stepping reaches a forward bias where current flows
+  const di = page.locator('#SI2');
+  await di.scrollIntoViewIfNeeded();
+  for (let i = 0; i < 5; i++) {
+    await di.locator('.cpu-ctrl button').first().click();
+    if (await di.locator('.di-junction.flow').count()) break;
+    await page.waitForTimeout(40);
+  }
+  await expect(di.locator('.di-junction.flow')).toBeVisible();
+  // CMOS inverter: input HIGH must give output LOW (a NOT gate)
+  const cm = page.locator('#SI4');
+  await cm.scrollIntoViewIfNeeded();
+  await expect(cm.locator('.inv-out')).toContainText('HIGH'); // default input LOW → output HIGH
+  await expect(async () => {
+    await cm.locator('.inv-in').click();
+    await expect(cm.locator('.inv-out')).toContainText('LOW', { timeout: 400 });
+  }).toPass({ timeout: 8000 });
+  await expect(cm.locator('.inv-fet.n.on')).toBeVisible(); // nMOS pulls down
+});
+
 test('Numbers page: own nav, two’s complement negates to −5, and 0.1 + 0.2 ≠ 0.3', async ({ page }) => {
   await page.goto('/numbers');
   await expect(page.locator('h1.title')).toContainText('NUMBERS');

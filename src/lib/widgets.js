@@ -541,3 +541,40 @@ export function buildFloatSum() {
   snap('so 0.1 + 0.2 === 0.3 is ' + (0.1 + 0.2 === 0.3) + ' — not a bug, just two roundings that don’t meet', { equal: 0.1 + 0.2 === 0.3 });
   return out;
 }
+
+// --- SILICON STACK (/silicon) ---
+
+// Doping: pure silicon shares all four of its outer electrons in bonds, so it
+// has almost no free charge to carry current. Mixing in a trace of another
+// element changes that: a donor (n-type) brings a spare electron; an acceptor
+// (p-type) leaves a "hole" — a missing electron that drifts like a + charge.
+export const DOPING = {
+  pure: { label: 'pure silicon', dopant: 'none', carrier: 'almost none', charge: 0, conductive: false, note: 'every silicon atom shares its 4 outer electrons in bonds — there’s little free charge, so a pure crystal barely conducts' },
+  n: { label: 'n-type', dopant: 'phosphorus (5 outer electrons)', carrier: 'free electrons', charge: -1, conductive: true, note: 'phosphorus has 5 outer electrons; 4 fill the bonds and the 5th is left free to roam — negative carriers, hence n-type' },
+  p: { label: 'p-type', dopant: 'boron (3 outer electrons)', carrier: 'holes', charge: 1, conductive: true, note: 'boron has only 3 outer electrons, so each leaves a missing bond — a "hole" that drifts like a positive carrier, hence p-type' },
+};
+
+// A PN-junction diode: bond a p-type region to an n-type one. At the boundary,
+// free electrons fill nearby holes, leaving a carrier-free "depletion region"
+// that blocks current. A forward bias (push from the p side) collapses it and
+// current flows; a reverse bias widens it and blocks — a one-way valve.
+export function buildDiode() {
+  const out = [];
+  const snap = (bias, conducts, depletion, note) => out.push({ bias, conducts, depletion, note });
+  snap('none', false, 'normal', 'a diode joins a p-type region (holes) to an n-type region (free electrons) — watch what happens at the boundary');
+  snap('none', false, 'normal', 'at rest, electrons near the junction fall into nearby holes, leaving a carrier-free depletion region that blocks current');
+  snap('forward', true, 'narrow', 'forward bias: + to the p side pushes carriers toward the junction, the depletion region collapses → current flows');
+  snap('reverse', false, 'wide', 'reverse bias: flip the battery and carriers are pulled away, the depletion region widens → current is blocked');
+  snap('none', false, 'normal', 'so a PN junction passes current one way and blocks the other — that is a diode; add a third terminal to control the channel and you get a transistor');
+  return out;
+}
+
+// A CMOS inverter (a NOT gate from two transistors): a p-type FET pulls the
+// output up to HIGH, an n-type FET pulls it down to LOW, and their gates are
+// tied to the same input. Exactly one conducts, so output is always the
+// opposite of input — and almost no current flows straight through while idle.
+export function cmosInverter(input) {
+  const pmos = input === 0; // pMOS conducts when its gate is LOW
+  const nmos = input === 1; // nMOS conducts when its gate is HIGH
+  return { input, pmos, nmos, output: pmos && !nmos ? 1 : 0, path: pmos ? 'pull-up to HIGH' : 'pull-down to LOW' };
+}

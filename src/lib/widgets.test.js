@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum } from './widgets.js';
+import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum, DOPING, buildDiode, cmosInverter } from './widgets.js';
 
 const popcount = (n) => { let c = 0; n >>>= 0; while (n) { c += n & 1; n >>>= 1; } return c; };
 
@@ -362,6 +362,45 @@ describe('buildFloatSum (0.1 + 0.2 ≠ 0.3)', () => {
   });
   it('concludes that the equality is false', () => {
     expect(steps[steps.length - 1].equal).toBe(false);
+  });
+});
+
+describe('DOPING (n-type / p-type carriers)', () => {
+  it('pure silicon barely conducts; doping adds carriers of opposite sign', () => {
+    expect(DOPING.pure.conductive).toBe(false);
+    expect(DOPING.n.conductive).toBe(true);
+    expect(DOPING.p.conductive).toBe(true);
+    expect(DOPING.n.charge).toBe(-1); // free electrons
+    expect(DOPING.p.charge).toBe(1);  // holes
+  });
+});
+
+describe('buildDiode (PN junction)', () => {
+  const steps = buildDiode();
+  it('conducts only under forward bias', () => {
+    const fwd = steps.find((s) => s.bias === 'forward');
+    const rev = steps.find((s) => s.bias === 'reverse');
+    expect(fwd.conducts).toBe(true);
+    expect(rev.conducts).toBe(false);
+  });
+  it('the depletion region narrows forward and widens in reverse', () => {
+    expect(steps.find((s) => s.bias === 'forward').depletion).toBe('narrow');
+    expect(steps.find((s) => s.bias === 'reverse').depletion).toBe('wide');
+  });
+});
+
+describe('cmosInverter (a NOT gate from two FETs)', () => {
+  it('output is always the opposite of input', () => {
+    expect(cmosInverter(0).output).toBe(1);
+    expect(cmosInverter(1).output).toBe(0);
+  });
+  it('exactly one transistor conducts at a time', () => {
+    for (const input of [0, 1]) {
+      const r = cmosInverter(input);
+      expect(r.pmos !== r.nmos).toBe(true); // XOR: precisely one is on
+    }
+    expect(cmosInverter(0).pmos).toBe(true);  // LOW in → pMOS pulls up
+    expect(cmosInverter(1).nmos).toBe(true);  // HIGH in → nMOS pulls down
   });
 });
 
