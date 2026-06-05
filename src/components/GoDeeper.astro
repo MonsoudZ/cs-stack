@@ -1,0 +1,16 @@
+---
+// The inline "go deeper" link shown under a main-stack layer that has a
+// dedicated deep-dive. Name, kind, and blurb all come from stacks.js, so the
+// homepage prompt, the footer map, and the social card never drift.
+import { stacks } from '../data/stacks.js';
+const { slug } = Astro.props;
+const s = stacks.find((x) => x.slug === slug);
+// Compose the label as one string so HTML compression can't drop the space
+// between an expression-rendered name and kind (e.g. "Siliconstack").
+const label = s && `the ${s.name} ${s.kind}`;
+---
+{s && (
+  <p class="prose prose-follow">
+    <a href={`/${s.slug}`}>→ go deeper: <b>{label}</b></a> — {s.blurb}.
+  </p>
+)}

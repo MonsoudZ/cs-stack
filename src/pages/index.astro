@@ -1,6 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
 import LayerSection from '../components/LayerSection.astro';
+import GoDeeper from '../components/GoDeeper.astro';
 import { layerById as L } from '../data/layers.js';
 import Mosfet from '../components/Mosfet.svelte';
 import Voltage from '../components/Voltage.astro';
@@ -34,7 +35,7 @@ import Takeaway from '../components/Takeaway.astro';
     <Mosfet client:visible />
     <Takeaway>A MOSFET is the physical trick that turns material into a controllable switch.</Takeaway>
     <p class="aside">Past the threshold, the gate pulls a <span class="hl">channel</span> into existence: current flows.</p>
-    <p class="prose prose-follow"><a href="/silicon">→ go deeper: <b>the silicon stack</b></a> — doping, the PN-junction diode, the MOSFET, and how two switches become a logic gate.</p>
+    <GoDeeper slug="silicon" />
     <Why
       problem="Raw silicon is only a material. To build a computer, we need matter that can be pushed between two dependable behaviors: blocking current or letting it pass."
       idea="Doping changes the material so a gate voltage can pull a temporary channel into place. That turns a tiny patch of silicon into a controllable switch."
@@ -120,7 +121,7 @@ import Takeaway from '../components/Takeaway.astro';
     <p class="prose">Whole numbers are exact, but the world has fractions. Floating point trades a fixed number of bits for a <b>scientific-notation</b> number: a sign, an exponent that slides the decimal point, and a mantissa for the digits.</p>
     <FloatBits client:visible />
     <Takeaway>Floating point can represent a huge range, but only at a grid of values — most decimals get rounded to the nearest one.</Takeaway>
-    <p class="prose prose-follow"><a href="/numbers">→ go deeper: <b>the numbers stack</b></a> — two’s-complement negatives, the uneven grid of representable floats, and why 0.1 + 0.2 ≠ 0.3.</p>
+    <GoDeeper slug="numbers" />
     <p class="aside">This is why <code>0.1 + 0.2</code> is <code>0.30000000000000004</code>: neither 0.1 nor 0.2 lands exactly on the grid, so the sum carries the rounding error. Same trick as the toy float above — just 64 bits instead of 8.</p>
     <Why
       problem="Programs need fractions and a vast range of magnitudes, but a fixed-width integer can only count whole steps over a fixed span."
@@ -146,7 +147,7 @@ import Takeaway from '../components/Takeaway.astro';
     <p class="prose">Your source code is for humans. Before the CPU can obey it, language tools have to turn that text into structured operations.</p>
     <RuntimePipeline />
     <Takeaway>A runtime is the bridge between human language and machine operations.</Takeaway>
-    <p class="prose prose-follow"><a href="/compiler">→ go deeper: <b>the compiler stack</b></a> — lex an expression into tokens, parse it into a tree, lower it to bytecode, and run it on a stack machine.</p>
+    <GoDeeper slug="compiler" />
     <Why
       problem="The CPU cannot execute JavaScript, Ruby, Python, or C source text. It only follows lower-level operations."
       idea="Language tools parse the text, check structure, lower it into simpler steps, and either interpret, compile, or JIT those steps into CPU work."
@@ -171,7 +172,7 @@ import Takeaway from '../components/Takeaway.astro';
     <p class="prose">Memory is not one place. The machine keeps the hottest data closest to the CPU, then spills outward into slower, larger storage.</p>
     <MemoryHierarchy />
     <Takeaway>The memory hierarchy is a speed bargain: tiny and close is fast; huge and far away is slow.</Takeaway>
-    <p class="prose prose-follow"><a href="/memory">→ go deeper: <b>the memory stack</b></a> — cache lines and locality, virtual memory and page tables, and the TLB.</p>
+    <GoDeeper slug="memory" />
     <Why
       problem="The CPU can execute instructions much faster than main memory or disk can feed it data."
       idea="Use layers of storage. Registers hold the current values, caches keep recent data nearby, RAM holds active programs, and disk keeps long-term state."
@@ -196,7 +197,7 @@ import Takeaway from '../components/Takeaway.astro';
     <p class="prose">A data structure is a promise about where data lives and how you will find it again.</p>
     <DataStructures />
     <Takeaway>Data structures are memory layouts plus rules for moving through them.</Takeaway>
-    <p class="prose prose-follow"><a href="/structures">→ go deeper: <b>the structures stack</b></a> — dynamic arrays, hash-map collisions, trees, and the Big-O trade-offs.</p>
+    <GoDeeper slug="structures" />
     <Why
       problem="Raw memory is just numbered boxes. Programs need ways to find, group, order, and update related values without thinking about every byte."
       idea="Data structures impose shape: arrays put neighbors together, hash maps compute a bucket from a key, and trees connect nodes through choices."
@@ -209,7 +210,7 @@ import Takeaway from '../components/Takeaway.astro';
     <p class="prose">The OS slices one machine into safe little turns so many programs can pretend they are running at once.</p>
     <Scheduler client:visible />
     <Takeaway>The OS makes one machine feel safely shared by many programs.</Takeaway>
-    <p class="prose prose-follow"><a href="/os">→ go deeper: <b>the OS stack</b></a> — processes, context switches, system calls and the interrupts that keep the kernel in charge.</p>
+    <GoDeeper slug="os" />
     <Why
       problem="If every app controlled the hardware directly, one bug could overwrite another program, freeze the machine, or steal private data."
       idea="The OS owns the hardware and rents out safe illusions: each program gets its own memory, files, devices, and turns on the CPU."
@@ -235,7 +236,7 @@ import Takeaway from '../components/Takeaway.astro';
     <p class="prose">Security is what stops useful sharing from becoming accidental exposure.</p>
     <SecurityBoundaries />
     <Takeaway>Security is boundary design: who can do what, with which data, under whose trust.</Takeaway>
-    <p class="prose prose-follow"><a href="/crypto">→ go deeper: <b>the crypto stack</b></a> — hashing, public/private keys, Diffie–Hellman key exchange, certificates, and TLS.</p>
+    <GoDeeper slug="crypto" />
     <Why
       problem="The same abstractions that make computers useful also create danger: shared memory, files, devices, networks, users, and secrets."
       idea="Security adds boundaries around those abstractions: isolation, permissions, authentication, validation, encryption, and audit trails."
@@ -251,7 +252,7 @@ import Takeaway from '../components/Takeaway.astro';
     <p class="aside">Headers are overhead, but they buy routing, ordering, and reliability.</p>
     <Packets client:visible />
     <Takeaway>Packets can arrive late, lost, or out of order; protocols rebuild the original message.</Takeaway>
-    <p class="prose prose-follow"><a href="/network">→ go deeper: <b>the network stack</b></a> — signals, routing &amp; TTL, TCP reliability, and DNS, pulled apart layer by layer.</p>
+    <GoDeeper slug="network" />
     <Why
       problem="Programs often need to talk across machines, but the path between them can drop packets, reorder data, or route through many strangers."
       idea="Network protocols wrap bytes with context: where they came from, where they are going, which program should receive them, and how to rebuild the stream."
@@ -276,7 +277,7 @@ import Takeaway from '../components/Takeaway.astro';
     <p class="prose">A database is where an app stores durable truth and asks for slices of it quickly.</p>
     <DatabaseSystem />
     <Takeaway>Databases turn storage into reliable questions, updates, and recovery.</Takeaway>
-    <p class="prose prose-follow"><a href="/database">→ go deeper: <b>the database stack</b></a> — B-tree indexes, query planning, ACID transactions, the write-ahead log, and replication.</p>
+    <GoDeeper slug="database" />
     <Why
       problem="Apps need more than files. They need shared, durable state that can be queried, updated safely, and recovered after failure."
       idea="A database adds structure around storage: schemas or documents, indexes for lookup, transactions for correctness, and replication for survival."
@@ -289,7 +290,7 @@ import Takeaway from '../components/Takeaway.astro';
     <p class="prose">The browser turns documents, styles, and behavior into an interface a human can see and touch.</p>
     <BrowserUi />
     <Takeaway>The UI is the top of the stack: machine work shaped into human perception.</Takeaway>
-    <p class="prose prose-follow"><a href="/render">→ go deeper: <b>the render pipeline</b></a> — DOM, style, layout, paint, composite, and why <code>transform</code> is cheaper than <code>width</code>.</p>
+    <GoDeeper slug="render" />
     <Why
       problem="Users do not experience packets, syscalls, memory addresses, or CPU instructions. They experience screens, gestures, latency, and feedback."
       idea="The browser builds a live model from HTML, applies CSS rules, runs JavaScript, handles events, lays out boxes, and paints pixels."
