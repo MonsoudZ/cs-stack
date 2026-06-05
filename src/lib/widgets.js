@@ -578,3 +578,56 @@ export function cmosInverter(input) {
   const nmos = input === 1; // nMOS conducts when its gate is HIGH
   return { input, pmos, nmos, output: pmos && !nmos ? 1 : 0, path: pmos ? 'pull-up to HIGH' : 'pull-down to LOW' };
 }
+
+// --- CPU STACK (/cpu) ---
+
+// The ALU: the CPU's calculator. An opcode selects one operation over two 8-bit
+// inputs; the result wraps at 8 bits and sets condition flags (Z = zero result,
+// C = carry/borrow out) that branches later read. Pure — drives the widget.
+export const ALU_OPS = ['ADD', 'SUB', 'AND', 'OR', 'XOR'];
+export function computeAlu(op, a, b) {
+  a &= 0xff; b &= 0xff;
+  let raw, carry = 0;
+  switch (op) {
+    case 'ADD': raw = a + b; carry = raw > 0xff ? 1 : 0; break;
+    case 'SUB': raw = a - b; carry = a < b ? 1 : 0; break; // carry = borrow
+    case 'AND': raw = a & b; break;
+    case 'OR': raw = a | b; break;
+    case 'XOR': raw = a ^ b; break;
+    default: raw = 0;
+  }
+  const result = raw & 0xff;
+  return { op, a, b, result, carry, zero: result === 0 ? 1 : 0 };
+}
+
+// Pipelining: a classic 5-stage pipeline (IF·ID·EX·MEM·WB). Unpipelined, each
+// instruction runs all five stages before the next begins (5 cycles each).
+// Pipelined, a new instruction enters every cycle, so the stages overlap like
+// a production line. Returns one snapshot per clock cycle, each carrying every
+// instruction's current stage, so the widget can fill the diagram diagonally.
+export const PIPE_STAGES = ['IF', 'ID', 'EX', 'MEM', 'WB'];
+export function buildPipeline({ instructions = ['lw', 'add', 'sub', 'and', 'or'], pipelined = true } = {}) {
+  const n = instructions.length, S = PIPE_STAGES.length;
+  const start = (i) => (pipelined ? i : i * S); // cycle an instruction enters IF
+  const total = pipelined ? n + S - 1 : n * S; // total cycles to drain
+  const out = [];
+  const stageAt = (i, c) => { const s = c - start(i); return s >= 0 && s < S ? s : null; };
+  const snap = (cycle, note) => {
+    const lanes = instructions.map((ins, i) => ({ ins, stage: stageAt(i, cycle) }));
+    const done = instructions.filter((_, i) => cycle - start(i) >= S).length;
+    out.push({ cycle, lanes, done, total, pipelined, stages: PIPE_STAGES, note });
+  };
+  snap(-1, pipelined
+    ? 'pipelined: a new instruction enters the pipe every cycle, so all five stages stay busy at once'
+    : 'unpipelined: each instruction finishes all five stages before the next one starts');
+  for (let c = 0; c < total; c++) {
+    const entering = instructions.findIndex((_, i) => start(i) === c);
+    const finishing = instructions.findIndex((_, i) => c - start(i) === S - 1);
+    let note = 'cycle ' + (c + 1);
+    if (entering >= 0) note = 'cycle ' + (c + 1) + ': "' + instructions[entering] + '" enters the pipeline (IF)';
+    if (finishing >= 0) note = 'cycle ' + (c + 1) + ': "' + instructions[finishing] + '" reaches WB and retires';
+    snap(c, note);
+  }
+  snap(total, n + ' instructions in ' + total + ' cycles' + (pipelined ? ' — vs ' + n * S + ' unpipelined: same work, far less idle silicon' : ' — every stage sat idle 4 of every 5 cycles'));
+  return out;
+}

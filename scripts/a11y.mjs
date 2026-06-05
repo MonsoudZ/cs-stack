@@ -11,7 +11,7 @@ import { readFileSync } from 'node:fs';
 import { JSDOM } from 'jsdom';
 import axe from 'axe-core';
 
-const PAGES = ['dist/index.html', 'dist/network/index.html', 'dist/compiler/index.html', 'dist/render/index.html', 'dist/crypto/index.html', 'dist/database/index.html', 'dist/memory/index.html', 'dist/os/index.html', 'dist/structures/index.html', 'dist/numbers/index.html', 'dist/silicon/index.html'];
+const PAGES = ['dist/index.html', 'dist/network/index.html', 'dist/compiler/index.html', 'dist/render/index.html', 'dist/crypto/index.html', 'dist/database/index.html', 'dist/memory/index.html', 'dist/os/index.html', 'dist/structures/index.html', 'dist/numbers/index.html', 'dist/silicon/index.html', 'dist/cpu/index.html'];
 let failed = false;
 
 for (const HTML of PAGES) {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum, DOPING, buildDiode, cmosInverter } from './widgets.js';
+import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum, DOPING, buildDiode, cmosInverter, ALU_OPS, computeAlu, PIPE_STAGES, buildPipeline } from './widgets.js';
 
 const popcount = (n) => { let c = 0; n >>>= 0; while (n) { c += n & 1; n >>>= 1; } return c; };
 
@@ -401,6 +401,45 @@ describe('cmosInverter (a NOT gate from two FETs)', () => {
     }
     expect(cmosInverter(0).pmos).toBe(true);  // LOW in → pMOS pulls up
     expect(cmosInverter(1).nmos).toBe(true);  // HIGH in → nMOS pulls down
+  });
+});
+
+describe('computeAlu (the CPU calculator)', () => {
+  it('ADD wraps at 8 bits and raises the carry flag', () => {
+    expect(computeAlu('ADD', 200, 100)).toMatchObject({ result: 44, carry: 1, zero: 0 });
+    expect(computeAlu('ADD', 2, 3)).toMatchObject({ result: 5, carry: 0 });
+  });
+  it('SUB borrows (carry) when a < b, in two’s complement', () => {
+    expect(computeAlu('SUB', 10, 3)).toMatchObject({ result: 7, carry: 0 });
+    expect(computeAlu('SUB', 3, 10)).toMatchObject({ result: 249, carry: 1 }); // -7 mod 256
+  });
+  it('bitwise ops compute correctly and set the zero flag', () => {
+    expect(computeAlu('AND', 0b1100, 0b1010).result).toBe(0b1000);
+    expect(computeAlu('XOR', 0b1100, 0b1010).result).toBe(0b0110);
+    expect(computeAlu('AND', 0xf0, 0x0f)).toMatchObject({ result: 0, zero: 1 });
+  });
+  it('every advertised op is implemented', () => {
+    for (const op of ALU_OPS) expect(typeof computeAlu(op, 5, 3).result).toBe('number');
+  });
+});
+
+describe('buildPipeline (5-stage pipeline)', () => {
+  const filled = (s) => s.lanes.filter((l) => l.stage != null).length;
+  it('pipelined: 5 instructions drain in 9 cycles (n + stages − 1)', () => {
+    const steps = buildPipeline();
+    const last = steps[steps.length - 1];
+    expect(last.total).toBe(9);
+    expect(last.done).toBe(5);
+    expect(PIPE_STAGES).toHaveLength(5);
+  });
+  it('pipelined: at steady state all five stages are busy at once', () => {
+    const steps = buildPipeline();
+    expect(Math.max(...steps.map(filled))).toBe(5); // full overlap
+  });
+  it('unpipelined: 25 cycles, and never more than one instruction in flight', () => {
+    const steps = buildPipeline({ pipelined: false });
+    expect(steps[steps.length - 1].total).toBe(25);
+    expect(Math.max(...steps.map(filled))).toBe(1); // no overlap
   });
 });
 

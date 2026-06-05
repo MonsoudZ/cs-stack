@@ -112,15 +112,15 @@ test('Memory page: own nav, a cache access hits, a virtual address translates to
 });
 
 test('Cross-stack footer: lists every deep dive on home, omits the current one on a deep dive', async ({ page }) => {
-  // home: all ten deep dives are linked, no "back to full stack" (we're home)
+  // home: every deep dive is linked, no "back to full stack" (we're home)
   await page.goto('/');
   const homeNav = page.locator('.stacknav');
-  await expect(homeNav.locator('.stacknav-link')).toHaveCount(10);
+  await expect(homeNav.locator('.stacknav-link')).toHaveCount(11);
   await expect(homeNav.locator('.stacknav-home')).toHaveCount(0);
-  // a deep dive: the current stack is omitted (nine others) and home link returns
+  // a deep dive: the current stack is omitted (the rest) and home link returns
   await page.goto('/memory');
   const sibNav = page.locator('.stacknav');
-  await expect(sibNav.locator('.stacknav-link')).toHaveCount(9);
+  await expect(sibNav.locator('.stacknav-link')).toHaveCount(10);
   await expect(sibNav.getByRole('link', { name: /the Memory stack/i })).toHaveCount(0);
   // the links actually navigate to a sibling explorable
   await sibNav.getByRole('link', { name: /the Crypto stack/i }).click();
@@ -134,6 +134,33 @@ test('Social cards: each deep dive advertises its own per-stack OG image', async
   await page.goto('/memory');
   await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', /\/og\/memory\.png$/);
   await expect(page.locator('meta[property="og:image:alt"]')).toHaveAttribute('content', /THE MEMORY STACK/);
+});
+
+test('CPU page: own nav, the ALU computes AND, the pipeline overlaps five stages', async ({ page }) => {
+  await page.goto('/cpu');
+  await expect(page.locator('h1.title')).toContainText('CPU');
+  await expect(page.locator('.spine .rung')).toHaveCount(6);
+  // ALU: default ADD of 200 + 100 wraps to 44 with the carry flag set
+  const alu = page.locator('#CP2');
+  await alu.scrollIntoViewIfNeeded();
+  await expect(alu.locator('.alu-dec')).toContainText('44');
+  // switching to AND recomputes (200 & 100 = 64)
+  await expect(async () => {
+    await alu.getByRole('button', { name: 'AND' }).click();
+    await expect(alu.locator('.alu-dec')).toContainText('64', { timeout: 400 });
+  }).toPass({ timeout: 8000 });
+  // pipeline: stepping fills all five stages at once (steady-state overlap)
+  const pl = page.locator('#CP3');
+  await pl.scrollIntoViewIfNeeded();
+  for (let i = 0; i < 6; i++) {
+    await pl.locator('.cpu-ctrl button').first().click();
+    if (await pl.locator('.st-wb').count()) break;
+    await page.waitForTimeout(40);
+  }
+  // at steady state every stage class is present exactly once
+  for (const st of ['st-if', 'st-id', 'st-ex', 'st-mem', 'st-wb']) {
+    await expect(pl.locator('.' + st)).toHaveCount(1);
+  }
 });
 
 test('Silicon page: own nav, doping adds carriers, the diode conducts forward, CMOS inverts', async ({ page }) => {

@@ -8,6 +8,7 @@ export const stacks = [
   { slug: 'silicon', name: 'Silicon', kind: 'stack', layer: '−01', accent: '#2ee6c0', blurb: 'doping, the diode, the MOSFET, and the CMOS logic gate' },
   { slug: 'numbers', name: 'Numbers', kind: 'stack', layer: '04.5', accent: '#ffb454', blurb: 'two’s complement, IEEE-754, and why 0.1 + 0.2 ≠ 0.3' },
   { slug: 'compiler', name: 'Compiler', kind: 'stack', layer: '05.5', accent: '#a78bfa', blurb: 'lexing, parsing, bytecode, and a tiny VM' },
+  { slug: 'cpu', name: 'CPU', kind: 'stack', layer: '06', accent: '#5b9dff', blurb: 'registers, fetch-decode-execute, the ALU, pipelining, and the clock' },
   { slug: 'memory', name: 'Memory', kind: 'stack', layer: '06.5', accent: '#5b9dff', blurb: 'caches, the hierarchy, virtual memory, and the TLB' },
   { slug: 'structures', name: 'Structures', kind: 'stack', layer: '07.5', accent: '#2ee6c0', blurb: 'dynamic arrays, hash maps, trees, and Big-O' },
   { slug: 'os', name: 'OS', kind: 'stack', layer: '08', accent: '#5b9dff', blurb: 'the scheduler, context switches, syscalls, and interrupts' },

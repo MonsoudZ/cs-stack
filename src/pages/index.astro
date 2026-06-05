@@ -160,6 +160,7 @@ import Takeaway from '../components/Takeaway.astro';
     <p class="prose">A CPU loops over numbers and treats each one as a command to fetch, decode, and execute.</p>
     <Cpu client:visible />
     <Takeaway>A CPU is a tiny loop that treats some numbers as instructions.</Takeaway>
+    <GoDeeper slug="cpu" />
     <Why
       problem="Without a CPU, every task would need its own custom circuit. We need one machine that can be reused by changing the instructions it reads."
       idea="The CPU repeats a small loop: fetch a number from memory, decode what it means, execute the operation, then move to the next instruction."

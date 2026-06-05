@@ -1,0 +1,94 @@
+---
+import Base from '../layouts/Base.astro';
+import LayerSection from '../components/LayerSection.astro';
+import { cpuLayers } from '../data/cpuLayers.js';
+import Cpu from '../components/Cpu.svelte';
+import AluUnit from '../components/AluUnit.svelte';
+import Pipeline from '../components/Pipeline.svelte';
+import Why from '../components/Why.astro';
+import Takeaway from '../components/Takeaway.astro';
+const L = Object.fromEntries(cpuLayers.map((l) => [l.id, l]));
+const title = 'THE STACK — the CPU';
+const description = 'A deep dive into the processor: registers, the fetch-decode-execute cycle, the ALU and its flags, pipelining and the hazards that stall it, and the clock — and why raw speed gave way to multiple cores.';
+---
+<Base {title} {description} layers={cpuLayers}>
+  <div slot="hero">
+    <div class="kicker">A deep dive into layer 06</div>
+    <h1 class="title">THE <em>CPU</em><br />STACK</h1>
+    <p class="lede">Everything else in the stack exists to feed this one loop. The CPU does something almost embarrassingly simple — fetch a number, do what it says, repeat — billions of times a second. The interesting part is everything engineers added to keep that loop from waiting: registers, an ALU, a pipeline, and a relentless clock.</p>
+    <div class="hero-meta"><a class="back-link" href="/">← back to the full stack</a> · registers → the cycle → the ALU → pipelining → the clock</div>
+  </div>
+
+  <LayerSection {...L.CP0}>
+    <p class="prose">Main memory is far away in CPU time. So the processor keeps a handful of <b>registers</b> right on the chip — named slots it can read and write in a single cycle. The whole instruction cycle is really just shuffling values between registers, memory, and the <span class="hl">ALU</span>.</p>
+    <Takeaway>Registers are the CPU’s working desk: a few values it can touch instantly, where nearly all the actual work happens.</Takeaway>
+    <Why
+      problem="The CPU computes far faster than it can reach memory, so working directly from RAM would leave it stalled almost all the time."
+      idea="Keep a tiny set of on-chip registers — including the program counter — that read and write in a single cycle, and operate out of those."
+      tradeoff="There are only a few (the names are baked into the instruction set), so compilers fight to keep the most-used values in registers — that’s register allocation."
+      next="What drives the values in and out of those registers is the instruction cycle."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.CP1}>
+    <p class="prose">The CPU repeats one loop forever: <b>fetch</b> the instruction the program counter points at, <b>decode</b> what it means, <b>execute</b> it, and advance. Each number in memory is treated as a command. Step the toy CPU below and watch the program counter and registers move.</p>
+    <Cpu client:visible />
+    <Takeaway>A CPU is just a loop that reads a number, treats it as a command, does it, and moves to the next — fast enough to look like magic.</Takeaway>
+    <Why
+      problem="We want one reusable machine that runs any program, not a custom circuit per task."
+      idea="Store instructions as numbers in memory and loop: fetch the one at the program counter, decode it, execute it, then point at the next."
+      tradeoff="That generality needs control logic, and the loop is only as fast as its slowest step — which is why so much hardware exists to speed each step up."
+      next="The ‘execute’ step, for arithmetic and logic, happens in the ALU."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.CP2}>
+    <p class="prose">The <b>ALU</b> (arithmetic logic unit) is the calculator at the heart of execute. An opcode picks the operation; it runs over two inputs and produces a result plus <span class="hl">condition flags</span> — like <b>Z</b> (the result was zero) and <b>C</b> (it carried out of 8 bits) — which is how a later branch decides which way to go.</p>
+    <AluUnit client:visible />
+    <Takeaway>The ALU is one block that does all the arithmetic and logic; its flags are the breadcrumbs that let the CPU make decisions.</Takeaway>
+    <Why
+      problem="Execute has to perform many different operations — add, subtract, compare, mask bits — without a separate machine for each."
+      idea="Build one ALU whose opcode selects the operation, and have it emit condition flags alongside the result so comparisons and branches are nearly free."
+      tradeoff="Fixed width means results wrap and overflow; the flags exist precisely so software can notice when they do."
+      next="One instruction per few cycles is slow — so let the stages of several instructions overlap."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.CP3}>
+    <p class="prose">Each instruction passes through stages — fetch, decode, execute, memory, write-back. Run them one-at-a-time and most of the chip sits idle. <b>Pipelining</b> starts a new instruction every cycle, like an assembly line, so all five stages stay busy at once.</p>
+    <Pipeline client:visible />
+    <Takeaway>Pipelining doesn’t make one instruction faster — it overlaps many, so the CPU retires roughly one per cycle instead of one per five.</Takeaway>
+    <Why
+      problem="If an instruction must fully finish before the next begins, four-fifths of the processor is idle at any instant."
+      idea="Split execution into stages and keep all of them working by feeding a new instruction into the front every cycle."
+      tradeoff="Throughput soars, but the instructions are now in flight together — so when one depends on another, the overlap bites back."
+      next="That bite is called a hazard."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.CP4}>
+    <p class="prose">The assembly line assumes instructions are independent. They often aren't: if <code>add</code> needs the result <code>sub</code> hasn't written back yet, that's a <b>data hazard</b>. The simplest fix is to <span class="hl">stall</span> — insert a bubble until the value is ready — and a smarter one is <b>forwarding</b>, routing the result straight from one stage to another before it's even saved.</p>
+    <Takeaway>Hazards are the price of overlap: when instructions depend on each other, the pipeline must stall or forward, and a wrong branch guess throws away work in flight.</Takeaway>
+    <Why
+      problem="Overlapping instructions can need a value that an earlier, not-yet-finished instruction is still computing."
+      idea="Detect the dependency and either stall the pipeline a cycle (a bubble) or forward the result directly between stages so it arrives just in time."
+      tradeoff="Stalls waste cycles and branches force the CPU to guess what comes next; a wrong guess flushes the pipeline — which is why branch prediction got so elaborate."
+      next="All of this is paced by one thing: the clock."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.CP5}>
+    <p class="prose">Every stage advances on the tick of a <b>clock</b>. A faster clock means more cycles per second — so for decades, chips simply ran hotter and faster. Then they hit a <span class="hl">power wall</span>: past a few GHz, the heat became unmanageable. The answer wasn't faster, it was <b>wider</b> — more cores.</p>
+    <Takeaway>The clock turned out to have a ceiling: when raw speed stopped scaling, the industry went parallel — which is exactly why concurrency became everyone’s problem.</Takeaway>
+    <Why
+      problem="A single clocked core can only be pushed so fast before power and heat grow faster than the performance you buy."
+      idea="Stop chasing GHz and replicate the core: put many CPUs on one chip and run work in parallel across them."
+      tradeoff="Parallel hardware only helps if the software is parallel too — and writing correct concurrent code is genuinely hard, as the concurrency layer shows."
+      next="Zoom back out: this loop, multiplied across cores, is what the OS schedules and what every program above ultimately runs on."
+    />
+  </LayerSection>
+</Base>
+
+<style>
+  .back-link{color:var(--accent,var(--signal))}
+</style>

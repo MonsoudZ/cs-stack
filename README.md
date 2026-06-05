@@ -70,6 +70,7 @@ src/
     os.astro              an /os deep-dive (processes → scheduler → context switch → syscalls → interrupts)
     structures.astro      a /structures deep-dive (arrays → dynamic arrays → hash maps → trees → big-O)
     numbers.astro         a /numbers deep-dive (place value → two's complement → IEEE-754 → precision → 0.1+0.2)
+    cpu.astro             a /cpu deep-dive (registers → cycle → ALU → pipelining → hazards → the clock)
     silicon.astro         a /silicon deep-dive (crystal → doping → PN junction → MOSFET → CMOS inverter)
     robots.txt.js         robots.txt generated from `site`
 scripts/
