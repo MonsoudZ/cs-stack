@@ -417,3 +417,50 @@ export function buildSyscall() {
   snap('user', 'program', 'your program resumes with the bytes — never having seen the disk itself');
   return out;
 }
+
+// --- DATA STRUCTURES STACK (/structures) ---
+
+// A dynamic array (vector / ArrayList). It owns a fixed block of memory; when
+// it fills, it allocates a block twice as big and copies everything over. Most
+// appends are O(1); the rare doubling is O(n) but, spread out, it amortizes to
+// O(1). Returns the append trace with capacity, length, and total copies made.
+export function buildDynamicArray({ n = 8 } = {}) {
+  const out = [];
+  let cap = 1, len = 0, copies = 0;
+  const snap = (note, o = {}) => out.push({ cap, len, copies, note, ...o });
+  snap('a dynamic array starts with room for ' + cap + '; appending is cheap until it fills up');
+  for (let i = 0; i < n; i++) {
+    if (len === cap) {
+      const old = cap;
+      cap *= 2;
+      copies += len;
+      snap('append ' + i + ': full at capacity ' + old + ' → allocate ' + cap + ' and copy ' + len + ' items over', { grew: true, copiedNow: len });
+    }
+    len++;
+    snap('append ' + i + ': room to spare → just place it (length ' + len + ' / capacity ' + cap + ')', { placed: i });
+  }
+  snap(n + ' appends, ' + copies + ' total copies — the doublings get rarer as it grows, so each append averages O(1)');
+  return out;
+}
+
+// A hash map with separate chaining. A key is hashed to a bucket index; keys
+// that collide share a bucket as a short list. Lookup hashes, then scans that
+// one short chain. Returns insert + lookup snapshots with the bucket array.
+export function buildHashMap({ keys = ['cat', 'dog', 'bird', 'fish', 'ant', 'bee'], buckets = 5, lookup = 'bird' } = {}) {
+  const out = [];
+  const table = Array.from({ length: buckets }, () => []);
+  const hash = (k) => { let h = 0; for (let i = 0; i < k.length; i++) h += k.charCodeAt(i); return h % buckets; };
+  const snap = (note, o = {}) => out.push({ table: table.map((b) => b.slice()), buckets, note, ...o });
+  snap('a hash map turns a key into a bucket index, so lookups skip straight there instead of scanning everything');
+  for (const k of keys) {
+    const b = hash(k);
+    const collision = table[b].length > 0;
+    table[b].push(k);
+    snap('insert "' + k + '": hash → bucket ' + b + (collision ? ' — already occupied, so chain it onto the bucket' : ''), { key: k, bucket: b, op: 'insert', collision });
+  }
+  const lb = hash(lookup);
+  snap('look up "' + lookup + '": hash → bucket ' + lb + ', then scan just that chain', { key: lookup, bucket: lb, op: 'lookup' });
+  const found = table[lb].includes(lookup);
+  snap('bucket ' + lb + ' holds [' + table[lb].join(', ') + '] → ' + (found ? 'found "' + lookup + '" after a tiny scan, not a full sweep' : 'not present'), { key: lookup, bucket: lb, op: 'lookup', found });
+  return out;
+}

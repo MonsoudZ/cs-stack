@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall } from './widgets.js';
+import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap } from './widgets.js';
 
 const popcount = (n) => { let c = 0; n >>>= 0; while (n) { c += n & 1; n >>>= 1; } return c; };
 
@@ -271,6 +271,46 @@ describe('buildAddressTranslation (virtual memory)', () => {
     expect(steps.some((s) => s.tlbHit === true)).toBe(true);
     const second = steps.find((s) => s.vaddr === 40 && s.phys !== undefined);
     expect(second.phys).toBe(120); // frame 7; 7*16 + 8
+  });
+});
+
+describe('buildDynamicArray (amortized growth)', () => {
+  const steps = buildDynamicArray(); // n = 8
+  const last = steps[steps.length - 1];
+  it('ends at length 8 in a capacity-8 block — the last append fills it exactly, no wasted doubling', () => {
+    expect(last.len).toBe(8);
+    expect(last.cap).toBe(8);
+  });
+  it('doubles capacity at 1→2→4→8 (three growths)', () => {
+    const caps = [...new Set(steps.map((s) => s.cap))];
+    expect(caps).toEqual([1, 2, 4, 8]);
+    expect(steps.filter((s) => s.grew)).toHaveLength(3);
+  });
+  it('total copies (7) stay below 2n — that is the amortization', () => {
+    expect(last.copies).toBe(7);
+    expect(last.copies).toBeLessThan(2 * 8);
+  });
+});
+
+describe('buildHashMap (separate chaining)', () => {
+  const steps = buildHashMap();
+  const last = steps[steps.length - 1];
+  it('"cat" and "bird" collide into the same bucket (a chain of 2)', () => {
+    const inserts = steps.filter((s) => s.op === 'insert');
+    expect(inserts.filter((s) => s.collision)).toHaveLength(1); // only bird collides
+    const catBucket = inserts.find((s) => s.key === 'cat').bucket;
+    const birdBucket = inserts.find((s) => s.key === 'bird').bucket;
+    expect(birdBucket).toBe(catBucket);
+    expect(last.table[catBucket]).toContain('cat');
+    expect(last.table[catBucket]).toContain('bird');
+  });
+  it('looking up "bird" hashes to its bucket and finds it', () => {
+    expect(last.op).toBe('lookup');
+    expect(last.found).toBe(true);
+  });
+  it('every key lands in some bucket (none lost)', () => {
+    const total = last.table.reduce((n, b) => n + b.length, 0);
+    expect(total).toBe(6);
   });
 });
 

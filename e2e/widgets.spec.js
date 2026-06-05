@@ -111,6 +111,30 @@ test('Memory page: own nav, a cache access hits, a virtual address translates to
   await expect(vm.locator('.vmt-phys')).toContainText('122');
 });
 
+test('Structures page: own nav, the array grows by doubling, a hash lookup finds its key', async ({ page }) => {
+  await page.goto('/structures');
+  await expect(page.locator('h1.title')).toContainText('STRUCTURES');
+  await expect(page.locator('.spine .rung')).toHaveCount(5);
+  // dynamic array: stepping eventually triggers a capacity doubling (a copy)
+  const da = page.locator('#S1');
+  await da.scrollIntoViewIfNeeded();
+  for (let i = 0; i < 6; i++) {
+    await da.locator('.cpu-ctrl button').first().click();
+    if (await da.locator('.da-cells.grew').count()) break;
+    await page.waitForTimeout(40);
+  }
+  await expect(da.locator('.da-cells.grew')).toBeVisible();
+  // hash map: stepping through inserts + lookup finds "bird" in its chain
+  const hm = page.locator('#S2');
+  await hm.scrollIntoViewIfNeeded();
+  for (let i = 0; i < 8; i++) {
+    await hm.locator('.cpu-ctrl button').first().click();
+    if (await hm.locator('.hm-key.hit').count()) break;
+    await page.waitForTimeout(40);
+  }
+  await expect(hm.locator('.hm-key.hit')).toHaveText('bird');
+});
+
 test('OS page: own nav, the scheduler runs a process, a syscall traps into the kernel', async ({ page }) => {
   await page.goto('/os');
   await expect(page.locator('h1.title')).toContainText('OS');

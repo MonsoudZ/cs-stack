@@ -1,0 +1,113 @@
+---
+import Base from '../layouts/Base.astro';
+import LayerSection from '../components/LayerSection.astro';
+import { structLayers } from '../data/structLayers.js';
+import DynamicArray from '../components/DynamicArray.svelte';
+import HashMap from '../components/HashMap.svelte';
+import BTreeSearch from '../components/BTreeSearch.svelte';
+import Why from '../components/Why.astro';
+import Takeaway from '../components/Takeaway.astro';
+const L = Object.fromEntries(structLayers.map((l) => [l.id, l]));
+const title = 'THE STACK — data structures';
+const description = 'A deep dive into data structures: arrays and contiguous memory, dynamic arrays that grow by doubling, hash maps that turn keys into buckets, trees that search by halving, and the Big-O trade-offs that make you choose.';
+const bigo = [
+  { name: 'Array (by index)', lookup: 'O(1)', search: 'O(n)', insert: 'O(n)', note: 'instant if you know where; slow to find or insert in the middle' },
+  { name: 'Dynamic array (append)', lookup: 'O(1)', search: 'O(n)', insert: 'O(1)*', note: '*amortized — the occasional doubling averages out' },
+  { name: 'Hash map', lookup: '—', search: 'O(1)*', insert: 'O(1)*', note: '*average; great by key, but unordered and worst-case O(n)' },
+  { name: 'Balanced tree', lookup: '—', search: 'O(log n)', insert: 'O(log n)', note: 'a bit slower than a hash, but stays sorted for ranges' },
+];
+---
+<Base {title} {description} layers={structLayers}>
+  <div slot="hero">
+    <div class="kicker">A deep dive into layer 07.5</div>
+    <h1 class="title">THE <em>STRUCTURES</em><br />STACK</h1>
+    <p class="lede">Memory is just numbered boxes. A data structure is a rule for laying values into those boxes and finding them again — and every rule makes some operations fast by making others slow. This is the art of choosing your costs on purpose.</p>
+    <div class="hero-meta"><a class="back-link" href="/">← back to the full stack</a> · arrays → dynamic arrays → hash maps → trees → big-O</div>
+  </div>
+
+  <LayerSection {...L.S0}>
+    <p class="prose">An <b>array</b> is the simplest structure: a row of equal-sized slots in <span class="hl">contiguous</span> memory. Because slot <i>i</i> sits at <code>base + i × size</code>, the CPU reaches any element with one multiply-and-add — <b>O(1)</b>, no searching.</p>
+    <Takeaway>An array trades flexibility for raw speed: instant indexed access and great cache locality, because neighbours really are neighbours in memory.</Takeaway>
+    <Why
+      problem="Programs constantly need a pile of same-typed values they can reach by position without hunting for each one."
+      idea="Lay them out back-to-back in memory so any element’s address is pure arithmetic from its index."
+      tradeoff="The block is a fixed size and middle insertions mean shifting everything — so you either over-allocate or you need something that can grow."
+      next="What happens when you don’t know how many items there’ll be?"
+    />
+  </LayerSection>
+
+  <LayerSection {...L.S1}>
+    <p class="prose">A <b>dynamic array</b> hides the fixed-size problem: it keeps spare capacity, and when it fills, it allocates a block <span class="hl">twice as big</span> and copies everything over. The doublings get rarer as it grows, so appends average out to <b>O(1)</b> — that's <i>amortized</i> cost.</p>
+    <DynamicArray client:visible />
+    <Takeaway>Growing by doubling makes most appends instant and the rare copy infrequent enough that, averaged out, appending stays O(1).</Takeaway>
+    <Why
+      problem="A plain array can’t grow, but you usually don’t know the final size up front."
+      idea="Keep slack capacity and, when it runs out, double the block and copy — paying a big cost rarely instead of a small cost constantly."
+      tradeoff="You waste up to half the allocated memory, and the occasional doubling is a real O(n) stall — bad if it lands at the wrong moment."
+      next="Indexing is fast, but what if you want to find by a key, not a position?"
+    />
+  </LayerSection>
+
+  <LayerSection {...L.S2}>
+    <p class="prose">A <b>hash map</b> turns a key into an array index by <span class="hl">hashing</span> it to a bucket. Lookup jumps straight to that bucket — no scanning. Two keys can hash to the same bucket (a <b>collision</b>), so each bucket holds a short chain you scan through.</p>
+    <HashMap client:visible />
+    <Takeaway>A hash map buys near-instant lookup by key — at the cost of order, and of degrading to a scan when too many keys pile into one bucket.</Takeaway>
+    <Why
+      problem="Arrays find things fast only by numeric position; we often want to find a value by an arbitrary key like a name."
+      idea="Run the key through a hash function to compute a bucket index, turning a key lookup into an array access plus a tiny chain scan."
+      tradeoff="It gives up any ordering, and a bad hash (or an adversary) can pile keys into one bucket and drag lookups back to O(n)."
+      next="When you need things kept in order, not just findable, you reach for a tree."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.S3}>
+    <p class="prose">A <b>tree</b> links nodes by <i>choices</i>. A balanced search tree keeps keys ordered so every step throws away half the remaining options — finding one key among thousands takes only a handful of comparisons: <b>O(log n)</b>.</p>
+    <BTreeSearch client:visible />
+    <Takeaway>A search tree trades a hash map's flat speed for ordering: lookups are O(log n), but the data stays sorted, so ranges and "next-largest" come free.</Takeaway>
+    <Why
+      problem="Hash maps are fast but unordered — useless when you need sorted output, ranges, or the nearest key."
+      idea="Arrange keys in a balanced tree so each comparison halves the search space and an in-order walk yields everything sorted."
+      tradeoff="Each lookup is several pointer-chasing hops (worse locality than an array) and the tree must be rebalanced as it changes."
+      next="Four structures, four different cost profiles — how do you choose?"
+    />
+  </LayerSection>
+
+  <LayerSection {...L.S4}>
+    <p class="prose">There's no best structure, only the right one for your operations. Picking a structure <i>is</i> picking which operations are cheap and which are expensive. Big-O names that trade-off so you can choose with your eyes open.</p>
+    <div class="widget bigo-widget">
+      <div class="w-label">cost by operation — pick the structure whose cheap column matches what you do most</div>
+      <table class="bigo">
+        <thead>
+          <tr><th scope="col">structure</th><th scope="col">index</th><th scope="col">find / search</th><th scope="col">insert</th></tr>
+        </thead>
+        <tbody>
+          {bigo.map((r) => (
+            <tr>
+              <th scope="row">{r.name}<span class="bigo-note">{r.note}</span></th>
+              <td>{r.lookup}</td>
+              <td>{r.search}</td>
+              <td>{r.insert}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+    <Takeaway>Choosing a data structure is choosing your costs: there's no free lunch, only an honest trade between lookup, order, insertion, and memory.</Takeaway>
+    <Why
+      problem="Every structure makes some operations fast and others slow, so a wrong fit can make correct code unusably slow."
+      idea="Use Big-O to compare how each shape’s cost grows, then pick the one whose cheap operations are the ones your program does most."
+      tradeoff="Big-O hides constant factors and cache effects, so the asymptotic winner isn’t always the real-world winner — measure when it matters."
+      next="Zoom back out: this is the toolbox the main stack’s data-structures layer is drawing from."
+    />
+  </LayerSection>
+</Base>
+
+<style>
+  .back-link{color:var(--accent,var(--signal))}
+  .bigo{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:14px;margin-top:6px}
+  .bigo th,.bigo td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:top}
+  .bigo thead th{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);font-weight:600}
+  .bigo tbody th{font-weight:700;color:var(--ink);max-width:240px}
+  .bigo td{color:var(--signal);font-weight:700;white-space:nowrap}
+  .bigo-note{display:block;font-weight:400;font-size:11px;color:var(--faint);margin-top:3px;letter-spacing:0;white-space:normal}
+</style>
