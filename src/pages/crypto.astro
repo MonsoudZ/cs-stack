@@ -1,0 +1,92 @@
+---
+import Base from '../layouts/Base.astro';
+import LayerSection from '../components/LayerSection.astro';
+import { cryptoLayers } from '../data/cryptoLayers.js';
+import HashAvalanche from '../components/HashAvalanche.svelte';
+import DiffieHellman from '../components/DiffieHellman.svelte';
+import Why from '../components/Why.astro';
+import Takeaway from '../components/Takeaway.astro';
+const L = Object.fromEntries(cryptoLayers.map((l) => [l.id, l]));
+const title = 'THE STACK — cryptography';
+const description = 'A deep dive into the crypto behind a secure connection: hashing, symmetric and asymmetric keys, Diffie–Hellman key exchange, certificates, and how TLS combines them.';
+---
+<Base {title} {description} layers={cryptoLayers}>
+  <div slot="hero">
+    <div class="kicker">A deep dive into layer 08.5</div>
+    <h1 class="title">THE <em>CRYPTO</em><br />STACK</h1>
+    <p class="lede">A padlock in the address bar is a stack of its own: a one-way fingerprint, two kinds of keys, a way to agree on a secret in the open, and a chain of trust — assembled, every connection, into TLS.</p>
+    <div class="hero-meta"><a class="back-link" href="/">← back to the full stack</a> · hashing → symmetric → asymmetric → key exchange → certificates</div>
+  </div>
+
+  <LayerSection {...L.X0}>
+    <p class="prose">A <b>hash</b> turns any input into a fixed-size fingerprint. Two properties make it useful: it's <span class="hl">deterministic</span> (same input, same output) and it <b>avalanches</b> — change one character and the whole output scrambles, with no way to run it backwards.</p>
+    <HashAvalanche client:visible />
+    <Takeaway>A cryptographic hash is a one-way fingerprint: easy forward, infeasible backward, and wildly sensitive to its input.</Takeaway>
+    <Why
+      problem="We constantly need to compare or verify data without storing or revealing the original — passwords, file integrity, signatures."
+      idea="Run it through a one-way function that's fast to compute, fixed-size, and collision-resistant, so the digest stands in for the data."
+      tradeoff="Hashes can't be reversed by design, but weak ones fall to collisions and brute force, so the choice of algorithm matters enormously."
+      next="Hashing proves integrity, but to keep data secret you need a key."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.X1}>
+    <p class="prose">The oldest idea: one <b>shared key</b> both sides hold. Combine it with the message to encrypt (think XOR), do it again to decrypt. It's fast and the workhorse of bulk encryption — but both ends must already have the same secret.</p>
+    <Takeaway>Symmetric encryption is fast and simple, but it only shifts the hard problem: how do two parties get the same key in the first place?</Takeaway>
+    <Why
+      problem="Two parties want to exchange private data, and the cipher itself is the easy part."
+      idea="Use one secret key to both lock and unlock — modern symmetric ciphers (AES) are extremely fast and secure given a good key."
+      tradeoff="The key has to reach both sides secretly; sending it over the same channel you're trying to protect is the chicken-and-egg key-distribution problem."
+      next="A second, asymmetric kind of key breaks that deadlock."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.X2}>
+    <p class="prose">Asymmetric crypto uses a <b>pair</b>: a <span class="hl">public</span> key you hand out freely and a <span class="hl">private</span> key you guard. What one locks, only the other unlocks — so anyone can encrypt <i>to</i> you, and only you can read it (or you sign, and anyone verifies).</p>
+    <Takeaway>Public-key crypto splits the key in two, so a secret can travel safely without the recipient and sender ever having met.</Takeaway>
+    <Why
+      problem="Symmetric crypto needs a pre-shared secret, which strangers on the internet don't have."
+      idea="Give everyone a public key for the world and a private key kept secret; the math links them so one reverses the other, but you can't derive the private from the public."
+      tradeoff="It's far slower than symmetric and relies on hard problems (factoring, discrete logs) staying hard — so it's used to bootstrap, not for bulk data."
+      next="One use of this asymmetry is agreeing on a shared secret in plain sight."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.X3}>
+    <p class="prose">Diffie–Hellman is the magic trick: Alice and Bob each keep a private number, swap public values computed from it, and — using modular exponentiation — both arrive at the <b>same</b> shared secret. An eavesdropper sees the public values and still can't compute it.</p>
+    <DiffieHellman client:visible />
+    <Takeaway>Two strangers can agree on a shared secret over a wire everyone is listening to — because reversing modular exponentiation (the discrete log) is infeasible.</Takeaway>
+    <Why
+      problem="You want a shared symmetric key, but the only channel available is public and possibly watched."
+      idea="Both sides combine a public base with their own private secret via modular exponentiation; the operations commute, so each computes the identical result."
+      tradeoff="It establishes a secret but not identity — on its own it's vulnerable to a man-in-the-middle, which is exactly why certificates exist."
+      next="So how do you trust that the public key really belongs to who you think?"
+    />
+  </LayerSection>
+
+  <LayerSection {...L.X4}>
+    <p class="prose">A public key alone is anonymous. A <b>certificate</b> is that key plus an identity, <span class="hl">signed</span> by a certificate authority your browser already trusts — and that CA may be vouched for by another, forming a chain back to a root.</p>
+    <Takeaway>Certificates answer "is this really their key?" by chaining signatures up to a root your device trusts in advance.</Takeaway>
+    <Why
+      problem="Key exchange gives you a secret channel, but not proof of who's on the other end — an attacker could substitute their own key."
+      idea="Have trusted authorities sign certificates binding a key to an identity; verifying the signature chain up to a pre-installed root proves authenticity."
+      tradeoff="The whole model rests on trusting the CAs and the roots shipped with your device — a misissued or compromised CA undermines everyone."
+      next="Put hashing, key exchange, and certificates together and you get TLS."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.X5}>
+    <p class="prose">A TLS handshake composes all of it: the server presents a <b>certificate</b> (verified up the chain), the two sides run a <b>key exchange</b> to agree on a session secret, and from then on they talk with fast <b>symmetric</b> encryption — with hashes checking integrity throughout.</p>
+    <Takeaway>HTTPS is this stack run at the start of every connection: verify who, agree on a key, then encrypt fast — the padlock in one handshake.</Takeaway>
+    <Why
+      problem="A real connection needs privacy, integrity, and authenticity at once, and symmetric speed without a pre-shared key."
+      idea="Use asymmetric crypto and certificates to authenticate and agree on a key, then switch to symmetric encryption for the actual data, with hashes guarding integrity."
+      tradeoff="The handshake adds round-trips and complexity, and its security is only as strong as its weakest link — the CA system, the cipher suite, the implementation."
+      next="Zoom back out: this is what the main stack's Security layer leans on to make sharing safe."
+    />
+  </LayerSection>
+</Base>
+
+<style>
+  .back-link{color:var(--accent,var(--signal))}
+</style>

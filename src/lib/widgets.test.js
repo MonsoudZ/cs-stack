@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages } from './widgets.js';
+import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman } from './widgets.js';
+
+const popcount = (n) => { let c = 0; n >>>= 0; while (n) { c += n & 1; n >>>= 1; } return c; };
 
 const sum = (arr) => arr.reduce((a, b) => a + b, 0);
 
@@ -197,6 +199,31 @@ describe('invalidatedStages (render pipeline)', () => {
     const r = invalidatedStages('composite');
     expect(r.map((s) => s.rerun)).toEqual([false, false, true]);
     expect(r.filter((s) => s.rerun)).toHaveLength(1);
+  });
+});
+
+describe('toyHash (avalanche)', () => {
+  it('is deterministic and 8 hex chars', () => {
+    expect(toyHash('hello')).toBe(toyHash('hello'));
+    expect(toyHash('hello')).toMatch(/^[0-9a-f]{8}$/);
+  });
+  it('a one-character change flips many output bits (avalanche)', () => {
+    const diff = popcount(parseInt(toyHash('hello'), 16) ^ parseInt(toyHash('hellp'), 16));
+    expect(diff).toBeGreaterThanOrEqual(8); // out of 32; a good hash averages ~16
+  });
+});
+
+describe('Diffie–Hellman key exchange', () => {
+  it('modpow is correct (5^6 mod 23 = 8, 5^15 mod 23 = 19)', () => {
+    expect(modpow(5, 6, 23)).toBe(8);
+    expect(modpow(5, 15, 23)).toBe(19);
+  });
+  it('both parties derive the same shared secret without sending it', () => {
+    const last = buildDiffieHellman().at(-1);
+    expect(last.alice.shared).toBe(last.bob.shared);
+    expect(last.alice.shared).toBe(2);
+    // the secret is never on the wire — only A and B are
+    expect(buildDiffieHellman().every((s) => s.wire === null || /^[AB] =/.test(s.wire))).toBe(true);
   });
 });
 

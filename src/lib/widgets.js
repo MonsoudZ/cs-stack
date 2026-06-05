@@ -238,3 +238,52 @@ export function invalidatedStages(kind) {
   if (startAt === undefined) throw new Error('unknown change kind: ' + kind);
   return RENDER_STAGES.map((name, i) => ({ name, rerun: i >= startAt }));
 }
+
+// --- CRYPTO STACK (/crypto) ---
+
+// A toy 32-bit hash (FNV-1a + an xorshift-multiply finalizer for good diffusion)
+// — not secure, but it shows the two properties that matter: deterministic, and
+// a strong avalanche (one input bit flips ~half the output bits).
+export function toyHash(str) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  h ^= h >>> 15; h = Math.imul(h, 0x2c1b3c6d) >>> 0;
+  h ^= h >>> 12; h = Math.imul(h, 0x297a2d39) >>> 0;
+  h ^= h >>> 15;
+  return (h >>> 0).toString(16).padStart(8, '0');
+}
+
+export function modpow(base, exp, mod) {
+  let result = 1;
+  base %= mod;
+  while (exp > 0) {
+    if (exp & 1) result = (result * base) % mod;
+    exp >>= 1;
+    base = (base * base) % mod;
+  }
+  return result;
+}
+
+// Diffie–Hellman: Alice and Bob agree on a shared secret over a public channel,
+// never sending it. Small numbers for clarity. Returns the step trace.
+export function buildDiffieHellman({ p = 23, g = 5, a = 6, b = 15 } = {}) {
+  const A = modpow(g, a, p), B = modpow(g, b, p);
+  const sA = modpow(B, a, p), sB = modpow(A, b, p);
+  const out = [];
+  let alice = { secret: '?', pub: '?', shared: '?' };
+  let bob = { secret: '?', pub: '?', shared: '?' };
+  let wire = null;
+  const snap = (note) => out.push({ alice: { ...alice }, bob: { ...bob }, wire, note });
+  snap('Out in the open: a prime p = ' + p + ' and a base g = ' + g + '. Anyone (including an eavesdropper) can see these.');
+  alice = { ...alice, secret: a }; snap('Alice picks a private secret a = ' + a + ' and tells no one.');
+  bob = { ...bob, secret: b }; snap('Bob picks a private secret b = ' + b + ' and tells no one.');
+  alice = { ...alice, pub: A }; wire = 'A = ' + A; snap('Alice sends A = g^a mod p = ' + g + '^' + a + ' mod ' + p + ' = ' + A + ' — over the public wire.');
+  bob = { ...bob, pub: B }; wire = 'B = ' + B; snap('Bob sends B = g^b mod p = ' + g + '^' + b + ' mod ' + p + ' = ' + B + ' — over the public wire.');
+  alice = { ...alice, shared: sA }; snap('Alice computes B^a mod p = ' + B + '^' + a + ' mod ' + p + ' = ' + sA + '.');
+  bob = { ...bob, shared: sB }; snap('Bob computes A^b mod p = ' + A + '^' + b + ' mod ' + p + ' = ' + sB + '.');
+  snap('Both now hold the same secret ' + sA + ' — but an eavesdropper saw only p, g, A and B, and recovering it means solving a discrete logarithm.');
+  return out;
+}

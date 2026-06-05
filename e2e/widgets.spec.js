@@ -58,6 +58,30 @@ test('Adder island: setting the high A bit carries into a sum of 16', async ({ p
   }).toPass({ timeout: 8000 });
 });
 
+test('Crypto page: own nav, hash avalanches, DH agrees on a shared secret', async ({ page }) => {
+  await page.goto('/crypto');
+  await expect(page.locator('h1.title')).toContainText('CRYPTO');
+  await expect(page.locator('.spine .rung')).toHaveCount(6);
+  // hash: changing the input changes the digest
+  const hash = page.locator('#X0');
+  await hash.scrollIntoViewIfNeeded();
+  const hex = hash.locator('.hash-hex').first();
+  const before = (await hex.textContent()) || '';
+  await expect(async () => {
+    await hash.locator('#hashtext').fill('world');
+    await expect(hex).not.toHaveText(before, { timeout: 400 });
+  }).toPass({ timeout: 8000 });
+  // diffie-hellman: step until both sides agree, secret = 2
+  const dh = page.locator('#X3');
+  await dh.scrollIntoViewIfNeeded();
+  for (let i = 0; i < 9; i++) {
+    await dh.locator('.cpu-ctrl button').first().click();
+    if (await dh.locator('.dh-shared.on').count()) break;
+    await page.waitForTimeout(40);
+  }
+  await expect(dh.locator('.dh-shared.on').first()).toHaveText('2');
+});
+
 test('Render page: own nav, transform re-runs only the composite stage', async ({ page }) => {
   await page.goto('/render');
   await expect(page.locator('h1.title')).toContainText('RENDER');
