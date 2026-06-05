@@ -631,3 +631,53 @@ export function buildPipeline({ instructions = ['lw', 'add', 'sub', 'and', 'or']
   snap(total, n + ' instructions in ' + total + ' cycles' + (pipelined ? ' — vs ' + n * S + ' unpipelined: same work, far less idle silicon' : ' — every stage sat idle 4 of every 5 cycles'));
   return out;
 }
+
+// --- CONCURRENCY STACK (/concurrency) ---
+
+// Deadlock: two threads, two locks, taken in OPPOSITE orders. A holds L1 and
+// waits for L2; B holds L2 and waits for L1 — a circular wait neither can break.
+// The fix is a lock ordering: if everyone takes L1 before L2, the cycle can't
+// form. Returns the trace; `ordered` switches between the bug and the fix.
+export function buildDeadlock({ ordered = false } = {}) {
+  const out = [];
+  let l1 = null, l2 = null, aWait = null, bWait = null, deadlocked = false, done = false;
+  const holds = (t) => [l1 === t && 'L1', l2 === t && 'L2'].filter(Boolean);
+  const snap = (note) => out.push({ l1, l2, aHolds: holds('A'), bHolds: holds('B'), aWait, bWait, deadlocked, done, ordered, note });
+  if (!ordered) {
+    snap('two threads, two locks. Thread A needs L1 then L2; Thread B needs them in the OPPOSITE order, L2 then L1');
+    l1 = 'A'; snap('A takes L1');
+    l2 = 'B'; snap('B takes L2');
+    aWait = 'L2'; snap('A now wants L2 — but B holds it, so A blocks');
+    bWait = 'L1'; snap('B now wants L1 — but A holds it, so B blocks');
+    deadlocked = true; snap('deadlock: A waits on L2, B waits on L1, and neither will let go — a circular wait, frozen forever');
+  } else {
+    snap('the fix is a lock ordering: EVERY thread must take L1 before L2, no exceptions');
+    l1 = 'A'; snap('A takes L1 first');
+    bWait = 'L1'; snap('B also wants L1 first, but A holds it → B just waits its turn (no cycle)');
+    l2 = 'A'; snap('A takes L2 — it holds both and can finish its work');
+    l1 = null; l2 = null; snap('A releases both locks');
+    bWait = null; l1 = 'B'; snap('now B takes L1…');
+    l2 = 'B'; snap('…then L2, and finishes too');
+    l1 = null; l2 = null; done = true; snap('no cycle can ever form when everyone locks in the same order — the deadlock is impossible');
+  }
+  return out;
+}
+
+// Lock-free increment via compare-and-swap. CAS(expected → new) is one atomic
+// instruction: it writes only if the value still equals `expected`, else fails.
+// Two threads race; the loser's CAS fails (nothing is corrupted) and it simply
+// retries from a fresh read. Both increments land, with no lock ever held.
+export function buildCas() {
+  const out = [];
+  let counter = 0;
+  const snap = (note, o = {}) => out.push({ counter, actor: o.actor ?? null, old: o.old ?? null, expected: o.expected ?? null, newval: o.newval ?? null, cas: o.cas ?? null, note });
+  snap('a lock-free increment: read the value, then atomically compare-and-swap — write only if it still matches, otherwise retry');
+  snap('A reads counter = 0', { actor: 'A', old: 0 });
+  snap('B reads counter = 0 too — the same stale read that caused the race', { actor: 'B', old: 0 });
+  counter = 1; snap('A: CAS(expected 0 → 1). counter is 0, matches → swap succeeds, counter = 1', { actor: 'A', expected: 0, newval: 1, cas: 'ok' });
+  snap('B: CAS(expected 0 → 1). counter is 1, ≠ 0 → the swap FAILS — B lost the race, but nothing is corrupted', { actor: 'B', expected: 0, newval: 1, cas: 'fail' });
+  snap('B retries: it re-reads counter = 1', { actor: 'B', old: 1 });
+  counter = 2; snap('B: CAS(expected 1 → 2). counter is 1, matches → swap succeeds, counter = 2', { actor: 'B', expected: 1, newval: 2, cas: 'ok' });
+  snap('counter = 2 ✓ — both increments counted and no lock was ever held; the loser just tried again');
+  return out;
+}

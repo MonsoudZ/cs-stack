@@ -115,12 +115,12 @@ test('Cross-stack footer: lists every deep dive on home, omits the current one o
   // home: every deep dive is linked, no "back to full stack" (we're home)
   await page.goto('/');
   const homeNav = page.locator('.stacknav');
-  await expect(homeNav.locator('.stacknav-link')).toHaveCount(11);
+  await expect(homeNav.locator('.stacknav-link')).toHaveCount(12);
   await expect(homeNav.locator('.stacknav-home')).toHaveCount(0);
   // a deep dive: the current stack is omitted (the rest) and home link returns
   await page.goto('/memory');
   const sibNav = page.locator('.stacknav');
-  await expect(sibNav.locator('.stacknav-link')).toHaveCount(10);
+  await expect(sibNav.locator('.stacknav-link')).toHaveCount(11);
   await expect(sibNav.getByRole('link', { name: /the Memory stack/i })).toHaveCount(0);
   // the links actually navigate to a sibling explorable
   await sibNav.getByRole('link', { name: /the Crypto stack/i }).click();
@@ -134,6 +134,33 @@ test('Social cards: each deep dive advertises its own per-stack OG image', async
   await page.goto('/memory');
   await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', /\/og\/memory\.png$/);
   await expect(page.locator('meta[property="og:image:alt"]')).toHaveAttribute('content', /THE MEMORY STACK/);
+});
+
+test('Concurrency page: own nav, two locks deadlock, compare-and-swap stays correct', async ({ page }) => {
+  await page.goto('/concurrency');
+  await expect(page.locator('h1.title')).toContainText('CONCURRENCY');
+  await expect(page.locator('.spine .rung')).toHaveCount(5);
+  // deadlock: stepping the opposite-order locks reaches a circular wait
+  const dl = page.locator('#CC2');
+  await dl.scrollIntoViewIfNeeded();
+  for (let i = 0; i < 7; i++) {
+    await dl.locator('.cpu-ctrl button').first().click();
+    if (await dl.locator('.dl-banner').count()) break;
+    await page.waitForTimeout(40);
+  }
+  await expect(dl.locator('.dl-banner')).toContainText('DEADLOCK');
+  // compare-and-swap: one CAS fails (the race) but the counter still ends at 2
+  const cas = page.locator('#CC3');
+  await cas.scrollIntoViewIfNeeded();
+  for (let i = 0; i < 8; i++) {
+    await cas.locator('.cpu-ctrl button').first().click();
+    if (await cas.locator('.cas-attempt.fail').count()) break;
+    await page.waitForTimeout(40);
+  }
+  await expect(cas.locator('.cas-attempt.fail')).toBeVisible();
+  // step to the end and confirm both increments landed
+  for (let i = 0; i < 3; i++) await cas.locator('.cpu-ctrl button').first().click();
+  await expect(cas.locator('.cas-counter')).toContainText('2');
 });
 
 test('CPU page: own nav, the ALU computes AND, the pipeline overlaps five stages', async ({ page }) => {

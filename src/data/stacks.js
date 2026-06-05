@@ -12,6 +12,7 @@ export const stacks = [
   { slug: 'memory', name: 'Memory', kind: 'stack', layer: '06.5', accent: '#5b9dff', blurb: 'caches, the hierarchy, virtual memory, and the TLB' },
   { slug: 'structures', name: 'Structures', kind: 'stack', layer: '07.5', accent: '#2ee6c0', blurb: 'dynamic arrays, hash maps, trees, and Big-O' },
   { slug: 'os', name: 'OS', kind: 'stack', layer: '08', accent: '#5b9dff', blurb: 'the scheduler, context switches, syscalls, and interrupts' },
+  { slug: 'concurrency', name: 'Concurrency', kind: 'stack', layer: '08.2', accent: '#a78bfa', blurb: 'threads, race conditions, deadlock, and lock-free atomics' },
   { slug: 'crypto', name: 'Crypto', kind: 'stack', layer: '08.5', accent: '#ff6b6b', blurb: 'hashing, keys, key exchange, certificates, and TLS' },
   { slug: 'network', name: 'Network', kind: 'stack', layer: '09', accent: '#5b9dff', blurb: 'encapsulation, routing, DNS, and a packet’s journey' },
   { slug: 'database', name: 'Database', kind: 'stack', layer: '10.5', accent: '#ffb454', blurb: 'indexes, B-trees, transactions, and durability' },

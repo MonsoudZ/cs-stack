@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum, DOPING, buildDiode, cmosInverter, ALU_OPS, computeAlu, PIPE_STAGES, buildPipeline } from './widgets.js';
+import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum, DOPING, buildDiode, cmosInverter, ALU_OPS, computeAlu, PIPE_STAGES, buildPipeline, buildDeadlock, buildCas } from './widgets.js';
 
 const popcount = (n) => { let c = 0; n >>>= 0; while (n) { c += n & 1; n >>>= 1; } return c; };
 
@@ -440,6 +440,38 @@ describe('buildPipeline (5-stage pipeline)', () => {
     const steps = buildPipeline({ pipelined: false });
     expect(steps[steps.length - 1].total).toBe(25);
     expect(Math.max(...steps.map(filled))).toBe(1); // no overlap
+  });
+});
+
+describe('buildDeadlock (circular wait)', () => {
+  it('opposite lock orders deadlock: A waits on L2, B waits on L1', () => {
+    const steps = buildDeadlock();
+    const last = steps[steps.length - 1];
+    expect(last.deadlocked).toBe(true);
+    expect(last.aWait).toBe('L2');
+    expect(last.bWait).toBe('L1');
+    expect(last.done).toBe(false);
+  });
+  it('a consistent lock ordering never deadlocks and both threads finish', () => {
+    const steps = buildDeadlock({ ordered: true });
+    const last = steps[steps.length - 1];
+    expect(last.done).toBe(true);
+    expect(steps.some((s) => s.deadlocked)).toBe(false);
+  });
+});
+
+describe('buildCas (lock-free compare-and-swap)', () => {
+  const steps = buildCas();
+  it('both increments land — counter ends at 2 with no lock', () => {
+    expect(steps[steps.length - 1].counter).toBe(2);
+  });
+  it('the loser’s CAS fails exactly once, then a retry succeeds', () => {
+    expect(steps.filter((s) => s.cas === 'fail')).toHaveLength(1);
+    expect(steps.filter((s) => s.cas === 'ok')).toHaveLength(2);
+    // the failed CAS happens before the second success (the retry)
+    const failIdx = steps.findIndex((s) => s.cas === 'fail');
+    const lastOk = steps.map((s) => s.cas).lastIndexOf('ok');
+    expect(failIdx).toBeLessThan(lastOk);
   });
 });
 

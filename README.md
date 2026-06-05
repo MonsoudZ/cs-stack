@@ -71,6 +71,7 @@ src/
     structures.astro      a /structures deep-dive (arrays → dynamic arrays → hash maps → trees → big-O)
     numbers.astro         a /numbers deep-dive (place value → two's complement → IEEE-754 → precision → 0.1+0.2)
     cpu.astro             a /cpu deep-dive (registers → cycle → ALU → pipelining → hazards → the clock)
+    concurrency.astro     a /concurrency deep-dive (threads → races → deadlock → atomics → why it's hard)
     silicon.astro         a /silicon deep-dive (crystal → doping → PN junction → MOSFET → CMOS inverter)
     robots.txt.js         robots.txt generated from `site`
 scripts/

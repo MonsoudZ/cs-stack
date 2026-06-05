@@ -1,0 +1,83 @@
+---
+import Base from '../layouts/Base.astro';
+import LayerSection from '../components/LayerSection.astro';
+import { ccLayers } from '../data/ccLayers.js';
+import RaceCondition from '../components/RaceCondition.svelte';
+import Deadlock from '../components/Deadlock.svelte';
+import Cas from '../components/Cas.svelte';
+import Why from '../components/Why.astro';
+import Takeaway from '../components/Takeaway.astro';
+const L = Object.fromEntries(ccLayers.map((l) => [l.id, l]));
+const title = 'THE STACK — concurrency';
+const description = 'A deep dive into concurrency: threads sharing one memory, race conditions and the locks that fix them, deadlock and lock ordering, lock-free atomics with compare-and-swap, and why concurrent bugs are so hard to reproduce.';
+---
+<Base {title} {description} layers={ccLayers}>
+  <div slot="hero">
+    <div class="kicker">A deep dive into layer 08.2</div>
+    <h1 class="title">THE <em>CONCURRENCY</em><br />STACK</h1>
+    <p class="lede">When the CPU stopped getting faster, it got wider — more cores, more threads, all sharing the same memory. That sharing is where the hardest bugs in software live: faults that depend on the exact instant two threads interleave, vanish when you look at them, and reappear in production at 3 a.m.</p>
+    <div class="hero-meta"><a class="back-link" href="/">← back to the full stack</a> · threads → races → deadlock → atomics → why it’s hard</div>
+  </div>
+
+  <LayerSection {...L.CC0}>
+    <p class="prose">A process can run several <b>threads</b> at once. Unlike separate processes, threads of one program <span class="hl">share the same memory</span> — the same variables, the same heap — while each keeps its own stack and registers. That shared memory is what makes them fast to coordinate, and exactly what makes them dangerous.</p>
+    <Takeaway>Threads are runners inside one program that share its memory — cheap to communicate through, but with nothing protecting that shared state by default.</Takeaway>
+    <Why
+      problem="A modern chip has many cores, and a program often has many things to do at once — serve requests, render, fetch — that shouldn’t each wait on the others."
+      idea="Run multiple threads in one process, sharing its address space, so they can divide the work and communicate just by reading and writing the same memory."
+      tradeoff="Shared mutable memory plus a scheduler that can pause a thread anywhere means two threads can step on each other in ways that depend entirely on timing."
+      next="The simplest such collision is a race condition."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.CC1}>
+    <p class="prose">Even <code>counter += 1</code> isn't one step — it's <b>read, add, write</b>. If the scheduler pauses one thread mid-sequence, another can read the same old value, and one update is silently lost. A <span class="hl">lock</span> fixes it by letting only one thread into the critical section at a time. Toggle it below.</p>
+    <RaceCondition client:visible />
+    <Takeaway>A race condition is a bug that depends on timing; a lock serializes the read-modify-write so the interleaving can’t corrupt shared state.</Takeaway>
+    <Why
+      problem="A read-modify-write looks atomic in source code but compiles to several instructions, and a thread can be paused between any of them."
+      idea="Wrap the critical section in a lock (or use an atomic instruction) so only one thread executes it at a time, making the update effectively indivisible."
+      tradeoff="Locks serialize that section — too coarse and they kill the parallelism you wanted; too fine and they multiply the chances of the next problem."
+      next="Once you have more than one lock, they can trap each other."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.CC2}>
+    <p class="prose">Locks fix races but introduce a new failure: if Thread A holds L1 and wants L2, while Thread B holds L2 and wants L1, neither can proceed and neither will let go. That's a <b>deadlock</b> — a circular wait. The classic cure is a <span class="hl">lock ordering</span>: make every thread acquire locks in the same order.</p>
+    <Deadlock client:visible />
+    <Takeaway>Deadlock is a circle of threads each waiting on a lock the next one holds; acquiring locks in a consistent global order makes that circle impossible to form.</Takeaway>
+    <Why
+      problem="With several locks, two threads can each hold what the other needs next, freezing both — and the program just hangs, with no crash to point at."
+      idea="Impose a total order on locks and require every thread to acquire them in that order, so a cycle of ‘waiting on each other’ can never arise."
+      tradeoff="A global lock order is a discipline humans must maintain across the whole codebase; miss it in one place and the deadlock returns, rarely and unpredictably."
+      next="Sometimes the better answer is to avoid locks entirely."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.CC3}>
+    <p class="prose">Some hardware instructions are <b>atomic</b> — indivisible by construction. <span class="hl">Compare-and-swap</span> writes a new value only if the old one is unchanged, in one uninterruptible step. You can build a counter with no lock at all: read, try to swap, and if you lost the race, just retry.</p>
+    <Cas client:visible />
+    <Takeaway>Atomic compare-and-swap lets threads update shared state without a lock — losers simply retry — trading the risk of deadlock for the cost of occasional spins.</Takeaway>
+    <Why
+      problem="Locks can deadlock, stall, and serialize; for simple updates we’d like correctness without ever blocking a thread."
+      idea="Use an atomic compare-and-swap: read the value, compute the new one, and commit only if no one changed it meanwhile — otherwise loop and try again."
+      tradeoff="Lock-free code never deadlocks, but it’s subtle (the ABA problem, memory ordering) and under heavy contention the retries can waste more work than a lock would."
+      next="Locks, orderings, atomics — and it’s still hard. Why?"
+    />
+  </LayerSection>
+
+  <LayerSection {...L.CC4}>
+    <p class="prose">The deep difficulty is <b>nondeterminism</b>: a concurrent program can interleave in astronomically many ways, and a bug may surface in only a few of them. It passes every test, runs fine under the debugger (which changes the timing), and fails only in production — a <span class="hl">Heisenbug</span> that vanishes when observed.</p>
+    <Takeaway>Concurrency is hard because correctness depends on timings you don’t control and can’t easily reproduce — which is why higher-level tools exist to take the sharing away.</Takeaway>
+    <Why
+      problem="A correct sequential program has one execution; a concurrent one has a combinatorial explosion of interleavings, and testing samples only a vanishing fraction."
+      idea="Reason about all interleavings, not just the one you observed — or sidestep the problem with message passing, immutability, and higher-level primitives that don’t share mutable state."
+      tradeoff="Those abstractions cost performance or flexibility, and underneath them the same races, deadlocks, and atomics are still doing the work."
+      next="Zoom back out: coordinating threads on one machine is hard enough — doing it across many machines is the network and the cloud."
+    />
+  </LayerSection>
+</Base>
+
+<style>
+  .back-link{color:var(--accent,var(--signal))}
+</style>
