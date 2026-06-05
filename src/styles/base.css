@@ -73,7 +73,7 @@
   .spine-pulse{position:absolute;left:4px;width:8px;height:8px;border-radius:50%;background:#fff;
     box-shadow:0 0 12px var(--signal),0 0 4px #fff;top:8px;transform:translateY(-50%);transition:top .15s linear;opacity:.9}
   .rung{position:relative;display:flex;align-items:baseline;gap:9px;padding:7px 0;cursor:pointer;
-    color:var(--faint);font-size:12.5px;transition:color .18s;border:none;background:none;text-align:left;width:100%}
+    color:var(--faint);font-size:12.5px;transition:color .18s;border:none;background:none;text-align:left;width:100%;text-decoration:none}
   .rung:hover{color:var(--ink)}
   .rung .num{position:absolute;left:-26px;width:16px;height:16px;border-radius:50%;border:1px solid var(--border);
     background:var(--bg);font-size:11px;display:flex;align-items:center;justify-content:center;color:var(--faint);

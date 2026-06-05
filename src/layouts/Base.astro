@@ -22,6 +22,15 @@ const {
 const base = Astro.site ?? Astro.url;
 const canonical = new URL(Astro.url.pathname, base);
 const ogImage = new URL('/og.png', base);
+// The spine rungs are rendered as static anchors so layer navigation works
+// with no JS (native in-page links). The script below only enhances them
+// (smooth scroll + scroll-spy). [number, label, section id]
+const LAYERS = [
+  ['−01', 'Silicon', 'Lsi'],
+  ['00', 'Voltage', 'L0'], ['01', 'Transistor', 'L1'], ['02', 'Logic gates', 'L2'], ['03', 'Bits → numbers', 'L3'],
+  ['04', 'Arithmetic', 'L4'], ['05', 'Numbers → things', 'L5'], ['05.5', 'Runtime', 'L5b'], ['06', 'The CPU', 'L6'], ['06.5', 'Cache/RAM', 'L6b'], ['07', 'Memory', 'L7'],
+  ['07.5', 'Structures', 'L7b'], ['08', 'OS', 'L8'], ['08.5', 'Security', 'L8b'], ['09', 'Network', 'L9'], ['10', 'Cloud', 'L10'], ['10.5', 'Database', 'L10b'], ['10.8', 'UI', 'L10c'], ['11', 'The whole thing', 'L11'], ['★', 'Trace', 'L12'],
+];
 ---
 <!doctype html>
 <html lang="en">
@@ -74,6 +83,9 @@ const ogImage = new URL('/og.png', base);
         <div class="spine-line"></div>
         <div class="spine-fill" id="spineFill"></div>
         <div class="spine-pulse" id="spinePulse"></div>
+        {LAYERS.map(([n, lbl, id]) => (
+          <a class="rung" href={`#${id}`}><span class="num">{n}</span><span class="lbl">{lbl}</span></a>
+        ))}
       </div>
     </nav>
     <main id="main">
@@ -84,32 +96,27 @@ const ogImage = new URL('/og.png', base);
   <script>
     const $ = (s, el = document) => el.querySelector(s);
     const $$ = (s, el = document) => [...el.querySelectorAll(s)];
-    const mk = (t, c, h) => { const e = document.createElement(t); if (c) e.className = c; if (h != null) e.innerHTML = h; return e; };
-    const LAYERS = [
-      ['−01','Silicon','Lsi'],
-      ['00','Voltage','L0'],['01','Transistor','L1'],['02','Logic gates','L2'],['03','Bits → numbers','L3'],
-      ['04','Arithmetic','L4'],['05','Numbers → things','L5'],['05.5','Runtime','L5b'],['06','The CPU','L6'],['06.5','Cache/RAM','L6b'],['07','Memory','L7'],
-      ['07.5','Structures','L7b'],['08','OS','L8'],['08.5','Security','L8b'],['09','Network','L9'],['10','Cloud','L10'],['10.5','Database','L10b'],['10.8','UI','L10c'],['11','The whole thing','L11'],['★','Trace','L12']
-    ];
-    const track = $('#spineTrack');
-    LAYERS.forEach(([n, lbl, id]) => {
-      const b = mk('button', 'rung');
-      b.innerHTML = `<span class="num">${n}</span><span class="lbl">${lbl}</span>`;
-      b.onclick = () => {
-        const el = document.getElementById(id); if (!el) return;
-        const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
-      };
-      track.appendChild(b);
-    });
+    // Progressive enhancement: the rungs are already in the DOM as <a href="#…">
+    // (so navigation works with no JS). Here we only upgrade them — smooth
+    // scroll, scroll-spy highlighting, and the animated progress fill.
     const rungs = $$('.rung');
     const fill = $('#spineFill'), pulse = $('#spinePulse');
-    const sections = LAYERS.map((a) => document.getElementById(a[2])).filter(Boolean);
+    const sections = rungs.map((rg) => document.getElementById((rg.getAttribute('href') || '').slice(1)));
     let activeId = null;
     // Don't write the hash until the user actually scrolls — otherwise the
     // first onScroll() would clobber an inbound deep-link anchor (e.g. #L12)
     // before the browser gets to scroll there.
     let userScrolled = false;
+    const reduceMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    rungs.forEach((rg, i) => {
+      rg.addEventListener('click', (e) => {
+        const el = sections[i]; if (!el) return; // missing target → let the browser handle it
+        e.preventDefault();
+        el.scrollIntoView({ behavior: reduceMotion() ? 'auto' : 'smooth', block: 'start' });
+        userScrolled = true;
+        history.replaceState(null, '', location.pathname + location.search + '#' + el.id);
+      });
+    });
     function onScroll() {
       const stage = $('.stage'); if (!stage) return;
       const r = stage.getBoundingClientRect();
@@ -121,7 +128,7 @@ const ogImage = new URL('/og.png', base);
       fill.style.height = (p * trackH) + 'px';
       pulse.style.top = progressY + 'px';
       let best = 0, bestD = 1e9;
-      sections.forEach((s, i) => { const d = Math.abs(s.getBoundingClientRect().top - 90); if (d < bestD) { bestD = d; best = i; } });
+      sections.forEach((s, i) => { if (!s) return; const d = Math.abs(s.getBoundingClientRect().top - 90); if (d < bestD) { bestD = d; best = i; } });
       rungs.forEach((rg, i) => { const on = i === best; rg.classList.toggle('on', on); rg.setAttribute('aria-current', on ? 'true' : 'false'); });
       // Reflect the layer you're reading in the URL so it's deep-linkable/shareable.
       const id = sections[best] && sections[best].id;
