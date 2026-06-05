@@ -63,6 +63,16 @@ const jsonLd = {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Set the theme before first paint (no flash): saved choice, else OS preference. -->
+  <script is:inline>
+    (() => {
+      try {
+        const saved = localStorage.getItem('theme');
+        document.documentElement.dataset.theme =
+          saved || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      } catch (e) { document.documentElement.dataset.theme = 'dark'; }
+    })();
+  </script>
   <link rel="preload" href={bricolageHero} as="font" type="font/woff2" crossorigin="anonymous" />
   <link rel="preload" href={splineBody} as="font" type="font/woff2" crossorigin="anonymous" />
   <title>{title}</title>
@@ -91,6 +101,7 @@ const jsonLd = {
 </head>
 <body>
   <a href="#main" class="skip-link">Skip to content</a>
+  <button type="button" id="themeToggle" class="theme-toggle" aria-label="Switch color theme" hidden></button>
   <div class="bg-grid"></div>
   <div class="bg-glow"></div>
   <div class="scan"></div>
@@ -191,6 +202,24 @@ const jsonLd = {
       printOpened.forEach((d) => { d.open = false; });
       printOpened = [];
     });
+
+    // Theme toggle (initial theme is set by the inline head script, no flash).
+    const themeToggle = $('#themeToggle'), root = document.documentElement;
+    if (themeToggle) {
+      const sync = () => {
+        const dark = root.dataset.theme !== 'light';
+        themeToggle.textContent = dark ? '☀' : '☾';
+        themeToggle.setAttribute('aria-label', dark ? 'Switch to light theme' : 'Switch to dark theme');
+        themeToggle.setAttribute('aria-pressed', String(!dark));
+      };
+      themeToggle.addEventListener('click', () => {
+        root.dataset.theme = root.dataset.theme === 'light' ? 'dark' : 'light';
+        try { localStorage.setItem('theme', root.dataset.theme); } catch (e) {}
+        sync();
+      });
+      sync();
+      themeToggle.hidden = false;
+    }
     function onScroll() {
       const stage = $('.stage'); if (!stage) return;
       const r = stage.getBoundingClientRect();

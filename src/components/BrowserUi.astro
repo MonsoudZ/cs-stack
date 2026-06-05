@@ -26,14 +26,14 @@ const pipeline = [
 
 <style>
   .browser-widget{border-color:rgba(183,123,255,.3)}
-  .browser-frame{position:relative;z-index:1;border:1px solid var(--border);border-radius:16px;overflow:hidden;background:rgba(8,11,18,.62)}
-  .browser-bar{display:flex;gap:7px;border-bottom:1px solid var(--border);padding:12px;background:rgba(255,255,255,.025)}
+  .browser-frame{position:relative;z-index:1;border:1px solid var(--border);border-radius:16px;overflow:hidden;background:var(--surface)}
+  .browser-bar{display:flex;gap:7px;border-bottom:1px solid var(--border);padding:12px;background:var(--fill)}
   .browser-bar span{width:10px;height:10px;border-radius:50%;background:var(--faint);opacity:.7}
   .browser-bar span:first-child{background:var(--violet)}
   .browser-bar span:nth-child(2){background:var(--amber)}
   .browser-bar span:nth-child(3){background:var(--signal)}
   .render-flow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:1px;background:var(--border)}
-  .render-step{background:rgba(8,11,18,.86);padding:16px 14px;min-height:142px}
+  .render-step{background:var(--surface);padding:16px 14px;min-height:142px}
   .render-name{font-family:var(--disp);font-size:24px;font-weight:800;color:var(--ink)}
   .render-role{margin-top:4px;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--violet)}
   .render-step p{margin:12px 0 0;color:var(--dim);font-size:14px;line-height:1.55}

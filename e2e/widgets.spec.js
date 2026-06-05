@@ -107,6 +107,19 @@ test('Spine nav: clicking a rung deep-links the layer into the URL', async ({ pa
   await expect(page).toHaveURL(/#L12$/);
 });
 
+test('Theme toggle: flips data-theme and persists the choice', async ({ page }) => {
+  await page.goto('/');
+  const toggle = page.locator('#themeToggle');
+  await expect(toggle).toBeVisible(); // revealed by JS
+  const before = await page.evaluate(() => document.documentElement.dataset.theme);
+  await toggle.click();
+  const after = await page.evaluate(() => document.documentElement.dataset.theme);
+  expect(after).not.toBe(before);
+  expect(['light', 'dark']).toContain(after);
+  const stored = await page.evaluate(() => localStorage.getItem('theme'));
+  expect(stored).toBe(after); // persisted
+});
+
 test('Skip link: focuses, slides in, and jumps focus to the content', async ({ page }) => {
   await page.goto('/');
   const skip = page.locator('.skip-link');

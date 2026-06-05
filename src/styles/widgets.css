@@ -18,7 +18,7 @@
      DataStructures, DatabaseSystem, BrowserUi, RuntimePipeline, Security…):
      a neutral content card and an accent-tinted footer note. Components add
      these classes and override only the accent (border-color + background). */
-  .widget-card{border:1px solid var(--border);border-radius:14px;padding:15px;background:rgba(8,11,18,.6)}
+  .widget-card{border:1px solid var(--border);border-radius:14px;padding:15px;background:var(--surface)}
   .widget-note{position:relative;z-index:1;margin-top:14px;border:1px solid var(--border);border-radius:13px;
     padding:13px 15px;color:var(--dim);font-size:14px;line-height:1.6}
 
@@ -136,7 +136,7 @@
   /* ---------- mobile ---------- */
   @media(max-width:900px){
     .stage{grid-template-columns:1fr;padding-bottom:80px}
-    nav.spine{position:fixed;bottom:0;left:0;right:0;top:auto;z-index:30;background:rgba(8,11,18,.94);
+    nav.spine{position:fixed;bottom:0;left:0;right:0;top:auto;z-index:30;background:var(--overlay);
       backdrop-filter:blur(10px);border-top:1px solid var(--border);padding:8px 10px}
     .spine-track{padding-left:0;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
     .spine-track::-webkit-scrollbar{display:none}
