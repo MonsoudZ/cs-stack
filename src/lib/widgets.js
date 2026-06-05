@@ -287,3 +287,52 @@ export function buildDiffieHellman({ p = 23, g = 5, a = 6, b = 15 } = {}) {
   snap('Both now hold the same secret ' + sA + ' — but an eavesdropper saw only p, g, A and B, and recovering it means solving a discrete logarithm.');
   return out;
 }
+
+// --- DATABASE STACK (/database) ---
+
+// A tiny B-tree over keys 1..15: a root of separator keys and four leaves.
+export const BTREE = {
+  root: { keys: [4, 8, 12], children: ['n0', 'n1', 'n2', 'n3'] },
+  n0: { keys: [1, 2, 3] }, n1: { keys: [5, 6, 7] }, n2: { keys: [9, 10, 11] }, n3: { keys: [13, 14, 15] },
+};
+// Index lookup: descend the tree by comparing to separator keys, then scan one
+// leaf — O(log n) node reads instead of scanning every row. Returns the trace.
+export function buildBTreeSearch({ target = 10 } = {}) {
+  const out = [];
+  const snap = (path, current, found, note, foundKey = null) => out.push({ path: path.slice(), current, found, note, foundKey });
+  snap([], null, false, 'find the row with key ' + target + ' — an index turns a scan of all 15 rows into a short walk down a tree');
+  const root = BTREE.root;
+  let ci = root.keys.findIndex((k) => target < k);
+  if (ci === -1) ci = root.keys.length;
+  const cmp = ci < root.keys.length ? target + ' < ' + root.keys[ci] : target + ' > ' + root.keys[root.keys.length - 1];
+  snap(['root'], 'root', false, 'at the root [' + root.keys.join(', ') + ']: ' + cmp + ' → follow child ' + ci);
+  const leafId = root.children[ci];
+  const leaf = BTREE[leafId];
+  const hit = leaf.keys.includes(target);
+  snap(['root', leafId], leafId, hit,
+    hit ? 'scan the leaf [' + leaf.keys.join(', ') + '] → found ' + target + ' in 2 node reads, not 15 row reads'
+        : 'leaf [' + leaf.keys.join(', ') + '] does not contain ' + target,
+    hit ? target : null);
+  return out;
+}
+
+// A transfer (Alice → Bob, 100) that crashes mid-way. With a transaction the
+// crash rolls back (atomic, total preserved); without one, the debit sticks and
+// $100 vanishes. Returns the trace; last step carries the final balances.
+export function buildTransaction({ atomic = true } = {}) {
+  const out = [];
+  let A = 300, B = 50;
+  const snap = (note, o = {}) => out.push({ A, B, total: A + B, note, crashed: !!o.crashed, lost: !!o.lost });
+  snap(atomic ? 'BEGIN — wrap the whole transfer in a transaction: all of it commits, or none of it' : 'no transaction — each write commits on its own (autocommit)');
+  A = A - 100;
+  snap('debit Alice: A = 300 − 100 = ' + A + (atomic ? ' (staged inside the transaction, not yet durable)' : ' — already committed'));
+  snap('CRASH — the power dies right here, before Bob is credited', { crashed: true });
+  if (atomic) {
+    A = 300;
+    snap('on restart the transaction never committed → ROLLBACK restores Alice to ' + A);
+    snap('A = ' + A + ', B = ' + B + ', total = ' + (A + B) + ' — atomicity held: the transfer happened fully or not at all');
+  } else {
+    snap('Bob was never credited, but Alice’s debit already stuck → A = ' + A + ', B = ' + B + ', total = ' + (A + B) + '. $100 just vanished.', { lost: true });
+  }
+  return out;
+}

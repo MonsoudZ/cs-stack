@@ -62,6 +62,7 @@ src/
     compiler.astro        a /compiler deep-dive (lex → parse → bytecode → run)
     render.astro          a /render deep-dive (DOM → style → layout → paint → composite)
     crypto.astro          a /crypto deep-dive (hashing → keys → exchange → certs → TLS)
+    database.astro        a /database deep-dive (tables → indexes → queries → txns → replication)
     robots.txt.js         robots.txt generated from `site`
 scripts/
   audit.mjs               regex source/HTML quality gate (used by `npm run audit`)

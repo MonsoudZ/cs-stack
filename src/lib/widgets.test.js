@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman } from './widgets.js';
+import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, buildBTreeSearch, buildTransaction } from './widgets.js';
 
 const popcount = (n) => { let c = 0; n >>>= 0; while (n) { c += n & 1; n >>>= 1; } return c; };
 
@@ -224,6 +224,28 @@ describe('Diffie–Hellman key exchange', () => {
     expect(last.alice.shared).toBe(2);
     // the secret is never on the wire — only A and B are
     expect(buildDiffieHellman().every((s) => s.wire === null || /^[AB] =/.test(s.wire))).toBe(true);
+  });
+});
+
+describe('buildBTreeSearch (index lookup)', () => {
+  it('finds key 10 by descending root → right-middle leaf in 2 node reads', () => {
+    const last = buildBTreeSearch({ target: 10 }).at(-1);
+    expect(last.found).toBe(true);
+    expect(last.foundKey).toBe(10);
+    expect(last.path).toEqual(['root', 'n2']);
+  });
+});
+
+describe('buildTransaction (ACID atomicity)', () => {
+  it('a transaction rolls back the crash — total preserved (350)', () => {
+    const last = buildTransaction({ atomic: true }).at(-1);
+    expect(last.total).toBe(350);
+    expect(last.A).toBe(300);
+  });
+  it('without a transaction the debit sticks — $100 lost (total 250)', () => {
+    const steps = buildTransaction({ atomic: false });
+    expect(steps.at(-1).total).toBe(250);
+    expect(steps.some((s) => s.lost)).toBe(true);
   });
 });
 

@@ -58,6 +58,35 @@ test('Adder island: setting the high A bit carries into a sum of 16', async ({ p
   }).toPass({ timeout: 8000 });
 });
 
+test('Database page: own nav, B-tree finds the key, a crash without a txn loses money', async ({ page }) => {
+  await page.goto('/database');
+  await expect(page.locator('h1.title')).toContainText('DATABASE');
+  await expect(page.locator('.spine .rung')).toHaveCount(6);
+  // b-tree: descend to the found key
+  const bt = page.locator('#D1');
+  await bt.scrollIntoViewIfNeeded();
+  for (let i = 0; i < 4; i++) {
+    await bt.locator('.cpu-ctrl button').first().click();
+    if (await bt.locator('.bt-key.found').count()) break;
+    await page.waitForTimeout(40);
+  }
+  await expect(bt.locator('.bt-key.found')).toHaveText('10');
+  // transaction off → the crash loses money (total drops to 250)
+  const tx = page.locator('#D3');
+  await tx.scrollIntoViewIfNeeded();
+  const txBtn = tx.getByRole('button', { name: /transaction:/ });
+  await expect(async () => {
+    await txBtn.click();
+    await expect(txBtn).toContainText('OFF', { timeout: 400 });
+  }).toPass({ timeout: 8000 });
+  for (let i = 0; i < 5; i++) {
+    await tx.locator('.cpu-ctrl button').first().click();
+    if (await tx.locator('.txn-acct.total.lost').count()) break;
+    await page.waitForTimeout(40);
+  }
+  await expect(tx.locator('.txn-acct.total .txn-val')).toHaveText('250');
+});
+
 test('Crypto page: own nav, hash avalanches, DH agrees on a shared secret', async ({ page }) => {
   await page.goto('/crypto');
   await expect(page.locator('h1.title')).toContainText('CRYPTO');
