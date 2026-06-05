@@ -15,6 +15,9 @@ const EXPECTED = {
   dfs: ['A', 'B', 'D', 'C', 'E'],
   dp: 8,
   insort: '[1, 2, 3, 4, 5]',
+  linear: 3,
+  bubble: '[1, 2, 4, 5, 8]',
+  kadane: 6,
 };
 
 describe('method registry', () => {

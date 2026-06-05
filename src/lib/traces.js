@@ -255,6 +255,59 @@ const MORE = {
         push({line:8,vm:['arr['+(j+1)+'] = key'],vars:{arr:'['+arr.join(', ')+']',i,key},touches:[5.5,6.5,7,7.5],note:'drop '+key+' into place → prefix [0..'+i+'] now sorted',cells:cells(i),info:'inserted '+key});
       }
       push({line:10,vm:['return arr'],vars:{arr:'['+arr.join(', ')+']'},touches:[10.8,10.5,10,9,8.5,7.5,7,6.5,6,5.5,5,3],result:'['+arr.join(', ')+']',finale:true,note:'fully sorted: ['+arr.join(', ')+']',cells:arr.map(()=>({role:'sorted',mark:''})),info:'done'}); return steps; } }
+,
+
+  linear:{ name:'Linear search', header:'linear_search([8, 3, 11, 7, 5, 9], 7) → expect index 3',
+    intro:'The honest baseline: check every slot in order until the target turns up. No structure, no shortcuts — this is exactly what binary search and hashing improve on.',
+    structLabel:'③ the array · scan every slot left to right (layers 06.5/07/07.5)',
+    src:['def linear_search(arr, target)','  arr.each_with_index do |v, i|','    return i if v == target','  end','  -1','end'],
+    build(){ const arr=[8,3,11,7,5,9],target=7,steps=[];
+      const cells=(cur,found)=>arr.map((_,i)=>{let role='',mark=''; if(i<cur)role='dimx'; if(i===cur){role=found?'sorted':'cmp';mark=found?'found':'i';} return {role,mark};});
+      const push=o=>steps.push({line:o.line,vars:{...o.vars},vm:o.vm||[],cpu:o.cpu||null,note:o.note,touches:o.touches||[],result:o.result!==undefined?o.result:null,finale:!!o.finale,struct:{kind:'array',arr:arr.slice(),cells:o.cells,info:o.info}});
+      let vars={arr:'['+arr.join(', ')+']',target,i:'–',v:'–'};
+      push({line:0,vm:['method entry'],vars,touches:[5.5,6.5,7,7.5],note:'no shortcuts — walk the array from the front',cells:cells(-1),info:'searching for '+target});
+      for(let i=0;i<arr.length;i++){ const v=arr[i],eq=v===target; vars={...vars,i,v};
+        push({line:2,vm:['getarray arr['+i+']','opt_eq','branchif'],vars,touches:[3,4,6.5,7],cpu:{label:'ALU · compare',expr:'arr['+i+'] = '+v+(eq?' == ':' ≠ ')+target},note:eq?'arr['+i+'] = '+v+' equals target ✓ — found at index '+i:'arr['+i+'] = '+v+' ≠ '+target+' → keep scanning',cells:cells(i,eq),info:eq?'match at index '+i:'checked index '+i});
+        if(eq){ push({line:2,vm:['leave (return '+i+')'],vars,touches:[10.8,10.5,10,9,8.5,7.5,7,6.5,6,5.5,5,3],result:i,finale:true,note:'return '+i+' — climbs back up the layers',cells:cells(i,true),info:'answer = '+i}); return steps; }
+      }
+      push({line:4,vm:['return -1'],vars,touches:[10.8,10.5,10,9,8.5,7.5,7,6.5,6,5.5,5,3],result:-1,finale:true,note:'scanned everything → not found → -1',cells:arr.map(()=>({role:'dimx',mark:''})),info:'not found'}); return steps; } },
+
+  bubble:{ name:'Bubble sort', header:'bubble_sort([5, 1, 4, 2, 8]) → [1, 2, 4, 5, 8]',
+    intro:'The simplest sort: compare neighbours and swap the bigger one rightward, so each pass floats the largest remaining value to the end.',
+    structLabel:'③ the array · the largest value bubbles to the end each pass (layers 06.5/07/07.5)',
+    src:['def bubble_sort(arr)','  loop do','    swapped = false','    (1...arr.length).each do |i|','      next unless arr[i - 1] > arr[i]','      arr[i - 1], arr[i] = arr[i], arr[i - 1]','      swapped = true','    end','    break unless swapped','  end','  arr','end'],
+    build(){ const arr=[5,1,4,2,8],n=arr.length,steps=[];
+      const cells=(a,b,settled,swap)=>arr.map((_,i)=>{let role='',mark=''; if(i>=n-settled)role='sorted'; if(i===a||i===b)role='cmp'; if(swap&&(i===a||i===b))mark='swap'; return {role,mark};});
+      const push=o=>steps.push({line:o.line,vars:{...o.vars},vm:o.vm||[],cpu:o.cpu||null,note:o.note,touches:o.touches||[],result:o.result!==undefined?o.result:null,finale:!!o.finale,struct:{kind:'array',arr:arr.slice(),cells:o.cells,info:o.info}});
+      push({line:0,vm:['method entry'],vars:{arr:'['+arr.join(', ')+']'},touches:[5.5,6.5,7,7.5],note:'compare neighbours and swap the bigger rightward, pass after pass',cells:cells(-1,-1,0),info:'unsorted'});
+      let settled=0,swapped=true;
+      while(swapped){ swapped=false;
+        for(let i=1;i<n-settled;i++){ const a=i-1,b=i,va=arr[a],vb=arr[b];
+          if(va>vb){ arr[a]=vb; arr[b]=va; swapped=true;
+            push({line:5,vm:['arr['+a+'], arr['+b+'] = arr['+b+'], arr['+a+']'],vars:{arr:'['+arr.join(', ')+']',i},touches:[4,6,7],cpu:{label:'ALU compare → swap',expr:va+' > '+vb+' → swap'},note:va+' > '+vb+' → out of order, swap them',cells:cells(a,b,settled,true),info:'swap '+va+' and '+vb});
+          } else {
+            push({line:4,vm:['arr['+a+'] > arr['+b+'] ? no → next'],vars:{arr:'['+arr.join(', ')+']',i},touches:[4,6],cpu:{label:'ALU compare',expr:va+' ≤ '+vb+' → keep'},note:va+' ≤ '+vb+' → already in order, leave them',cells:cells(a,b,settled,false),info:'no swap'});
+          }
+        }
+        settled++;
+        push({line:8,vm:[swapped?'swapped → another pass':'no swaps → break'],vars:{arr:'['+arr.join(', ')+']'},touches:[5.5,6.5,7,7.5],note:swapped?'pass done — the largest unsorted value is parked at the end':'a full pass with no swaps → the array is sorted',cells:cells(-1,-1,settled,false),info:settled+' value(s) settled at the end'});
+      }
+      push({line:10,vm:['return arr'],vars:{arr:'['+arr.join(', ')+']'},touches:[10.8,10.5,10,9,8.5,7.5,7,6.5,6,5.5,5,3],result:'['+arr.join(', ')+']',finale:true,note:'fully sorted: ['+arr.join(', ')+']',cells:arr.map(()=>({role:'sorted',mark:''})),info:'done'}); return steps; } },
+
+  kadane:{ name:'Max subarray', header:'max_subarray([-2, 1, -3, 4, -1, 2, 1, -5, 4]) → expect 6',
+    intro:'Kadane’s trick: at each element, either extend the current run or start fresh — whichever running sum is larger. The best sum ever seen is the answer.',
+    structLabel:'③ the array · the current run grows or resets each step (layers 06.5/07/07.5)',
+    src:['def max_subarray(arr)','  best = cur = arr[0]','  (1...arr.length).each do |i|','    cur = [arr[i], cur + arr[i]].max','    best = [best, cur].max','  end','  best','end'],
+    build(){ const arr=[-2,1,-3,4,-1,2,1,-5,4],steps=[];
+      const cells=(runStart,cur)=>arr.map((_,k)=>{let role='',mark=''; if(runStart!=null&&k>=runStart&&k<=cur)role='win'; if(k===cur){role='cmp';mark='i';} return {role,mark};});
+      const push=o=>steps.push({line:o.line,vars:{...o.vars},vm:o.vm||[],cpu:o.cpu||null,note:o.note,touches:o.touches||[],result:o.result!==undefined?o.result:null,finale:!!o.finale,struct:{kind:'array',arr:arr.slice(),cells:o.cells,info:o.info}});
+      let cur=arr[0],best=arr[0],runStart=0;
+      push({line:1,vm:['best = cur = arr[0] = '+arr[0]],vars:{arr:'['+arr.join(', ')+']',i:0,cur,best},touches:[5.5,6.5,7,7.5],note:'seed best and the current run with the first element',cells:cells(0,0),info:'cur = '+cur+'  best = '+best});
+      for(let i=1;i<arr.length;i++){ const ext=cur+arr[i],fresh=arr[i]>ext; cur=Math.max(arr[i],ext); if(fresh)runStart=i; const nb=Math.max(best,cur);
+        push({line:3,vm:['cur = max(arr['+i+'], cur + arr['+i+'])'],vars:{arr:'['+arr.join(', ')+']',i,cur,best:nb},touches:[3,4,6],cpu:{label:'ALU · extend or restart',expr:'max('+arr[i]+', '+ext+') = '+cur+(fresh?'  → restart':'  → extend')},note:fresh?'arr['+i+']='+arr[i]+' beats the extended run ('+ext+') → start a fresh run here':'extend the run: cur + '+arr[i]+' = '+cur,cells:cells(runStart,i),info:'cur = '+cur});
+        if(nb>best){ best=nb; push({line:4,vm:['best = max(best, cur) = '+best],vars:{arr:'['+arr.join(', ')+']',i,cur,best},touches:[4,6],cpu:{label:'ALU · max',expr:'best = '+best},note:'new best subarray sum so far: '+best,cells:cells(runStart,i),info:'best = '+best}); }
+      }
+      push({line:6,vm:['return best'],vars:{arr:'['+arr.join(', ')+']',i:arr.length-1,cur,best},touches:[10.8,10.5,10,9,8.5,7.5,7,6.5,6,5.5,5,3],result:best,finale:true,note:'best subarray sum = '+best+' (the run [4, −1, 2, 1]) climbs back up',cells:arr.map((_,k)=>({role:(k>=3&&k<=6)?'sorted':'',mark:''})),info:'answer = '+best}); return steps; } }
 };
 Object.assign(METHODS, MORE);
-METHOD_ORDER.push('twopointer','sliding','dfs','dp','insort');
+METHOD_ORDER.push('twopointer','sliding','dfs','dp','insort','linear','bubble','kadane');
