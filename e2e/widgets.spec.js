@@ -68,3 +68,20 @@ test('Spine nav: clicking a rung deep-links the layer into the URL', async ({ pa
   await page.locator('.spine .rung', { hasText: 'Trace' }).click();
   await expect(page).toHaveURL(/#L12$/);
 });
+
+test('Guided tour: reveals, starts, advances with Next, and stops', async ({ page }) => {
+  await page.goto('/');
+  const start = page.locator('#tourStart');
+  const bar = page.locator('#tourbar');
+  await expect(bar).toBeHidden(); // not shown until the tour starts
+  await expect(start).toBeVisible(); // hidden in markup, revealed by JS
+  await start.click();
+  const status = page.locator('#tourStatus');
+  await expect(bar).toBeVisible();
+  await expect(status).toContainText('Climbing');
+  const first = await status.textContent();
+  await page.locator('#tourNext').click();
+  await expect(status).not.toHaveText(first ?? ''); // advanced to the next layer
+  await page.locator('#tourStop').click();
+  await expect(bar).toBeHidden();
+});

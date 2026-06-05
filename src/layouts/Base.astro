@@ -69,6 +69,8 @@ const ogImage = new URL('/og.png', base);
       <li><b>2</b> read the takeaway</li>
       <li><b>3</b> open why</li>
     </ol>
+    <!-- Enhancement only: revealed by the script, since the tour needs JS. -->
+    <button type="button" id="tourStart" class="tour-start" aria-expanded="false" hidden>▶ Play the climb</button>
   </header>
 
   <noscript>
@@ -91,6 +93,16 @@ const ogImage = new URL('/og.png', base);
     <main id="main">
       <slot />
     </main>
+  </div>
+
+  <div class="tourbar" id="tourbar" role="region" aria-label="Guided tour" hidden>
+    <div class="tour-status" id="tourStatus" aria-live="polite"></div>
+    <div class="tour-controls">
+      <button type="button" id="tourPrev" class="tour-btn" aria-label="Previous layer">◀</button>
+      <button type="button" id="tourToggle" class="tour-btn" aria-label="Pause tour">⏸ Pause</button>
+      <button type="button" id="tourNext" class="tour-btn" aria-label="Next layer">▶</button>
+      <button type="button" id="tourStop" class="tour-btn tour-stop" aria-label="Stop tour">Stop</button>
+    </div>
   </div>
 
   <script>
@@ -143,6 +155,59 @@ const ogImage = new URL('/og.png', base);
     window.addEventListener('scroll', onScrollRaf, { passive: true });
     window.addEventListener('resize', onScrollRaf);
     onScroll();
+
+    // ---- guided tour: auto-climb the stack, bottom to top ----
+    // Drives the same sections the nav uses, so the spine fill animates along.
+    const STEP_MS = 6500;
+    const tourStartBtn = $('#tourStart'), tourbar = $('#tourbar');
+    const tourStatus = $('#tourStatus'), tourToggle = $('#tourToggle');
+    if (tourStartBtn && tourbar && sections.length) {
+      let tourIdx = 0, tourTimer = null, paused = false;
+      const labelAt = (i) => {
+        const r = rungs[i];
+        const num = r?.querySelector('.num')?.textContent?.trim() || '';
+        const lbl = r?.querySelector('.lbl')?.textContent?.trim() || '';
+        return `Climbing ${num} ${lbl} · ${i + 1} of ${sections.length}`;
+      };
+      const goTo = (i) => {
+        tourIdx = Math.max(0, Math.min(i, sections.length - 1));
+        const el = sections[tourIdx];
+        if (el) el.scrollIntoView({ behavior: reduceMotion() ? 'auto' : 'smooth', block: 'start' });
+        tourStatus.textContent = labelAt(tourIdx);
+      };
+      const clear = () => { if (tourTimer) { clearTimeout(tourTimer); tourTimer = null; } };
+      const schedule = () => {
+        clear();
+        if (paused) return;
+        tourTimer = setTimeout(() => {
+          if (tourIdx >= sections.length - 1) stopTour();
+          else { goTo(tourIdx + 1); schedule(); }
+        }, STEP_MS);
+      };
+      const setToggle = () => {
+        tourToggle.textContent = paused ? '▶ Resume' : '⏸ Pause';
+        tourToggle.setAttribute('aria-label', paused ? 'Resume tour' : 'Pause tour');
+      };
+      const onTourKey = (e) => { if (e.key === 'Escape') stopTour(); };
+      function startTour() {
+        paused = false; tourbar.hidden = false;
+        tourStartBtn.setAttribute('aria-expanded', 'true');
+        document.addEventListener('keydown', onTourKey);
+        setToggle(); goTo(0); schedule();
+      }
+      function stopTour() {
+        clear(); tourbar.hidden = true;
+        tourStartBtn.setAttribute('aria-expanded', 'false');
+        document.removeEventListener('keydown', onTourKey);
+        tourStartBtn.focus();
+      }
+      tourStartBtn.addEventListener('click', startTour);
+      $('#tourStop').addEventListener('click', stopTour);
+      tourToggle.addEventListener('click', () => { paused = !paused; setToggle(); schedule(); });
+      $('#tourNext').addEventListener('click', () => { goTo(tourIdx + 1); schedule(); });
+      $('#tourPrev').addEventListener('click', () => { goTo(tourIdx - 1); schedule(); });
+      tourStartBtn.hidden = false; // reveal now that the tour is wired
+    }
   </script>
 </body>
 </html>

@@ -113,3 +113,23 @@
   .spacer{flex:1}
   .muted{color:var(--faint)}
   .mono-small{font-family:var(--mono)}
+
+  /* ---------- GUIDED TOUR ---------- */
+  .tour-start{margin-top:20px;font-family:var(--mono);font-size:13px;letter-spacing:.04em;color:var(--bg);
+    background:var(--signal);border:none;border-radius:999px;padding:11px 20px;cursor:pointer;
+    box-shadow:0 0 22px var(--signal-d);transition:filter .15s,opacity .15s;font-weight:700}
+  .tour-start:hover{filter:brightness(1.08)}
+  .tour-start[aria-expanded="true"]{opacity:.5}
+  .tourbar[hidden]{display:none} /* author display:flex would otherwise beat the UA [hidden] rule */
+  .tourbar{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:40;
+    display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:center;
+    max-width:min(680px,calc(100vw - 24px));background:rgba(8,11,18,.92);backdrop-filter:blur(10px);
+    border:1px solid var(--border-hot);border-radius:14px;padding:12px 16px;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+  .tour-status{font-family:var(--mono);font-size:13px;color:var(--signal)}
+  .tour-controls{display:flex;gap:8px}
+  .tour-btn{font-family:var(--mono);font-size:12px;background:var(--panel2);color:var(--ink);
+    border:1px solid var(--border);border-radius:8px;padding:7px 11px;cursor:pointer;transition:.15s}
+  .tour-btn:hover{border-color:var(--border-hot);color:var(--signal)}
+  .tour-stop{color:var(--red);border-color:rgba(255,107,107,.4)}
+  .tour-stop:hover{color:var(--red);border-color:var(--red)}
+  @media(max-width:900px){ .tourbar{bottom:64px} }
