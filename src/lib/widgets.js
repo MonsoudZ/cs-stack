@@ -336,3 +336,64 @@ export function buildTransaction({ atomic = true } = {}) {
   }
   return out;
 }
+
+// --- MEMORY STACK (/memory) ---
+
+// A fully-associative cache, LRU eviction. A miss loads a whole line of
+// `lineSize` consecutive addresses (spatial locality), so neighbours then hit;
+// an evicted line misses again (a capacity miss). Returns the access trace.
+export function buildCache({ accesses = [0, 1, 2, 3, 8, 12, 16, 20, 0], lineSize = 4, ways = 4 } = {}) {
+  const out = [];
+  let cache = []; // block ids, least-recently-used first
+  let hits = 0, misses = 0;
+  const snap = (addr, block, hit, evicted, note) => out.push({ addr, block, hit, evicted, cache: cache.slice(), hits, misses, note });
+  snap(null, null, null, null, 'a cache holds a few ' + lineSize + '-address lines; a miss loads a whole line, betting you will want its neighbours next');
+  for (const addr of accesses) {
+    const block = Math.floor(addr / lineSize);
+    const idx = cache.indexOf(block);
+    if (idx >= 0) {
+      hits++; cache.splice(idx, 1); cache.push(block);
+      snap(addr, block, true, null, 'read address ' + addr + ' → line ' + block + ' is cached → HIT');
+    } else {
+      misses++;
+      let evicted = null;
+      if (cache.length >= ways) evicted = cache.shift();
+      cache.push(block);
+      snap(addr, block, false, evicted,
+        'read address ' + addr + ' → line ' + block + ' not cached → MISS, load it' + (evicted != null ? ' (evict line ' + evicted + ', least-recently-used)' : ''));
+    }
+  }
+  snap(null, null, null, null, hits + ' hits, ' + misses + ' misses — one miss covers a whole line, but a line you evict has to be fetched again');
+  return out;
+}
+
+// Virtual → physical address translation. A virtual address splits into a page
+// number + offset; the MMU finds the physical frame via the TLB (fast) or a
+// page-table walk (slow), then combines frame × pageSize + offset.
+export function buildAddressTranslation({ pageBits = 4 } = {}) {
+  const pageSize = 1 << pageBits;
+  const table = { 0: 5, 1: 2, 2: 7, 3: 1 }; // virtual page → physical frame
+  const out = [];
+  const tlb = {};
+  const snap = (note, o = {}) => out.push({ pageSize, table, tlb: { ...tlb }, note, ...o });
+  const translate = (vaddr) => {
+    const page = vaddr >> pageBits, offset = vaddr & (pageSize - 1);
+    snap('virtual address ' + vaddr + ' splits into page ' + page + ' and offset ' + offset, { vaddr, page, offset });
+    if (tlb[page] !== undefined) {
+      const frame = tlb[page], phys = frame * pageSize + offset;
+      snap('TLB hit: page ' + page + ' → frame ' + frame + ' — no page-table walk needed', { vaddr, page, offset, frame, tlbHit: true });
+      snap('physical = frame ' + frame + ' × ' + pageSize + ' + offset ' + offset + ' = ' + phys, { vaddr, page, offset, frame, phys });
+      return;
+    }
+    snap('TLB miss → walk the page table for page ' + page, { vaddr, page, offset, tlbHit: false });
+    const frame = table[page];
+    tlb[page] = frame;
+    snap('page table: page ' + page + ' → frame ' + frame + ', and cache it in the TLB', { vaddr, page, offset, frame });
+    const phys = frame * pageSize + offset;
+    snap('physical = frame ' + frame + ' × ' + pageSize + ' + offset ' + offset + ' = ' + phys, { vaddr, page, offset, frame, phys });
+  };
+  snap('programs use virtual addresses; the MMU translates each one to a physical address');
+  translate(42); // page 2, offset 10 → TLB miss, walk
+  translate(40); // page 2, offset 8 → TLB hit
+  return out;
+}

@@ -169,6 +169,7 @@ import Takeaway from '../components/Takeaway.astro';
     <p class="prose">Memory is not one place. The machine keeps the hottest data closest to the CPU, then spills outward into slower, larger storage.</p>
     <MemoryHierarchy />
     <Takeaway>The memory hierarchy is a speed bargain: tiny and close is fast; huge and far away is slow.</Takeaway>
+    <p class="prose prose-follow"><a href="/memory">→ go deeper: <b>the memory stack</b></a> — cache lines and locality, virtual memory and page tables, and the TLB.</p>
     <Why
       problem="The CPU can execute instructions much faster than main memory or disk can feed it data."
       idea="Use layers of storage. Registers hold the current values, caches keep recent data nearby, RAM holds active programs, and disk keeps long-term state."

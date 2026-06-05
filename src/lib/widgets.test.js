@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, buildBTreeSearch, buildTransaction } from './widgets.js';
+import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation } from './widgets.js';
 
 const popcount = (n) => { let c = 0; n >>>= 0; while (n) { c += n & 1; n >>>= 1; } return c; };
 
@@ -246,6 +246,31 @@ describe('buildTransaction (ACID atomicity)', () => {
     const steps = buildTransaction({ atomic: false });
     expect(steps.at(-1).total).toBe(250);
     expect(steps.some((s) => s.lost)).toBe(true);
+  });
+});
+
+describe('buildCache (locality + eviction)', () => {
+  const steps = buildCache();
+  it('spatial locality: one miss per line, then neighbours hit', () => {
+    const last = steps.at(-1);
+    expect(last.hits).toBe(3); // 1,2,3 hit after line 0 loads
+    expect(last.misses).toBe(6);
+  });
+  it('an evicted line misses again (capacity miss): address 0 misses twice', () => {
+    expect(steps.filter((s) => s.addr === 0 && s.hit === false)).toHaveLength(2);
+  });
+});
+
+describe('buildAddressTranslation (virtual memory)', () => {
+  const steps = buildAddressTranslation();
+  it('translates 42 → physical 122 via a page-table walk', () => {
+    const done = steps.find((s) => s.vaddr === 42 && s.phys !== undefined);
+    expect(done.phys).toBe(122); // page 2 → frame 7; 7*16 + 10
+  });
+  it('a second access to the same page is a TLB hit', () => {
+    expect(steps.some((s) => s.tlbHit === true)).toBe(true);
+    const second = steps.find((s) => s.vaddr === 40 && s.phys !== undefined);
+    expect(second.phys).toBe(120); // frame 7; 7*16 + 8
   });
 });
 

@@ -87,6 +87,30 @@ test('Database page: own nav, B-tree finds the key, a crash without a txn loses 
   await expect(tx.locator('.txn-acct.total .txn-val')).toHaveText('250');
 });
 
+test('Memory page: own nav, a cache access hits, a virtual address translates to 122', async ({ page }) => {
+  await page.goto('/memory');
+  await expect(page.locator('h1.title')).toContainText('MEMORY');
+  await expect(page.locator('.spine .rung')).toHaveCount(6);
+  // cache: stepping eventually lands on a HIT (addresses 1,2,3 hit line 0 after 0 loads it)
+  const cache = page.locator('#M1');
+  await cache.scrollIntoViewIfNeeded();
+  for (let i = 0; i < 9; i++) {
+    await cache.locator('.cpu-ctrl button').first().click();
+    if (await cache.locator('.ca-badge.hit').count()) break;
+    await page.waitForTimeout(40);
+  }
+  await expect(cache.locator('.ca-badge.hit')).toBeVisible();
+  // address translation: stepping resolves the first virtual address to physical 122
+  const vm = page.locator('#M3');
+  await vm.scrollIntoViewIfNeeded();
+  for (let i = 0; i < 4; i++) {
+    await vm.locator('.cpu-ctrl button').first().click();
+    if (await vm.locator('.vmt-phys.show').count()) break;
+    await page.waitForTimeout(40);
+  }
+  await expect(vm.locator('.vmt-phys')).toContainText('122');
+});
+
 test('Crypto page: own nav, hash avalanches, DH agrees on a shared secret', async ({ page }) => {
   await page.goto('/crypto');
   await expect(page.locator('h1.title')).toContainText('CRYPTO');
