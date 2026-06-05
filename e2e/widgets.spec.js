@@ -46,6 +46,32 @@ test('LogicGate island: AND of 1 and 1 lights the output', async ({ page }) => {
   await expect(lamp).toHaveText('1'); // 1 AND 1 = 1
 });
 
+test('Voltage (CSS-only): tapping the wire flips LOW to HIGH with no JS', async ({ page }) => {
+  await page.goto('/');
+  const widget = page.locator('.voltage-static');
+  await widget.scrollIntoViewIfNeeded();
+  const high = widget.locator('.voltage-state .state-high');
+  const low = widget.locator('.voltage-state .state-low');
+  await expect(low).toBeVisible();
+  await expect(high).toBeHidden();
+  await widget.locator('label.voltage-wire').click();
+  await expect(high).toBeVisible(); // HIGH now shown
+  await expect(low).toBeHidden();
+});
+
+test('Cloud island: toggling the cache flips between miss and hit', async ({ page }) => {
+  await page.goto('/');
+  const cloud = page.locator('#L10');
+  await cloud.scrollIntoViewIfNeeded();
+  const cacheBtn = cloud.getByRole('button', { name: /cache:/ });
+  await expect(cacheBtn).toContainText('COLD');
+  await expect(async () => {
+    await cacheBtn.click();
+    await expect(cacheBtn).toContainText('WARM', { timeout: 400 });
+  }).toPass({ timeout: 8000 });
+  await expect(cloud.locator('.cloudlat')).toHaveClass(/warm/);
+});
+
 test('Tracer island: STEP advances and switching method resets the step', async ({ page }) => {
   await page.goto('/');
   const tracer = page.locator('.trace-widget');
