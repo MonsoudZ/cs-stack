@@ -15,6 +15,7 @@ export const stacks = [
   { slug: 'concurrency', name: 'Concurrency', kind: 'stack', layer: '08.2', accent: '#a78bfa', blurb: 'threads, race conditions, deadlock, and lock-free atomics' },
   { slug: 'crypto', name: 'Crypto', kind: 'stack', layer: '08.5', accent: '#ff6b6b', blurb: 'hashing, keys, key exchange, certificates, and TLS' },
   { slug: 'network', name: 'Network', kind: 'stack', layer: '09', accent: '#5b9dff', blurb: 'encapsulation, routing, DNS, and a packet’s journey' },
+  { slug: 'cloud', name: 'Cloud', kind: 'stack', layer: '10', accent: '#2ee6c0', blurb: 'scaling out, load balancing, replicas, and the CAP tradeoff' },
   { slug: 'database', name: 'Database', kind: 'stack', layer: '10.5', accent: '#ffb454', blurb: 'indexes, B-trees, transactions, and durability' },
   { slug: 'render', name: 'Render', kind: 'pipeline', layer: '10.8', accent: '#a78bfa', blurb: 'DOM, style, layout, paint, and compositing' },
 ];

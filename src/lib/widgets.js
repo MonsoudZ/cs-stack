@@ -681,3 +681,50 @@ export function buildCas() {
   snap('counter = 2 ✓ — both increments counted and no lock was ever held; the loser just tried again');
   return out;
 }
+
+// --- CLOUD STACK (/cloud) ---
+
+// A load balancer: one public address spreading requests across a pool of app
+// servers (round-robin), skipping any that fail a health check and picking
+// them back up when they recover. Returns the trace; each request snapshot
+// carries the target and every server's running load, so no request is lost.
+export function buildLoadBalancer() {
+  const servers = [{ id: 'S1', healthy: true, load: 0 }, { id: 'S2', healthy: true, load: 0 }, { id: 'S3', healthy: true, load: 0 }];
+  let rr = 0, served = 0;
+  const out = [];
+  const snap = (target, event, note) => out.push({ servers: servers.map((s) => ({ ...s })), target, event, served, note });
+  const route = (label) => {
+    for (let k = 0; k < servers.length; k++) {
+      const i = (rr + k) % servers.length;
+      if (servers[i].healthy) { rr = (i + 1) % servers.length; servers[i].load++; served++; snap(servers[i].id, null, label + ' → ' + servers[i].id); return; }
+    }
+    snap(null, null, label + ' → no healthy server!');
+  };
+  const setHealth = (id, healthy, note) => { servers.find((s) => s.id === id).healthy = healthy; snap(null, healthy ? 'recover' : 'crash', note); };
+  snap(null, null, 'one public address, three identical app servers behind it — the balancer spreads requests round-robin so no server is overwhelmed');
+  route('request 1'); route('request 2'); route('request 3');
+  setHealth('S2', false, 'S2 stops answering health checks → the balancer marks it DOWN and routes around it');
+  route('request 4'); route('request 5'); route('request 6');
+  setHealth('S2', true, 'S2 passes health checks again → the balancer adds it back to the pool');
+  route('request 7');
+  snap(null, null, served + ' requests served, spread across the healthy servers — and not one was dropped when S2 went down');
+  return out;
+}
+
+// Read replicas: writes go to the primary; reads can be served by replicas to
+// share load — but replication has lag, so a read during the gap sees STALE
+// data. The replicas converge afterwards. This is eventual consistency, and the
+// reason "read your own write" isn't guaranteed unless you read the primary.
+export function buildReplication() {
+  const out = [];
+  let primary = 0;
+  const replicas = [{ id: 'R1', v: 0 }, { id: 'R2', v: 0 }];
+  const snap = (action, note, o = {}) => out.push({ primary, replicas: replicas.map((r) => ({ ...r })), action, note, readFrom: o.readFrom ?? null, readValue: o.readValue ?? null, stale: !!o.stale });
+  snap('idle', 'one primary takes all writes; two replicas serve reads to spread the load. Everyone starts at x = 0');
+  primary = 1; snap('write', 'WRITE x = 1 lands on the primary → primary is now 1, but the replicas haven’t heard yet');
+  snap('read', 'a READ routed to replica R1 right now returns x = 0 — STALE, because replication hasn’t caught up', { readFrom: 'R1', readValue: 0, stale: true });
+  replicas.forEach((r) => { r.v = primary; }); snap('replicate', 'the primary streams the change; R1 and R2 catch up to x = 1 (this lag is usually milliseconds)');
+  snap('read', 'the same READ from R1 now returns x = 1 — fresh, once the replica converged', { readFrom: 'R1', readValue: 1, stale: false });
+  snap('idle', 'this is eventual consistency: replicas converge, but a read in the gap sees stale data — strong consistency means reading the primary, giving up some of the scaling');
+  return out;
+}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum, DOPING, buildDiode, cmosInverter, ALU_OPS, computeAlu, PIPE_STAGES, buildPipeline, buildDeadlock, buildCas } from './widgets.js';
+import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum, DOPING, buildDiode, cmosInverter, ALU_OPS, computeAlu, PIPE_STAGES, buildPipeline, buildDeadlock, buildCas, buildLoadBalancer, buildReplication } from './widgets.js';
 
 const popcount = (n) => { let c = 0; n >>>= 0; while (n) { c += n & 1; n >>>= 1; } return c; };
 
@@ -472,6 +472,40 @@ describe('buildCas (lock-free compare-and-swap)', () => {
     const failIdx = steps.findIndex((s) => s.cas === 'fail');
     const lastOk = steps.map((s) => s.cas).lastIndexOf('ok');
     expect(failIdx).toBeLessThan(lastOk);
+  });
+});
+
+describe('buildLoadBalancer (distribution + failover)', () => {
+  const steps = buildLoadBalancer();
+  const last = steps[steps.length - 1];
+  it('serves every request — loads sum to the number routed, none dropped', () => {
+    expect(last.served).toBe(7);
+    const totalLoad = last.servers.reduce((n, s) => n + s.load, 0);
+    expect(totalLoad).toBe(7);
+    expect(steps.every((s) => s.target !== null || s.event || s.served === 0 || s.note.includes('served'))).toBe(true);
+  });
+  it('routes around a downed server — S2 gets no requests while it is unhealthy', () => {
+    // find the crash and recover events
+    const crash = steps.findIndex((s) => s.event === 'crash');
+    const recover = steps.findIndex((s) => s.event === 'recover');
+    const s2WhileDown = steps.slice(crash, recover).filter((s) => s.target === 'S2');
+    expect(s2WhileDown).toHaveLength(0);
+    // and it comes back into rotation afterwards
+    expect(steps.slice(recover).some((s) => s.target === 'S2')).toBe(true);
+  });
+});
+
+describe('buildReplication (read replicas / eventual consistency)', () => {
+  const steps = buildReplication();
+  it('a read during replication lag is stale; after convergence it is fresh', () => {
+    const reads = steps.filter((s) => s.action === 'read');
+    expect(reads[0]).toMatchObject({ readValue: 0, stale: true });   // before replicate
+    expect(reads[1]).toMatchObject({ readValue: 1, stale: false });  // after replicate
+  });
+  it('replicas converge to the primary’s value', () => {
+    const last = steps[steps.length - 1];
+    expect(last.primary).toBe(1);
+    expect(last.replicas.every((r) => r.v === 1)).toBe(true);
   });
 });
 

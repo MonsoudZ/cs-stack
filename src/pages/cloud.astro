@@ -1,0 +1,94 @@
+---
+import Base from '../layouts/Base.astro';
+import LayerSection from '../components/LayerSection.astro';
+import { cloudLayers } from '../data/cloudLayers.js';
+import LoadBalancer from '../components/LoadBalancer.svelte';
+import Cloud from '../components/Cloud.svelte';
+import Replication from '../components/Replication.svelte';
+import Why from '../components/Why.astro';
+import Takeaway from '../components/Takeaway.astro';
+const L = Object.fromEntries(cloudLayers.map((l) => [l.id, l]));
+const title = 'THE STACK — the cloud';
+const description = 'A deep dive into the cloud: scaling out instead of up, the load balancer and health checks, stateless servers, one request through the whole architecture, read replicas and replication lag, and the CAP tradeoff.';
+---
+<Base {title} {description} layers={cloudLayers}>
+  <div slot="hero">
+    <div class="kicker">A deep dive into layer 10</div>
+    <h1 class="title">THE <em>CLOUD</em><br />STACK</h1>
+    <p class="lede">There is no cloud — it's just someone else's computers, a lot of them, wired together. Once one machine isn't enough, every problem you'd solved on a single box returns in a harder form: where does a request go, who holds the truth, and what happens when part of the network simply vanishes?</p>
+    <div class="hero-meta"><a class="back-link" href="/">← back to the full stack</a> · scale out → load balancer → stateless → the request → replication → CAP</div>
+  </div>
+
+  <LayerSection {...L.CD0}>
+    <p class="prose">The first instinct is to <b>scale up</b>: a bigger machine, more RAM, faster cores. But there's a ceiling — and a single box is still a single point of failure. The cloud's answer is to <span class="hl">scale out</span>: many ordinary machines, working together, where any one can die without taking the system down.</p>
+    <Takeaway>Scaling up hits a wall and leaves one fragile box; scaling out trades it for many cheap machines — and a pile of new coordination problems.</Takeaway>
+    <Why
+      problem="Demand grows past what any single machine can serve, and that one machine failing takes everything with it."
+      idea="Run many commodity machines in parallel so capacity is additive and the loss of any one is survivable."
+      tradeoff="Coordination across machines is the cost: now you need to route, replicate, and reconcile — and the network between them can fail."
+      next="The first thing you need when there’s more than one server is something to decide where each request goes."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.CD1}>
+    <p class="prose">A <b>load balancer</b> is the single public address that fans requests out across a pool of identical app servers — usually <span class="hl">round-robin</span>. It also runs <b>health checks</b>: when a server stops answering, the balancer quietly routes around it, so a dead machine drops zero requests.</p>
+    <LoadBalancer client:visible />
+    <Takeaway>The load balancer turns many servers into one address — spreading load evenly and steering traffic away from any server that fails.</Takeaway>
+    <Why
+      problem="With a pool of servers, something has to decide which one handles each request — and notice when one dies."
+      idea="Put a load balancer out front: it distributes requests across healthy servers and uses health checks to remove and re-add machines automatically."
+      tradeoff="The balancer is now itself critical (so it’s replicated too), and even distribution only works if any server can handle any request."
+      next="That last condition — any server, any request — is a real constraint."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.CD2}>
+    <p class="prose">Round-robin only works if requests don't care which server they hit. So app servers must be <b>stateless</b>: they keep no session data in local memory. Anything that must persist — sessions, uploads, carts — gets pushed out to a shared store. Then any server can serve any request, and you scale by simply <span class="hl">adding more</span>.</p>
+    <Takeaway>Statelessness is the enabling trick of horizontal scaling: if servers hold nothing local, they’re interchangeable, and adding capacity is just adding boxes.</Takeaway>
+    <Why
+      problem="If a server holds a user’s session in its own memory, only that server can serve them — and if it dies, their state is gone."
+      idea="Keep app servers stateless and move shared state to a database, cache, or object store that all of them reach."
+      tradeoff="Every request now pays a round-trip to fetch state, which is exactly why a fast cache sits in the path."
+      next="Follow one real request through the balancer, an app server, the cache, the database, and a queue."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.CD3}>
+    <p class="prose">Here's the whole architecture in motion: a request crosses the internet to the load balancer, lands on an app server, checks a <b>cache</b>, falls back to the <b>database</b> on a miss, enqueues slow work to a <b>queue</b>, and returns — while a worker finishes the rest after the user already has their answer.</p>
+    <Cloud client:visible />
+    <Takeaway>A cloud request is a tour of the repeated stack — balancer, app, cache, database, queue — each piece there to be fast, shared, or resilient.</Takeaway>
+    <Why
+      problem="A single request now touches many machines, and the slow or failure-prone parts can’t sit on the user’s critical path."
+      idea="Layer the pieces: cache to skip the database, the database as the source of truth, and a queue to defer slow work asynchronously."
+      tradeoff="Each hop adds latency and a place to fail, and the cache introduces the oldest distributed problem — keeping copies in agreement."
+      next="The hardest copies to agree on are the database’s own."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.CD4}>
+    <p class="prose">One database becomes the bottleneck, so reads get spread across <b>replicas</b>. Writes go to the <span class="hl">primary</span>, which streams changes out — but that streaming has <b>lag</b>. A read that hits a replica mid-lag sees <i>stale</i> data. The replicas converge soon after: that's <span class="hl">eventual consistency</span>.</p>
+    <Replication client:visible />
+    <Takeaway>Replicas scale reads by copying the primary — but replication lag means a read can briefly see the past, so the system is only eventually consistent.</Takeaway>
+    <Why
+      problem="A single database caps your read throughput and is a single point of failure for the truth."
+      idea="Copy the data to read replicas the primary streams updates to, so reads scale horizontally and a replica can be promoted if the primary dies."
+      tradeoff="Replication isn’t instant, so reads can be stale; getting the latest value means reading the primary and giving back some of the scaling."
+      next="Stale reads are a hint of a deeper, unavoidable tradeoff."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.CD5}>
+    <p class="prose">When the network between machines <b>partitions</b> — and at scale it eventually will — a replica that can't reach the primary faces a forced choice: refuse the request to stay <span class="hl">consistent</span>, or answer with possibly-stale data to stay <span class="hl">available</span>. You can't have both during a partition. That's <b>CAP</b>.</p>
+    <Takeaway>CAP is the cloud’s law of physics: when the network splits, you must choose consistency or availability — every distributed system is really a stance on that tradeoff.</Takeaway>
+    <Why
+      problem="Networks between machines drop and split, and during a split two sides can’t both stay in sync and keep serving."
+      idea="Decide in advance which to sacrifice under a partition — refuse writes to stay consistent (CP), or keep serving and reconcile later (AP)."
+      tradeoff="There’s no free choice: consistency costs availability and latency, availability costs correctness — the right call depends on the data."
+      next="Zoom back out: this whole architecture is what the main stack’s cloud layer stands for — the same machine, repeated and coordinated."
+    />
+  </LayerSection>
+</Base>
+
+<style>
+  .back-link{color:var(--accent,var(--signal))}
+</style>

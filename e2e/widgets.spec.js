@@ -115,12 +115,12 @@ test('Cross-stack footer: lists every deep dive on home, omits the current one o
   // home: every deep dive is linked, no "back to full stack" (we're home)
   await page.goto('/');
   const homeNav = page.locator('.stacknav');
-  await expect(homeNav.locator('.stacknav-link')).toHaveCount(12);
+  await expect(homeNav.locator('.stacknav-link')).toHaveCount(13);
   await expect(homeNav.locator('.stacknav-home')).toHaveCount(0);
   // a deep dive: the current stack is omitted (the rest) and home link returns
   await page.goto('/memory');
   const sibNav = page.locator('.stacknav');
-  await expect(sibNav.locator('.stacknav-link')).toHaveCount(11);
+  await expect(sibNav.locator('.stacknav-link')).toHaveCount(12);
   await expect(sibNav.getByRole('link', { name: /the Memory stack/i })).toHaveCount(0);
   // the links actually navigate to a sibling explorable
   await sibNav.getByRole('link', { name: /the Crypto stack/i }).click();
@@ -134,6 +134,30 @@ test('Social cards: each deep dive advertises its own per-stack OG image', async
   await page.goto('/memory');
   await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', /\/og\/memory\.png$/);
   await expect(page.locator('meta[property="og:image:alt"]')).toHaveAttribute('content', /THE MEMORY STACK/);
+});
+
+test('Cloud page: own nav, the balancer fails over, a replica read goes stale', async ({ page }) => {
+  await page.goto('/cloud');
+  await expect(page.locator('h1.title')).toContainText('CLOUD');
+  await expect(page.locator('.spine .rung')).toHaveCount(6);
+  // load balancer: stepping past the crash marks a server DOWN, traffic continues
+  const lb = page.locator('#CD1');
+  await lb.scrollIntoViewIfNeeded();
+  for (let i = 0; i < 6; i++) {
+    await lb.locator('.cpu-ctrl button').first().click();
+    if (await lb.locator('.lb-server.down').count()) break;
+    await page.waitForTimeout(40);
+  }
+  await expect(lb.locator('.lb-server.down')).toBeVisible();
+  // replication: stepping reaches a stale read from a lagging replica
+  const rp = page.locator('#CD4');
+  await rp.scrollIntoViewIfNeeded();
+  for (let i = 0; i < 4; i++) {
+    await rp.locator('.cpu-ctrl button').first().click();
+    if (await rp.locator('.rp-read.stale').count()) break;
+    await page.waitForTimeout(40);
+  }
+  await expect(rp.locator('.rp-read.stale')).toContainText('stale');
 });
 
 test('Concurrency page: own nav, two locks deadlock, compare-and-swap stays correct', async ({ page }) => {
