@@ -1,0 +1,96 @@
+---
+import Base from '../layouts/Base.astro';
+import LayerSection from '../components/LayerSection.astro';
+import { networkLayers } from '../data/networkLayers.js';
+import Encapsulation from '../components/Encapsulation.svelte';
+import Packets from '../components/Packets.svelte';
+import Routing from '../components/Routing.svelte';
+import Dns from '../components/Dns.svelte';
+import Why from '../components/Why.astro';
+import Takeaway from '../components/Takeaway.astro';
+const L = Object.fromEntries(networkLayers.map((l) => [l.id, l]));
+const title = 'THE STACK — the network, deep';
+const description = 'A deep dive into the network stack: signals on the wire, encapsulation, IP routing and TTL, TCP reliability, and DNS — how bytes leave one machine and arrive at another.';
+---
+<Base {title} {description} layers={networkLayers}>
+  <div slot="hero">
+    <div class="kicker">A deep dive into layer 09</div>
+    <h1 class="title">THE <em>NETWORK</em><br />STACK</h1>
+    <p class="lede">In the main stack, "the network" is one rung. Pull it apart and it's a whole ladder of its own — each layer wrapping the one above, just to get a few bytes across the world and back.</p>
+    <div class="hero-meta"><a class="back-link" href="/">← back to the full stack</a> · signals → encapsulation → routing → reliability → DNS</div>
+  </div>
+
+  <LayerSection {...L.N0}>
+    <p class="prose">A wire can't send a "1" — only a <b>signal</b>: a voltage on copper, a pulse of light in fiber, a modulated radio wave. Both ends agree how to read it back as bits, and how fast (<span class="hl">bandwidth</span>) with how much delay (<span class="hl">latency</span>).</p>
+    <Takeaway>Networking starts where layer 00 left off: bits encoded as a physical signal — now travelling between buildings instead of between gates.</Takeaway>
+    <Why
+      problem="Two machines aren't wired into the same circuit, so a bit can't just be a shared voltage — it has to survive a long, noisy, shared medium."
+      idea="Encode bits as signals tuned to the medium (copper, fiber, radio) with agreed timing, then let higher layers worry about meaning."
+      tradeoff="Distance and sharing cost you: signals attenuate, collide, and arrive late — bandwidth and latency become first-class constraints."
+      next="Once a link can carry bits between neighbours, data needs a wrapper that says who it's for."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.N1}>
+    <p class="prose">Data leaves wrapped like a parcel inside a parcel: your bytes get a transport header (ports), then an IP header (addresses), then a link frame (MAC + checksum). Each layer only reads its own wrapper.</p>
+    <Encapsulation client:visible />
+    <Takeaway>Each layer adds just enough header to do its job and trusts the layer below to deliver the rest — that's encapsulation.</Takeaway>
+    <Why
+      problem="A bare payload has no idea where it's going, which program should receive it, or whether it arrived intact."
+      idea="Wrap it in nested headers — transport, network, link — each carrying exactly the context that layer needs, added on the way down and stripped on the way up."
+      tradeoff="Every header is overhead: a tiny request rides inside far more bytes, the price of routing, addressing, and integrity."
+      next="The IP header is what lets routers move the parcel across the world."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.N2}>
+    <p class="prose">No single wire reaches the destination. The packet <b>hops</b> from router to router; each one reads the destination IP, consults its routing table, and forwards toward it. A <span class="hl">TTL</span> counts down so a misrouted packet can't circle forever.</p>
+    <Routing client:visible />
+    <Takeaway>IP is best-effort delivery by hops: every router makes a local "which way is closer?" decision, and TTL bounds the journey.</Takeaway>
+    <Why
+      problem="The destination could be anywhere on Earth, across networks owned by strangers — there's no direct wire and no global map."
+      idea="Give every machine an IP address and let each router forward a packet one hop closer using its own routing table. No router knows the whole path."
+      tradeoff="Best-effort means packets can be dropped, delayed, duplicated, or reordered, and routing loops are only stopped by the TTL counting down to zero."
+      next="If IP can lose packets, something above it has to make delivery reliable."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.N3}>
+    <p class="prose">IP makes no promises, so TCP layers reliability on top: it numbers every packet, the receiver acknowledges what arrived, and anything missing is <b>retransmitted</b> and reassembled in order.</p>
+    <Packets client:visible />
+    <Takeaway>TCP turns lossy, out-of-order packets into a clean ordered byte-stream — at the cost of acks, buffering, and waiting for stragglers.</Takeaway>
+    <Why
+      problem="Applications want an ordered, gap-free stream of bytes, but the layer beneath drops and reorders packets freely."
+      idea="Number each segment, acknowledge what arrives, retransmit what doesn't, and reassemble in order before handing the stream up."
+      tradeoff="Reliability adds round-trips, buffering, and head-of-line blocking — which is exactly why some apps choose bare UDP instead."
+      next="Before any of this can start, the program needs the destination's address — and humans type names, not numbers."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.N4}>
+    <p class="prose">You typed a name, but routing needs a number. DNS is the phone book: a resolver walks the name hierarchy — root, then the <code>.dev</code> top-level domain, then the domain's own authoritative server — until something answers with an IP.</p>
+    <Dns client:visible />
+    <Takeaway>DNS turns a human name into an IP by asking down a hierarchy and caching the answer — the same "names are an agreement" idea as encoding.</Takeaway>
+    <Why
+      problem="People remember names, but every layer below this one only routes to numeric IP addresses."
+      idea="Run a distributed, hierarchical directory: ask a root server who handles the suffix, follow referrals down to the authoritative server, and cache the result."
+      tradeoff="Caching makes it fast but means changes take time to propagate, and the whole system is a high-value target for spoofing and outages."
+      next="With an address in hand, the request makes the full trip — wrapped, routed, made reliable, and (usually) encrypted."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.N5}>
+    <p class="prose">Type a URL and it all fires in order: <b>DNS</b> turns the name into an IP, <b>TCP</b> opens a connection (the SYN / SYN-ACK / ACK handshake), <b>TLS</b> negotiates keys and checks a certificate so the bytes are private, and finally <b>HTTP</b> carries your request — which descends every layer here, crosses the world, and climbs back up as a response.</p>
+    <Takeaway>One click is this entire ladder, run twice — once down on the way out, once up on the way back.</Takeaway>
+    <Why
+      problem="Each layer solves one problem in isolation, but a real request needs all of them composed in the right order, every time."
+      idea="Stack them: names resolve, a connection opens, encryption wraps the channel, and the application protocol rides inside — each layer leaning on the promise of the one below."
+      tradeoff="More layers means more round-trips and more places to fail; performance work (keep-alive, caching, QUIC) is mostly about collapsing this ladder."
+      next="Zoom back out: this whole stack is one rung of the bigger climb from electrons to the cloud."
+    />
+  </LayerSection>
+</Base>
+
+<style>
+  .back-link{color:var(--accent,var(--signal))}
+</style>

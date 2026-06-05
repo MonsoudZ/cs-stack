@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace } from './widgets.js';
+import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns } from './widgets.js';
 
 const sum = (arr) => arr.reduce((a, b) => a + b, 0);
 
@@ -140,6 +140,29 @@ describe('buildRace (concurrency)', () => {
     expect(steps.some((s) => s.lost)).toBe(false);
     // only one thread ever holds the lock at a time (never both, never overlapping)
     expect(steps.every((s) => s.held === null || s.held === 'A' || s.held === 'B')).toBe(true);
+  });
+});
+
+describe('buildRouting (IP + TTL)', () => {
+  const { nodes, steps } = buildRouting();
+  it('decrements TTL exactly once per hop and delivers at the last node', () => {
+    expect(steps[0].ttl).toBe(6);
+    const last = steps.at(-1);
+    expect(last.at).toBe(nodes.length - 1);
+    expect(last.delivered).toBe(true);
+    expect(last.ttl).toBe(6 - (nodes.length - 1)); // one hop per node after the source
+  });
+  it('only the final step is a delivery', () => {
+    expect(steps.filter((s) => s.delivered)).toHaveLength(1);
+  });
+});
+
+describe('buildDns (resolver walk)', () => {
+  const steps = buildDns();
+  it('walks root → TLD → authoritative and ends with the IP', () => {
+    expect(steps.map((s) => s.kind)).toEqual(['ask', 'referral', 'referral', 'answer', 'cache']);
+    expect(steps.find((s) => s.kind === 'answer').answer).toBe('93.184.216.34');
+    expect(steps.at(-1).answer).toBe('93.184.216.34'); // resolver returns the cached IP
   });
 });
 

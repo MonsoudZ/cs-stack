@@ -15,12 +15,15 @@ import '../styles/global.css';
 // discovered only after the stylesheet parses — avoids the hero FOUT/swap.
 import bricolageHero from '@fontsource-variable/bricolage-grotesque/files/bricolage-grotesque-latin-wght-normal.woff2?url';
 import splineBody from '@fontsource/spline-sans/files/spline-sans-latin-400-normal.woff2?url';
-// Single source of truth for the layers — the page sections (index.astro)
-// render from the same array, so the nav and the content can't drift.
-import { layers } from '../data/layers.js';
+// The layers that drive the spine nav + structured data. Defaults to the main
+// stack, but any page can pass its own set (e.g. /network) so the same engine
+// powers sibling explorables. The page's sections render from the same array,
+// so the nav and content can't drift.
+import { layers as mainLayers } from '../data/layers.js';
 const {
   title = 'THE STACK — electrons to the cloud',
   description = 'An explorable explanation of the computing stack, from silicon to the cloud. Climb the layers — transistors, gates, bits, the CPU, memory, the OS, the network — and trace a real algorithm all the way down.',
+  layers = mainLayers,
 } = Astro.props;
 const base = Astro.site ?? Astro.url;
 const canonical = new URL(Astro.url.pathname, base);
@@ -107,10 +110,12 @@ const jsonLd = {
   <div class="scan"></div>
 
   <header class="hero">
-    <div class="kicker">A field guide to the machine</div>
-    <h1 class="title">FROM <em>ELECTRONS</em><br />TO THE CLOUD</h1>
-    <p class="lede">Every layer of computing is a <b>convenient lie</b> told by the layer beneath it. Climb the ladder and watch each lie get built — by hand, where you can poke it.</p>
-    <div class="hero-meta">silicon → voltage → gates → bits → runtime → CPU → cache → memory → data structures → OS → security → network → cloud → database → UI</div>
+    <slot name="hero">
+      <div class="kicker">A field guide to the machine</div>
+      <h1 class="title">FROM <em>ELECTRONS</em><br />TO THE CLOUD</h1>
+      <p class="lede">Every layer of computing is a <b>convenient lie</b> told by the layer beneath it. Climb the ladder and watch each lie get built — by hand, where you can poke it.</p>
+      <div class="hero-meta">silicon → voltage → gates → bits → runtime → CPU → cache → memory → data structures → OS → security → network → cloud → database → UI</div>
+    </slot>
     <ol class="reader-guide" aria-label="How to read this site">
       <li><b>1</b> poke the diagram</li>
       <li><b>2</b> read the takeaway</li>

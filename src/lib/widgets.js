@@ -148,3 +148,38 @@ export function buildRace({ locked = false } = {}) {
   }
   return out;
 }
+
+// --- NETWORK STACK (/network) ---
+
+// IP routing: a packet hops node to node toward its destination, its TTL (a hop
+// budget) decreasing each hop until it's delivered. Returns {nodes, steps}.
+export function buildRouting() {
+  const nodes = ['your laptop', 'home router', 'ISP', 'backbone', 'datacenter', 'server'];
+  const out = [];
+  let ttl = 6;
+  const snap = (at, note, delivered = false) => out.push({ at, ttl, note, delivered });
+  snap(0, 'the packet leaves carrying a destination IP and TTL = ' + ttl + ' — a hop budget so it can never loop forever');
+  for (let i = 1; i < nodes.length; i++) {
+    ttl -= 1;
+    const last = i === nodes.length - 1;
+    snap(i,
+      last
+        ? 'reached ' + nodes[i] + ' — the destination IP matches, so deliver it (TTL ' + ttl + ' to spare)'
+        : nodes[i] + ' reads the destination IP, checks its routing table, and forwards to the next hop · TTL → ' + ttl,
+      last);
+  }
+  return { nodes, steps: out };
+}
+
+// DNS resolution: a recursive resolver walks root → TLD → authoritative to turn
+// a name into an IP, then caches it. Returns the step list (last step = answer).
+export function buildDns({ name = 'thestack.dev', ip = '93.184.216.34' } = {}) {
+  const out = [];
+  const snap = (server, kind, note, answer = null) => out.push({ server, kind, note, answer });
+  snap('your app', 'ask', 'your app needs the IP for ' + name + ', so it asks the resolver');
+  snap('root (.)', 'referral', 'the resolver asks a root server. root: “I don’t host ' + name + ', but the .dev servers do.”');
+  snap('.dev TLD', 'referral', 'the resolver asks the .dev TLD server. it: “ask the authoritative server for ' + name + '.”');
+  snap('authoritative', 'answer', 'the authoritative server for ' + name + ' replies with the address', ip);
+  snap('resolver', 'cache', 'the resolver caches the answer (until its TTL expires) and hands the IP back to your app', ip);
+  return out;
+}

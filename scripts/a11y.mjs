@@ -11,35 +11,40 @@ import { readFileSync } from 'node:fs';
 import { JSDOM } from 'jsdom';
 import axe from 'axe-core';
 
-const HTML = 'dist/index.html';
+const PAGES = ['dist/index.html', 'dist/network/index.html'];
+let failed = false;
 
-// `outside-only`: we can inject axe via window.eval, but the page's own inline
-// scripts do NOT run (they expect a real browser: matchMedia, rAF, scroll).
-const dom = new JSDOM(readFileSync(HTML, 'utf8'), {
-  runScripts: 'outside-only',
-  pretendToBeVisual: true,
-});
-const { window } = dom;
-window.eval(axe.source);
+for (const HTML of PAGES) {
+  // `outside-only`: we can inject axe via window.eval, but the page's own inline
+  // scripts do NOT run (they expect a real browser: matchMedia, rAF, scroll).
+  const dom = new JSDOM(readFileSync(HTML, 'utf8'), {
+    runScripts: 'outside-only',
+    pretendToBeVisual: true,
+  });
+  const { window } = dom;
+  window.eval(axe.source);
 
-const results = await window.axe.run(window.document.documentElement, {
-  rules: {
-    'color-contrast': { enabled: false }, // needs layout/rendering jsdom lacks
-  },
-});
+  const results = await window.axe.run(window.document.documentElement, {
+    rules: {
+      'color-contrast': { enabled: false }, // needs layout/rendering jsdom lacks
+    },
+  });
 
-if (results.violations.length) {
-  console.error(`\naxe found ${results.violations.length} accessibility violation(s):\n`);
-  for (const v of results.violations) {
-    console.error(`- [${v.impact}] ${v.id}: ${v.help}`);
-    console.error(`  ${v.helpUrl}`);
-    for (const node of v.nodes) {
-      console.error(`    → ${node.target.join(' ')}`);
-      const summary = (node.failureSummary || '').split('\n').filter(Boolean).join(' ');
-      if (summary) console.error(`      ${summary}`);
+  if (results.violations.length) {
+    failed = true;
+    console.error(`\n${HTML}: axe found ${results.violations.length} accessibility violation(s):\n`);
+    for (const v of results.violations) {
+      console.error(`- [${v.impact}] ${v.id}: ${v.help}`);
+      console.error(`  ${v.helpUrl}`);
+      for (const node of v.nodes) {
+        console.error(`    → ${node.target.join(' ')}`);
+        const summary = (node.failureSummary || '').split('\n').filter(Boolean).join(' ');
+        if (summary) console.error(`      ${summary}`);
+      }
     }
+  } else {
+    console.log(`${HTML}: axe 0 violations · ${results.passes.length} rules passed · ${results.incomplete.length} need manual review (layout-dependent).`);
   }
-  process.exit(1);
 }
 
-console.log(`axe: 0 violations · ${results.passes.length} rules passed · ${results.incomplete.length} need manual review (layout-dependent, e.g. contrast).`);
+if (failed) process.exit(1);

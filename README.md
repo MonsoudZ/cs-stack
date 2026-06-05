@@ -34,8 +34,9 @@ on another for every push and PR.
 ## Layout
 ```
 src/
-  data/layers.js          single source of truth for the layers (id, num, label,
-                          zone, title, sub) — both the nav and the sections read it
+  data/layers.js          single source of truth for the main stack's layers
+                          (id, num, label, zone, title, sub) — nav + sections read it
+  data/networkLayers.js   the same shape for the /network deep-dive (sibling explorable)
   styles/                 global.css just @imports base.css + widgets.css + mobile.css
   lib/
     stepper.svelte.js     shared STEP / AUTO / RESET store — every step widget uses it
@@ -56,7 +57,8 @@ src/
     Struct.svelte         renders a trace step's data structure (hash/window/array/graph/stack)
   layouts/Base.astro      hero, SEO + JSON-LD, spine nav, guided tour, scroll script
   pages/
-    index.astro           composes the layer sections, hydrates each island
+    index.astro           the main stack — composes the layer sections, hydrates each island
+    network.astro         a /network deep-dive reusing the same engine (Base takes a `layers` prop)
     robots.txt.js         robots.txt generated from `site`
 scripts/
   audit.mjs               regex source/HTML quality gate (used by `npm run audit`)

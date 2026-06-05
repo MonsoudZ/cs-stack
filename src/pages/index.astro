@@ -244,6 +244,7 @@ import Takeaway from '../components/Takeaway.astro';
     <p class="aside">Headers are overhead, but they buy routing, ordering, and reliability.</p>
     <Packets client:visible />
     <Takeaway>Packets can arrive late, lost, or out of order; protocols rebuild the original message.</Takeaway>
+    <p class="prose prose-follow"><a href="/network">→ go deeper: <b>the network stack</b></a> — signals, routing &amp; TTL, TCP reliability, and DNS, pulled apart layer by layer.</p>
     <Why
       problem="Programs often need to talk across machines, but the path between them can drop packets, reorder data, or route through many strangers."
       idea="Network protocols wrap bytes with context: where they came from, where they are going, which program should receive them, and how to rebuild the stream."

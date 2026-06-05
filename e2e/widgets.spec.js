@@ -58,6 +58,31 @@ test('Adder island: setting the high A bit carries into a sum of 16', async ({ p
   }).toPass({ timeout: 8000 });
 });
 
+test('Network page: own nav, routing TTL counts down, DNS resolves to an IP', async ({ page }) => {
+  await page.goto('/network');
+  await expect(page.locator('h1.title')).toContainText('NETWORK');
+  await expect(page.locator('.spine .rung')).toHaveCount(6); // its own layer set
+  // routing: stepping drops the TTL
+  const routing = page.locator('#N2');
+  await routing.scrollIntoViewIfNeeded();
+  const ttl = routing.locator('.ttlval');
+  await expect(ttl).toHaveText('6');
+  const rstep = () => routing.locator('.cpu-ctrl button').first();
+  await expect(async () => {
+    await rstep().click();
+    await expect(ttl).toHaveText('5', { timeout: 400 });
+  }).toPass({ timeout: 8000 });
+  // dns: stepping the walk reveals the resolved IP
+  const dns = page.locator('#N4');
+  await dns.scrollIntoViewIfNeeded();
+  for (let i = 0; i < 8; i++) {
+    await dns.locator('.cpu-ctrl button').first().click();
+    if (await dns.locator('.dns-ans').count()) break;
+    await page.waitForTimeout(40);
+  }
+  await expect(dns.locator('.dns-ans').first()).toContainText('93.184');
+});
+
 test('RaceCondition island: no lock loses an update; a lock prevents it', async ({ page }) => {
   await page.goto('/');
   const race = page.locator('#L8a');
