@@ -119,6 +119,7 @@ import Takeaway from '../components/Takeaway.astro';
     <p class="prose">Whole numbers are exact, but the world has fractions. Floating point trades a fixed number of bits for a <b>scientific-notation</b> number: a sign, an exponent that slides the decimal point, and a mantissa for the digits.</p>
     <FloatBits client:visible />
     <Takeaway>Floating point can represent a huge range, but only at a grid of values — most decimals get rounded to the nearest one.</Takeaway>
+    <p class="prose prose-follow"><a href="/numbers">→ go deeper: <b>the numbers stack</b></a> — two’s-complement negatives, the uneven grid of representable floats, and why 0.1 + 0.2 ≠ 0.3.</p>
     <p class="aside">This is why <code>0.1 + 0.2</code> is <code>0.30000000000000004</code>: neither 0.1 nor 0.2 lands exactly on the grid, so the sum carries the rounding error. Same trick as the toy float above — just 64 bits instead of 8.</p>
     <Why
       problem="Programs need fractions and a vast range of magnitudes, but a fixed-width integer can only count whole steps over a fixed span."

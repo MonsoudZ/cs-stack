@@ -1,0 +1,87 @@
+---
+import Base from '../layouts/Base.astro';
+import LayerSection from '../components/LayerSection.astro';
+import { numLayers } from '../data/numLayers.js';
+import Bits from '../components/Bits.svelte';
+import TwosComplement from '../components/TwosComplement.svelte';
+import FloatBits from '../components/FloatBits.svelte';
+import FloatGrid from '../components/FloatGrid.svelte';
+import FloatSum from '../components/FloatSum.svelte';
+import Why from '../components/Why.astro';
+import Takeaway from '../components/Takeaway.astro';
+const L = Object.fromEntries(numLayers.map((l) => [l.id, l]));
+const title = 'THE STACK — numbers';
+const description = 'A deep dive into how computers represent numbers: binary place value, two’s-complement negatives and overflow, IEEE-754 floating point, the uneven grid of representable values, and why 0.1 + 0.2 ≠ 0.3.';
+---
+<Base {title} {description} layers={numLayers}>
+  <div slot="hero">
+    <div class="kicker">A deep dive into layer 04.5</div>
+    <h1 class="title">THE <em>NUMBERS</em><br />STACK</h1>
+    <p class="lede">A computer only has fixed-width patterns of on/off wires. Turning those into the numbers we mean — negatives, fractions, the very large and very small — takes a series of clever conventions, each with a sharp edge. This is where the famous "computers can't add 0.1 and 0.2" comes from.</p>
+    <div class="hero-meta"><a class="back-link" href="/">← back to the full stack</a> · place value → two’s complement → floating point → precision → 0.1 + 0.2</div>
+  </div>
+
+  <LayerSection {...L.NB0}>
+    <p class="prose">Give each wire a <span class="hl">place value</span> — 1, 2, 4, 8, … — and a row of on/off bits <i>is</i> a number: just add up the weights of the bits that are on. This is plain binary, and it only ever counts up from zero.</p>
+    <Bits client:visible />
+    <Takeaway>Unsigned binary is decimal’s idea — place value — with only two digits; the pattern of bits names a whole number.</Takeaway>
+    <Why
+      problem="Hardware stores only on/off, but programs need quantities, not just yes/no."
+      idea="Weight each bit by a power of two and sum the ones — a compact, hardware-friendly way to write any non-negative whole number."
+      tradeoff="A fixed width caps the range and offers no way to write a negative — both need extra conventions on top."
+      next="The first thing missing is negative numbers."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.NB1}>
+    <p class="prose">There's no wire for a minus sign, so the top bit is given a <b>negative</b> place value (−8 in four bits). To negate a number you <span class="hl">flip every bit and add one</span> — and the same trick makes addition, subtraction, and overflow all just work.</p>
+    <TwosComplement client:visible />
+    <Takeaway>Two’s complement encodes negatives by making the high bit count downward, so one adder handles both signs — at the cost of a hard wrap from the largest positive to the most negative.</Takeaway>
+    <Why
+      problem="Programs need negative numbers, but the bits offer no symbol for a sign and we don’t want a second, separate subtractor."
+      idea="Let the most significant bit carry a negative weight; then “flip and add one” negates, and ordinary binary addition handles mixed signs for free."
+      tradeoff="The range is lopsided (−8…7 in four bits) and adding past the top silently wraps to the bottom — the classic signed-overflow bug."
+      next="Whole numbers, signed or not, still can’t express a fraction."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.NB2}>
+    <p class="prose">For fractions and huge ranges, floating point borrows <b>scientific notation</b>: a sign, an <span class="hl">exponent</span> that slides the point, and a <b>mantissa</b> for the digits. Toggle the bits below — the same layout as a real 64-bit double, just smaller.</p>
+    <FloatBits client:visible />
+    <Takeaway>Floating point spends its bits on a sign, an exponent, and a mantissa, reaching from the tiny to the enormous — but only landing on a fixed set of values.</Takeaway>
+    <Why
+      problem="One fixed scale can’t cover both 0.000001 and 1,000,000 with useful precision."
+      idea="Store a mantissa (the significant digits) and an exponent (where the point goes), so the same bits float across an enormous dynamic range."
+      tradeoff="Only finitely many mantissa/exponent combinations exist, so the representable numbers form a grid — and most reals miss it."
+      next="That grid is the whole story behind floating-point surprises."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.NB3}>
+    <p class="prose">Because the exponent scales the <i>whole</i> number, the gap between neighbouring representable values <b>doubles every octave</b>: floats are dense near zero and sparse far from it. Any value that falls between two ticks is rounded to the nearer one.</p>
+    <FloatGrid client:visible />
+    <Takeaway>Floating-point precision isn’t uniform — the further from zero, the wider the gaps, so “how exact” depends entirely on how big the number is.</Takeaway>
+    <Why
+      problem="We expect numbers to be equally precise everywhere, but a fixed mantissa can’t deliver that across a huge range."
+      idea="Keep a constant number of significant bits and let the exponent place them, which means absolute precision shrinks near zero and coarsens far away."
+      tradeoff="Numbers far from zero lose fractional detail entirely, and the rounding at every step is what makes float arithmetic inexact."
+      next="Put the grid and the rounding together and the famous example falls right out."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.NB4}>
+    <p class="prose">A tenth can't be written exactly in binary — like ⅓ in decimal, it repeats forever. So <code>0.1</code> and <code>0.2</code> each round to the nearest double, their sum rounds <i>again</i>, and it lands on a value just past <code>0.3</code> — which is itself a different double.</p>
+    <FloatSum client:visible />
+    <Takeaway>0.1 + 0.2 ≠ 0.3 isn’t a bug: it’s two unrepresentable decimals, each rounded, whose rounded sum simply doesn’t equal the rounded 0.3.</Takeaway>
+    <Why
+      problem="Decimal fractions like 0.1 look exact to us but have no finite binary form, so they can’t be stored precisely."
+      idea="Round each to the nearest representable double; arithmetic then operates on those approximations and rounds the result too."
+      tradeoff="Tiny rounding errors are usually invisible but break exact equality — so money and counts use integers or decimals, and comparisons use a tolerance."
+      next="Zoom back out: this rounding lives under every float in the main stack’s floating-point layer."
+    />
+  </LayerSection>
+</Base>
+
+<style>
+  .back-link{color:var(--accent,var(--signal))}
+</style>

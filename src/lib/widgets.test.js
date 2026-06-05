@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap } from './widgets.js';
+import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum } from './widgets.js';
 
 const popcount = (n) => { let c = 0; n >>>= 0; while (n) { c += n & 1; n >>>= 1; } return c; };
 
@@ -311,6 +311,57 @@ describe('buildHashMap (separate chaining)', () => {
   it('every key lands in some bucket (none lost)', () => {
     const total = last.table.reduce((n, b) => n + b.length, 0);
     expect(total).toBe(6);
+  });
+});
+
+describe('twosValue + buildTwosComplement (signed integers)', () => {
+  it('reads the top bit as a negative place value', () => {
+    expect(twosValue([0, 1, 0, 1])).toBe(5);   // 0101
+    expect(twosValue([1, 0, 1, 1])).toBe(-5);  // 1011
+    expect(twosValue([1, 0, 0, 0])).toBe(-8);  // most negative in 4 bits
+    expect(twosValue([0, 1, 1, 1])).toBe(7);   // most positive in 4 bits
+  });
+  const steps = buildTwosComplement(); // negate +5 in 4 bits
+  it('flip-and-add-one turns +5 (0101) into −5 (1011)', () => {
+    const neg = steps[3]; // intro, +5, invert, +1
+    expect(neg.bits).toEqual([1, 0, 1, 1]);
+    expect(neg.value).toBe(-5);
+  });
+  it('demonstrates the overflow wraparound: +7 + 1 = −8', () => {
+    const wrap = steps.find((s) => s.overflow);
+    expect(wrap.bits).toEqual([1, 0, 0, 0]);
+    expect(wrap.value).toBe(-8);
+  });
+});
+
+describe('buildFloatGrid (the uneven grid)', () => {
+  const steps = buildFloatGrid();
+  it('the gap between representable values doubles each octave', () => {
+    const gapAt = (lo) => steps.find((s) => s.lo === lo && s.gap != null).gap;
+    expect(gapAt(1)).toBeCloseTo(0.125, 9);
+    expect(gapAt(2)).toBeCloseTo(0.25, 9);
+    expect(gapAt(4)).toBeCloseTo(0.5, 9);
+  });
+  it('lists representable values in ascending order, all within (0, 8]', () => {
+    const { values } = steps[0];
+    expect(values).toContain(1);
+    expect(values).toContain(2);
+    expect(values[0]).toBeGreaterThan(0);
+    expect(values[values.length - 1]).toBeLessThanOrEqual(8);
+    expect([...values].sort((a, b) => a - b)).toEqual(values);
+  });
+});
+
+describe('buildFloatSum (0.1 + 0.2 ≠ 0.3)', () => {
+  const steps = buildFloatSum();
+  it('the stored sum differs from the stored 0.3', () => {
+    const sum = steps.find((s) => s.label === '0.1 + 0.2').stored;
+    const point3 = steps.find((s) => s.label === '0.3').stored;
+    expect(sum).not.toBe(point3);
+    expect(sum).toContain('0.30000000000000004');
+  });
+  it('concludes that the equality is false', () => {
+    expect(steps[steps.length - 1].equal).toBe(false);
   });
 });
 

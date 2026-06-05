@@ -111,6 +111,31 @@ test('Memory page: own nav, a cache access hits, a virtual address translates to
   await expect(vm.locator('.vmt-phys')).toContainText('122');
 });
 
+test('Numbers page: own nav, two’s complement negates to −5, and 0.1 + 0.2 ≠ 0.3', async ({ page }) => {
+  await page.goto('/numbers');
+  await expect(page.locator('h1.title')).toContainText('NUMBERS');
+  await expect(page.locator('.spine .rung')).toHaveCount(5);
+  // two's complement: stepping negates +5 to -5
+  const tc = page.locator('#NB1');
+  await tc.scrollIntoViewIfNeeded();
+  for (let i = 0; i < 4; i++) {
+    await tc.locator('.cpu-ctrl button').first().click();
+    if ((await tc.locator('.tc-val').textContent())?.includes('-5')) break;
+    await page.waitForTimeout(40);
+  }
+  await expect(tc.locator('.tc-val')).toContainText('-5');
+  // float sum: stepping reaches the verdict that the equality is false
+  const fs = page.locator('#NB4');
+  await fs.scrollIntoViewIfNeeded();
+  for (let i = 0; i < 6; i++) {
+    await fs.locator('.cpu-ctrl button').first().click();
+    if (await fs.locator('.fs-verdict').count()) break;
+    await page.waitForTimeout(40);
+  }
+  await expect(fs.locator('.fs-verdict')).toContainText('false');
+  await expect(page.locator('#NB4 .fs-val').first()).toContainText('0.1000000000000000');
+});
+
 test('Structures page: own nav, the array grows by doubling, a hash lookup finds its key', async ({ page }) => {
   await page.goto('/structures');
   await expect(page.locator('h1.title')).toContainText('STRUCTURES');

@@ -464,3 +464,80 @@ export function buildHashMap({ keys = ['cat', 'dog', 'bird', 'fish', 'ant', 'bee
   snap('bucket ' + lb + ' holds [' + table[lb].join(', ') + '] → ' + (found ? 'found "' + lookup + '" after a tiny scan, not a full sweep' : 'not present'), { key: lookup, bucket: lb, op: 'lookup', found });
   return out;
 }
+
+// --- NUMBERS STACK (/numbers) ---
+
+// Read a fixed-width bit array as a two's-complement signed integer: the top
+// bit carries a NEGATIVE place value, every other bit is positive as usual.
+export function twosValue(bits) {
+  const n = bits.length;
+  let v = bits[0] ? -(2 ** (n - 1)) : 0;
+  for (let i = 1; i < n; i++) v += bits[i] * 2 ** (n - 1 - i);
+  return v;
+}
+
+// Two's complement: how a fixed width stores negatives with no minus sign.
+// Negating is "flip every bit, then add 1"; the top bit ends up worth −2^(n−1),
+// so +x and −x add to zero (the overflow bit falls off). Returns the trace for
+// negating +5 in 4 bits, then shows the wraparound at the top of the range.
+export function buildTwosComplement({ value = 5, width = 4 } = {}) {
+  const out = [];
+  const toBits = (v) => { const b = []; for (let i = width - 1; i >= 0; i--) b.push((v >> i) & 1); return b; };
+  const snap = (bits, note, o = {}) => out.push({ bits: bits.slice(), value: twosValue(bits), note, ...o });
+  snap(toBits(0), 'in ' + width + ' bits there is no minus sign — negatives are just a different reading of the same wires; the top bit is worth −' + 2 ** (width - 1));
+  const pos = toBits(value);
+  snap(pos, '+' + value + ' is the familiar binary ' + pos.join('') + ' (top bit 0, so it reads positive)');
+  const inv = pos.map((b) => b ^ 1);
+  snap(inv, 'to negate: flip every bit → ' + inv.join('') + ' (this is the ones’-complement, reading as ' + twosValue(inv) + ')');
+  // add 1
+  let carry = 1; const plus1 = inv.slice();
+  for (let i = width - 1; i >= 0 && carry; i--) { const s = plus1[i] + carry; plus1[i] = s & 1; carry = s >> 1; }
+  snap(plus1, 'then add 1 → ' + plus1.join('') + ', which reads as ' + twosValue(plus1) + ' — that is −' + value, { signBit: true });
+  snap(plus1, 'check: ' + pos.join('') + ' + ' + plus1.join('') + ' overflows to 1·0000, the carry falls off the ' + width + '-bit word → 0. So +' + value + ' and −' + value + ' really cancel.');
+  const maxBits = toBits((2 ** (width - 1)) - 1);
+  snap(maxBits, 'the catch: the range is −' + 2 ** (width - 1) + '…' + ((2 ** (width - 1)) - 1) + '. Here is the largest, +' + twosValue(maxBits) + ' = ' + maxBits.join(''));
+  let c = 1; const wrap = maxBits.slice();
+  for (let i = width - 1; i >= 0 && c; i--) { const s = wrap[i] + c; wrap[i] = s & 1; c = s >> 1; }
+  snap(wrap, 'add 1 and it wraps to ' + wrap.join('') + ' = ' + twosValue(wrap) + ' — overflow silently flips the biggest positive to the most negative', { signBit: true, overflow: true });
+  return out;
+}
+
+// The float "grid": with a fixed mantissa, the gap between representable values
+// DOUBLES every octave (it scales with the exponent). So floats are dense near
+// zero and sparse far from it. Uses the toy 8-bit float; returns the list of
+// representable positive values plus per-octave snapshots showing the gap grow.
+export function buildFloatGrid() {
+  const values = [];
+  for (let e = 0; e < 15; e++) for (let m = 0; m < 8; m++) {
+    const { value } = decodeMiniFloat([0, (e >> 3) & 1, (e >> 2) & 1, (e >> 1) & 1, e & 1, (m >> 2) & 1, (m >> 1) & 1, m & 1]);
+    if (Number.isFinite(value) && value > 0 && value <= 8) values.push(value);
+  }
+  const sorted = [...new Set(values)].sort((a, b) => a - b);
+  const out = [];
+  const snap = (lo, hi, gap, note) => out.push({ values: sorted, lo, hi, gap, note });
+  snap(0, 8, null, 'every dot is a value this float can represent exactly. Notice they bunch up near 0 and thin out toward 8 — the grid is not evenly spaced');
+  for (const [lo, hi] of [[0.5, 1], [1, 2], [2, 4], [4, 8]]) {
+    const inOct = sorted.filter((v) => v >= lo && v < hi);
+    const gap = inOct.length > 1 ? +(inOct[1] - inOct[0]).toFixed(6) : null;
+    snap(lo, hi, gap, 'between ' + lo + ' and ' + hi + ' the step is ' + gap + ' — each octave the gap doubles, because the exponent scales the whole number');
+  }
+  snap(0, 8, null, 'so most real numbers fall between the dots and get rounded to the nearest one — the further from zero, the coarser the rounding');
+  return out;
+}
+
+// Why 0.1 + 0.2 ≠ 0.3. Tenths don't divide a power of two, so 0.1 and 0.2 each
+// round to the nearest double (a hair too big); their sum rounds again, landing
+// on a double just past 0.3 — which is itself a *different* double. Values are
+// taken live from JS doubles so the trace is exactly what the hardware does.
+export function buildFloatSum() {
+  const p = (x) => Number(x).toPrecision(17);
+  const out = [];
+  const snap = (note, o = {}) => out.push({ note, ...o });
+  snap('we type 0.1, but base-2 can’t write a tenth exactly — like 1/3 in decimal, it repeats forever, so it must be rounded to fit');
+  snap('the nearest double to 0.1 is actually a touch too big', { label: '0.1', stored: p(0.1) });
+  snap('the nearest double to 0.2 is too big as well', { label: '0.2', stored: p(0.2) });
+  snap('add them and the result rounds again, landing just past three-tenths', { label: '0.1 + 0.2', stored: p(0.1 + 0.2), highlight: true });
+  snap('but writing 0.3 directly rounds to a *different* double, just under', { label: '0.3', stored: p(0.3), highlight: true });
+  snap('so 0.1 + 0.2 === 0.3 is ' + (0.1 + 0.2 === 0.3) + ' — not a bug, just two roundings that don’t meet', { equal: 0.1 + 0.2 === 0.3 });
+  return out;
+}
