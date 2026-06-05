@@ -1,15 +1,15 @@
 ---
 const stages = [
-  ['source', 'Source code', 'Human-readable text: functions, variables, loops, imports.'],
-  ['parse', 'Parse', 'The language turns text into structure and checks whether it makes sense.'],
-  ['lower', 'Lower', 'High-level ideas become simpler operations the runtime or compiler can handle.'],
-  ['run', 'Run', 'A VM interprets bytecode, a JIT compiles hot paths, or native code reaches the CPU.'],
+  { key: 'source', name: 'Source code', copy: 'Human-readable text: functions, variables, loops, imports.' },
+  { key: 'parse', name: 'Parse', copy: 'The language turns text into structure and checks whether it makes sense.' },
+  { key: 'lower', name: 'Lower', copy: 'High-level ideas become simpler operations the runtime or compiler can handle.' },
+  { key: 'run', name: 'Run', copy: 'A VM interprets bytecode, a JIT compiles hot paths, or native code reaches the CPU.' },
 ];
 ---
 <div class="widget runtime-widget">
   <div class="w-label">compilation/runtime — how code stops being text</div>
   <div class="runtime-flow">
-    {stages.map(([key, name, copy], i) => (
+    {stages.map(({ key, name, copy }, i) => (
       <>
         <div class={`runtime-stage stage-${key} widget-card`}>
           <div class="stage-num">{String(i + 1).padStart(2, '0')}</div>

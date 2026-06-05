@@ -1,14 +1,14 @@
 ---
 const shapes = [
-  ['Array', 'one address, many slots', 'Fast when you know the index; great locality because neighbors sit beside neighbors.'],
-  ['Hash map', 'key → bucket → value', 'Fast lookup by turning a key into an address-like bucket, with collisions to manage.'],
-  ['Tree', 'nodes linked by choices', 'Keeps data searchable or ordered by following branches instead of scanning every item.'],
+  { name: 'Array', model: 'one address, many slots', copy: 'Fast when you know the index; great locality because neighbors sit beside neighbors.' },
+  { name: 'Hash map', model: 'key → bucket → value', copy: 'Fast lookup by turning a key into an address-like bucket, with collisions to manage.' },
+  { name: 'Tree', model: 'nodes linked by choices', copy: 'Keeps data searchable or ordered by following branches instead of scanning every item.' },
 ];
 ---
 <div class="widget ds-widget">
   <div class="w-label">data structures — memory with a shape</div>
   <div class="ds-grid">
-    {shapes.map(([name, model, copy]) => (
+    {shapes.map(({ name, model, copy }) => (
       <div class="ds-card widget-card">
         <div class="ds-name">{name}</div>
         <div class="ds-model">{model}</div>

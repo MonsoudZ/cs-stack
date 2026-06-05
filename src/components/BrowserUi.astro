@@ -1,10 +1,10 @@
 ---
 const pipeline = [
-  ['HTML', 'structure', 'What exists on the page.'],
-  ['CSS', 'style', 'How those boxes look and respond.'],
-  ['JS', 'behavior', 'What changes when users interact.'],
-  ['DOM', 'live tree', 'The browser’s editable model of the page.'],
-  ['Pixels', 'paint', 'What finally appears on screen.'],
+  { name: 'HTML', role: 'structure', copy: 'What exists on the page.' },
+  { name: 'CSS', role: 'style', copy: 'How those boxes look and respond.' },
+  { name: 'JS', role: 'behavior', copy: 'What changes when users interact.' },
+  { name: 'DOM', role: 'live tree', copy: 'The browser’s editable model of the page.' },
+  { name: 'Pixels', role: 'paint', copy: 'What finally appears on screen.' },
 ];
 ---
 <div class="widget browser-widget">
@@ -12,7 +12,7 @@ const pipeline = [
   <div class="browser-frame">
     <div class="browser-bar"><span></span><span></span><span></span></div>
     <div class="render-flow">
-      {pipeline.map(([name, role, copy]) => (
+      {pipeline.map(({ name, role, copy }) => (
         <div class="render-step">
           <div class="render-name">{name}</div>
           <div class="render-role">{role}</div>

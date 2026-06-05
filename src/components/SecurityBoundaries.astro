@@ -1,9 +1,9 @@
 ---
 const boundaries = [
-  ['Process boundary', 'The OS keeps programs in separate address spaces so one app cannot casually read another app.'],
-  ['Permission boundary', 'Files, devices, cameras, sockets, and secrets require explicit authority instead of ambient access.'],
-  ['Trust boundary', 'When data crosses a network or user input enters the system, the program must verify before believing.'],
-  ['Crypto boundary', 'Encryption and signatures protect bytes when the path between machines cannot be trusted.'],
+  { name: 'Process boundary', copy: 'The OS keeps programs in separate address spaces so one app cannot casually read another app.' },
+  { name: 'Permission boundary', copy: 'Files, devices, cameras, sockets, and secrets require explicit authority instead of ambient access.' },
+  { name: 'Trust boundary', copy: 'When data crosses a network or user input enters the system, the program must verify before believing.' },
+  { name: 'Crypto boundary', copy: 'Encryption and signatures protect bytes when the path between machines cannot be trusted.' },
 ];
 ---
 <div class="widget security-widget">
@@ -17,7 +17,7 @@ const boundaries = [
       </div>
     </div>
     <div class="boundary-rings">
-      {boundaries.map(([name, copy]) => (
+      {boundaries.map(({ name, copy }) => (
         <div class="boundary widget-card">
           <span>{name}</span>
           <p>{copy}</p>

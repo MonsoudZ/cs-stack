@@ -1,9 +1,9 @@
 ---
 const parts = [
-  ['Tables / documents', 'Organize facts so programs can ask for them later.'],
-  ['Indexes', 'Precomputed shortcuts that make common lookups fast.'],
-  ['Transactions', 'Group changes so data moves from one valid state to another.'],
-  ['Replication', 'Copy data so reads, backups, and failover do not depend on one machine.'],
+  { name: 'Tables / documents', copy: 'Organize facts so programs can ask for them later.' },
+  { name: 'Indexes', copy: 'Precomputed shortcuts that make common lookups fast.' },
+  { name: 'Transactions', copy: 'Group changes so data moves from one valid state to another.' },
+  { name: 'Replication', copy: 'Copy data so reads, backups, and failover do not depend on one machine.' },
 ];
 ---
 <div class="widget db-widget">
@@ -15,7 +15,7 @@ const parts = [
       <div class="db-bottom"></div>
     </div>
     <div class="db-parts">
-      {parts.map(([name, copy]) => (
+      {parts.map(({ name, copy }) => (
         <div class="db-part widget-card">
           <span>{name}</span>
           <p>{copy}</p>
