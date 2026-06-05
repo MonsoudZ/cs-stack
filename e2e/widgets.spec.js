@@ -128,6 +128,14 @@ test('Cross-stack footer: lists every deep dive on home, omits the current one o
   await expect(page.locator('h1.title')).toContainText('CRYPTO');
 });
 
+test('Social cards: each deep dive advertises its own per-stack OG image', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', /\/og\.png$/);
+  await page.goto('/memory');
+  await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', /\/og\/memory\.png$/);
+  await expect(page.locator('meta[property="og:image:alt"]')).toHaveAttribute('content', /THE MEMORY STACK/);
+});
+
 test('Silicon page: own nav, doping adds carriers, the diode conducts forward, CMOS inverts', async ({ page }) => {
   await page.goto('/silicon');
   await expect(page.locator('h1.title')).toContainText('SILICON');

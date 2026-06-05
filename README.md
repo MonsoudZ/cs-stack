@@ -26,7 +26,7 @@ npm run build    # static site -> dist/ (deploy anywhere)
 npm test         # vitest — unit tests for the trace/sim/stepper/widget logic
 npm run audit    # build + regex quality gate + axe-core a11y checks on the HTML
 npm run test:e2e # playwright — drives chromium to confirm the islands hydrate & respond
-npm run gen:og   # regenerate public/og.png (only when the branding changes)
+npm run gen:og   # regenerate the social cards (og.png + og/<slug>.png per stack)
 ```
 CI (`.github/workflows/ci.yml`) runs `test` + `audit` on one job and `test:e2e`
 on another for every push and PR.
@@ -75,7 +75,7 @@ src/
 scripts/
   audit.mjs               regex source/HTML quality gate (used by `npm run audit`)
   a11y.mjs                axe-core accessibility gate over the built HTML
-  gen-og.mjs              renders the 1200x630 social image
+  gen-og.mjs              renders the 1200x630 social cards (site + one per stack, from stacks.js)
 e2e/                      playwright interaction tests
 ```
 
