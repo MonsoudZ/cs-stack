@@ -15,6 +15,9 @@ import '../styles/global.css';
 // discovered only after the stylesheet parses — avoids the hero FOUT/swap.
 import bricolageHero from '@fontsource-variable/bricolage-grotesque/files/bricolage-grotesque-latin-wght-normal.woff2?url';
 import splineBody from '@fontsource/spline-sans/files/spline-sans-latin-400-normal.woff2?url';
+// Single source of truth for the layers — the page sections (index.astro)
+// render from the same array, so the nav and the content can't drift.
+import { layers } from '../data/layers.js';
 const {
   title = 'THE STACK — electrons to the cloud',
   description = 'An explorable explanation of the computing stack, from silicon to the cloud. Climb the layers — transistors, gates, bits, the CPU, memory, the OS, the network — and trace a real algorithm all the way down.',
@@ -22,15 +25,6 @@ const {
 const base = Astro.site ?? Astro.url;
 const canonical = new URL(Astro.url.pathname, base);
 const ogImage = new URL('/og.png', base);
-// The spine rungs are rendered as static anchors so layer navigation works
-// with no JS (native in-page links). The script below only enhances them
-// (smooth scroll + scroll-spy). [number, label, section id]
-const LAYERS = [
-  ['−01', 'Silicon', 'Lsi'],
-  ['00', 'Voltage', 'L0'], ['01', 'Transistor', 'L1'], ['02', 'Logic gates', 'L2'], ['03', 'Bits → numbers', 'L3'],
-  ['04', 'Arithmetic', 'L4'], ['05', 'Numbers → things', 'L5'], ['05.5', 'Runtime', 'L5b'], ['06', 'The CPU', 'L6'], ['06.5', 'Cache/RAM', 'L6b'], ['07', 'Memory', 'L7'],
-  ['07.5', 'Structures', 'L7b'], ['08', 'OS', 'L8'], ['08.5', 'Security', 'L8b'], ['09', 'Network', 'L9'], ['10', 'Cloud', 'L10'], ['10.5', 'Database', 'L10b'], ['10.8', 'UI', 'L10c'], ['11', 'The whole thing', 'L11'], ['★', 'Trace', 'L12'],
-];
 ---
 <!doctype html>
 <html lang="en">
@@ -89,8 +83,8 @@ const LAYERS = [
         <div class="spine-line"></div>
         <div class="spine-fill" id="spineFill"></div>
         <div class="spine-pulse" id="spinePulse"></div>
-        {LAYERS.map(([n, lbl, id]) => (
-          <a class="rung" href={`#${id}`}><span class="num">{n}</span><span class="lbl">{lbl}</span></a>
+        {layers.map(({ num, navLabel, id }) => (
+          <a class="rung" href={`#${id}`}><span class="num">{num}</span><span class="lbl">{navLabel}</span></a>
         ))}
       </div>
     </nav>

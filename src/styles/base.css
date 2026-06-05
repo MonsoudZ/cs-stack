@@ -104,6 +104,8 @@
   .zone-number{--accent:var(--amber)}
   .zone-meaning{--accent:var(--violet)}
   .zone-system{--accent:var(--blue)}
+  .zone-all{--accent:var(--blue)}
+  .zone-all .layer-head{margin-bottom:14px}
 
 
   /* small prose utilities */

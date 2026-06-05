@@ -1,5 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
+import LayerSection from '../components/LayerSection.astro';
+import { layerById as L } from '../data/layers.js';
 import Mosfet from '../components/Mosfet.svelte';
 import Voltage from '../components/Voltage.astro';
 import LogicGate from '../components/LogicGate.svelte';
@@ -24,8 +26,7 @@ import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
 ---
 <Base>
-  <section class="layer zone-physical" id="Lsi" data-title="Silicon">
-    <div class="layer-head"><div class="layer-idx">−01</div><div class="layer-titles"><h2>Before the switch: a rock we taught to decide</h2><div class="sub">physical · semiconductors · the MOSFET</div></div></div>
+  <LayerSection {...L.Lsi}>
     <p class="prose">Silicon becomes useful when tiny impurities let a gate voltage open or close a path for electrons.</p>
     <Mosfet client:visible />
     <Takeaway>A MOSFET is the physical trick that turns material into a controllable switch.</Takeaway>
@@ -36,10 +37,9 @@ import Takeaway from '../components/Takeaway.astro';
       tradeoff="Because the switch is physical, it has limits: heat, leakage, manufacturing variation, and the fact that smaller parts are harder to control."
       next="Once matter can switch reliably, electricity can carry a clean state instead of just being messy motion."
     />
-  </section>
+  </LayerSection>
 
-  <section class="layer zone-physical" id="L0" data-title="Voltage">
-    <div class="layer-head"><div class="layer-idx">00</div><div class="layer-titles"><h2>A wire that is either pushed or not</h2><div class="sub">physical · electricity</div></div></div>
+  <LayerSection {...L.L0}>
     <p class="prose">At the bottom there are no zeros and ones — just <b>voltage</b> read as <span class="hl">HIGH</span> or <span class="hl">LOW</span>.</p>
     <Voltage />
     <Takeaway>Voltage is the physical alphabet: LOW and HIGH are the first two symbols.</Takeaway>
@@ -49,10 +49,9 @@ import Takeaway from '../components/Takeaway.astro';
       tradeoff="Noise, delay, and weak signals can land in the unsafe middle. Good digital circuits leave enough margin that most wobble is ignored."
       next="A transistor uses one voltage state to control another, turning representation into action."
     />
-  </section>
+  </LayerSection>
 
-  <section class="layer zone-physical" id="L1" data-title="Transistor">
-    <div class="layer-head"><div class="layer-idx">01</div><div class="layer-titles"><h2>The transistor: a wire that controls another wire</h2><div class="sub">physical · the switch</div></div></div>
+  <LayerSection {...L.L1}>
     <p class="prose">A transistor is a switch with no moving parts: one voltage controls whether another can flow.</p>
     <Transistor />
     <Takeaway>A transistor lets one signal decide whether another signal can pass.</Takeaway>
@@ -62,10 +61,9 @@ import Takeaway from '../components/Takeaway.astro';
       tradeoff="One transistor is easy to understand. Billions together create hard engineering problems around timing, power, heat, and layout."
       next="When transistors are wired in patterns, they become gates that compute true and false."
     />
-  </section>
+  </LayerSection>
 
-  <section class="layer zone-physical" id="L2" data-title="Logic gates">
-    <div class="layer-head"><div class="layer-idx">02</div><div class="layer-titles"><h2>Gates: transistors that compute true & false</h2><div class="sub">logic · boolean algebra</div></div></div>
+  <LayerSection {...L.L2}>
     <p class="prose">Wire switches into patterns and electricity starts making <b>decisions</b>.</p>
     <LogicGate client:visible />
     <Takeaway>Logic gates are decisions made out of transistor patterns.</Takeaway>
@@ -75,10 +73,9 @@ import Takeaway from '../components/Takeaway.astro';
       tradeoff="Every gate takes time and consumes power. Large circuits must coordinate thousands of tiny delays so the answer arrives when expected."
       next="Multiple true/false answers side by side can be treated as a binary number."
     />
-  </section>
+  </LayerSection>
 
-  <section class="layer zone-number" id="L3" data-title="Bits → numbers">
-    <div class="layer-head"><div class="layer-idx">03</div><div class="layer-titles"><h2>Eight wires become a number</h2><div class="sub">numbers · binary place value</div></div></div>
+  <LayerSection {...L.L3}>
     <p class="prose">Line up on/off wires, give each one a place value, and the pattern <b>is a number</b>.</p>
     <Bits client:visible />
     <Takeaway>Binary is not magic; it is place value applied to on/off wires.</Takeaway>
@@ -88,10 +85,9 @@ import Takeaway from '../components/Takeaway.astro';
       tradeoff="Machines use fixed widths, so numbers can overflow or lose detail. The hardware only remembers as many bits as the design provides."
       next="Once bit patterns can mean numbers, logic gates can be arranged to transform those numbers."
     />
-  </section>
+  </LayerSection>
 
-  <section class="layer zone-number" id="L4" data-title="Arithmetic">
-    <div class="layer-head"><div class="layer-idx">04</div><div class="layer-titles"><h2>Gates that add — arithmetic from logic</h2><div class="sub">numbers · the ripple-carry adder</div></div></div>
+  <LayerSection {...L.L4}>
     <p class="prose">Addition is logic with memory of a carry, chained from bit to bit.</p>
     <Adder client:visible />
     <Takeaway>Arithmetic is logic arranged so carries move from bit to bit.</Takeaway>
@@ -101,10 +97,9 @@ import Takeaway from '../components/Takeaway.astro';
       tradeoff="Simple adders wait for carries to ripple across the whole number. Faster designs spend more circuitry to shorten that wait."
       next="Now numbers can be transformed, so the same bit patterns can represent data, addresses, or instructions."
     />
-  </section>
+  </LayerSection>
 
-  <section class="layer zone-meaning" id="L5" data-title="Numbers → things">
-    <div class="layer-head"><div class="layer-idx">05</div><div class="layer-titles"><h2>The same number, pretending to be many things</h2><div class="sub">meaning · encoding</div></div></div>
+  <LayerSection {...L.L5}>
     <p class="prose">The same byte can be a number, a letter, a color, or an instruction — meaning is an agreement.</p>
     <NumbersThings client:visible />
     <Takeaway>Meaning comes from interpretation; the same byte can be many things.</Takeaway>
@@ -114,10 +109,9 @@ import Takeaway from '../components/Takeaway.astro';
       tradeoff="Meaning lives in the reader. The same bits can become nonsense if decoded with the wrong convention or width."
       next="The CPU is the special agreement that treats selected numbers as actions to perform."
     />
-  </section>
+  </LayerSection>
 
-  <section class="layer zone-meaning" id="L5b" data-title="Compilation / runtime">
-    <div class="layer-head"><div class="layer-idx">05.5</div><div class="layer-titles"><h2>Runtime: how code stops being text</h2><div class="sub">meaning · parsing · bytecode · machine code</div></div></div>
+  <LayerSection {...L.L5b}>
     <p class="prose">Your source code is for humans. Before the CPU can obey it, language tools have to turn that text into structured operations.</p>
     <RuntimePipeline />
     <Takeaway>A runtime is the bridge between human language and machine operations.</Takeaway>
@@ -127,10 +121,9 @@ import Takeaway from '../components/Takeaway.astro';
       tradeoff="Runtimes buy portability and developer speed, but they add startup cost, memory overhead, optimization complexity, and sometimes pauses."
       next="After code becomes instructions or bytecode operations, the CPU loop has something concrete to fetch, decode, and execute."
     />
-  </section>
+  </LayerSection>
 
-  <section class="layer zone-system" id="L6" data-title="The CPU">
-    <div class="layer-head"><div class="layer-idx">06</div><div class="layer-titles"><h2>The CPU: a loop that obeys numbers</h2><div class="sub">systems · fetch · decode · execute</div></div></div>
+  <LayerSection {...L.L6}>
     <p class="prose">A CPU loops over numbers and treats each one as a command to fetch, decode, and execute.</p>
     <Cpu client:visible />
     <Takeaway>A CPU is a tiny loop that treats some numbers as instructions.</Takeaway>
@@ -140,10 +133,9 @@ import Takeaway from '../components/Takeaway.astro';
       tradeoff="General-purpose control is powerful but complicated. Registers, clocks, caches, pipelines, and interrupts exist to keep that loop useful and fast."
       next="Instructions need a place to live and data to work on, so memory becomes the machine's workspace."
     />
-  </section>
+  </LayerSection>
 
-  <section class="layer zone-system" id="L6b" data-title="Memory hierarchy">
-    <div class="layer-head"><div class="layer-idx">06.5</div><div class="layer-titles"><h2>Memory hierarchy: the CPU hates waiting</h2><div class="sub">systems · registers · cache · RAM · disk</div></div></div>
+  <LayerSection {...L.L6b}>
     <p class="prose">Memory is not one place. The machine keeps the hottest data closest to the CPU, then spills outward into slower, larger storage.</p>
     <MemoryHierarchy />
     <Takeaway>The memory hierarchy is a speed bargain: tiny and close is fast; huge and far away is slow.</Takeaway>
@@ -153,10 +145,9 @@ import Takeaway from '../components/Takeaway.astro';
       tradeoff="The hierarchy is only fast when programs reuse nearby data. Random access, cache misses, and disk reads turn computation into waiting."
       next="Memory addresses now have performance meaning, which is why stacks, arrays, and locality matter."
     />
-  </section>
+  </LayerSection>
 
-  <section class="layer zone-system" id="L7" data-title="Memory">
-    <div class="layer-head"><div class="layer-idx">07</div><div class="layer-titles"><h2>Memory: numbers with addresses</h2><div class="sub">systems · arrays · the call stack</div></div></div>
+  <LayerSection {...L.L7}>
     <p class="prose">Memory is bytes with addresses; the stack is where function calls pile up and unwind.</p>
     <CallStack client:visible />
     <Takeaway>Memory gives numbers addresses; the stack gives function calls a shape.</Takeaway>
@@ -166,10 +157,9 @@ import Takeaway from '../components/Takeaway.astro';
       tradeoff="Memory feels huge, but distance matters. Cache misses, bad locality, allocation costs, and stack limits can dominate performance."
       next="Once many programs want CPU time and memory at once, the operating system becomes the referee."
     />
-  </section>
+  </LayerSection>
 
-  <section class="layer zone-system" id="L7b" data-title="Data structures">
-    <div class="layer-head"><div class="layer-idx">07.5</div><div class="layer-titles"><h2>Data structures: shapes made of addresses</h2><div class="sub">systems · arrays · hash maps · trees</div></div></div>
+  <LayerSection {...L.L7b}>
     <p class="prose">A data structure is a promise about where data lives and how you will find it again.</p>
     <DataStructures />
     <Takeaway>Data structures are memory layouts plus rules for moving through them.</Takeaway>
@@ -179,10 +169,9 @@ import Takeaway from '../components/Takeaway.astro';
       tradeoff="Every shape favors some operations and punishes others. Fast lookup, ordered traversal, easy insertion, and locality rarely all come for free."
       next="Once many programs use memory and structures at once, the OS has to isolate and coordinate them."
     />
-  </section>
+  </LayerSection>
 
-  <section class="layer zone-system" id="L8" data-title="Operating system">
-    <div class="layer-head"><div class="layer-idx">08</div><div class="layer-titles"><h2>The operating system: the referee</h2><div class="sub">systems · the scheduler · syscalls</div></div></div>
+  <LayerSection {...L.L8}>
     <p class="prose">The OS slices one machine into safe little turns so many programs can pretend they are running at once.</p>
     <Scheduler client:visible />
     <Takeaway>The OS makes one machine feel safely shared by many programs.</Takeaway>
@@ -192,10 +181,9 @@ import Takeaway from '../components/Takeaway.astro';
       tradeoff="Safety is not free. Isolation, scheduling, permissions, and system calls add overhead and make some operations more indirect."
       next="With one machine managed safely, the next problem is connecting many machines together."
     />
-  </section>
+  </LayerSection>
 
-  <section class="layer zone-system" id="L8b" data-title="Security">
-    <div class="layer-head"><div class="layer-idx">08.5</div><div class="layer-titles"><h2>Security: boundaries that make sharing safe</h2><div class="sub">systems · permissions · isolation · trust</div></div></div>
+  <LayerSection {...L.L8b}>
     <p class="prose">Security is what stops useful sharing from becoming accidental exposure.</p>
     <SecurityBoundaries />
     <Takeaway>Security is boundary design: who can do what, with which data, under whose trust.</Takeaway>
@@ -205,10 +193,9 @@ import Takeaway from '../components/Takeaway.astro';
       tradeoff="Stronger boundaries add friction. Users need prompts, programs need checks, systems need keys, and developers must handle failure paths."
       next="Once machines communicate across trust boundaries, network protocols have to carry identity, privacy, and integrity."
     />
-  </section>
+  </LayerSection>
 
-  <section class="layer zone-system" id="L9" data-title="The network">
-    <div class="layer-head"><div class="layer-idx">09</div><div class="layer-titles"><h2>The network: numbers that leave the building</h2><div class="sub">systems · encapsulation · packets · TCP/IP</div></div></div>
+  <LayerSection {...L.L9}>
     <p class="prose">Network data travels as wrapped packets: addressed, routed, dropped, retried, and reassembled.</p>
     <Encapsulation client:visible />
     <Takeaway>Networking works by wrapping data with just enough context to survive the trip.</Takeaway>
@@ -221,10 +208,9 @@ import Takeaway from '../components/Takeaway.astro';
       tradeoff="Reliability costs extra bytes and time. Headers, handshakes, retries, congestion control, and timeouts are the price of useful communication."
       next="When many networked machines coordinate to serve users, the stack becomes a cloud system."
     />
-  </section>
+  </LayerSection>
 
-  <section class="layer zone-system" id="L10" data-title="The cloud">
-    <div class="layer-head"><div class="layer-idx">10</div><div class="layer-titles"><h2>The cloud: someone else's machines, at scale</h2><div class="sub">systems · load balancers · app servers · datastores</div></div></div>
+  <LayerSection {...L.L10}>
     <p class="prose">"The cloud" is the same machine repeated: load balancers, app servers, caches, databases, and queues.</p>
     <Cloud client:visible />
     <Takeaway>The cloud is the same stack repeated, coordinated, and scaled sideways.</Takeaway>
@@ -234,10 +220,9 @@ import Takeaway from '../components/Takeaway.astro';
       tradeoff="More machines create new failure modes. Consistency, retries, observability, deployments, and cost become design problems, not details."
       next="A user action can now travel through browsers, networks, operating systems, memory, CPUs, gates, and voltage."
     />
-  </section>
+  </LayerSection>
 
-  <section class="layer zone-system" id="L10b" data-title="Databases">
-    <div class="layer-head"><div class="layer-idx">10.5</div><div class="layer-titles"><h2>Databases: memory that survives questions</h2><div class="sub">systems · indexes · transactions · durability</div></div></div>
+  <LayerSection {...L.L10b}>
     <p class="prose">A database is where an app stores durable truth and asks for slices of it quickly.</p>
     <DatabaseSystem />
     <Takeaway>Databases turn storage into reliable questions, updates, and recovery.</Takeaway>
@@ -247,10 +232,9 @@ import Takeaway from '../components/Takeaway.astro';
       tradeoff="Correct durable data costs work. Indexes take space, transactions coordinate locks or versions, and distributed databases must choose consistency tradeoffs."
       next="The final user-facing layer is the browser, where data becomes interface and pixels."
     />
-  </section>
+  </LayerSection>
 
-  <section class="layer zone-meaning" id="L10c" data-title="Browser/UI">
-    <div class="layer-head"><div class="layer-idx">10.8</div><div class="layer-titles"><h2>Browser/UI: the stack becomes pixels</h2><div class="sub">meaning · DOM · CSS · events · paint</div></div></div>
+  <LayerSection {...L.L10c}>
     <p class="prose">The browser turns documents, styles, and behavior into an interface a human can see and touch.</p>
     <BrowserUi />
     <Takeaway>The UI is the top of the stack: machine work shaped into human perception.</Takeaway>
@@ -260,10 +244,9 @@ import Takeaway from '../components/Takeaway.astro';
       tradeoff="UI hides the machine, but performance leaks through as jank, slow loads, layout shifts, broken accessibility, and confusing state."
       next="Now the whole loop is visible: a click can descend through every layer and return as changed pixels."
     />
-  </section>
+  </LayerSection>
 
-  <section class="layer zone-physical" id="L11" data-title="…and back down">
-    <div class="layer-head"><div class="layer-idx">11</div><div class="layer-titles"><h2>The lie, all the way down</h2><div class="sub">the whole picture</div></div></div>
+  <LayerSection {...L.L11}>
     <p class="prose">A click becomes packets, processes, memory, arithmetic, gates, transistors, voltage — then climbs back up as pixels.</p>
     <p class="prose prose-follow">Every layer is a useful story told by the layer beneath it.</p>
     <Takeaway>Abstraction is the useful lie that lets humans build on top of physics.</Takeaway>
@@ -273,10 +256,9 @@ import Takeaway from '../components/Takeaway.astro';
       tradeoff="The promise is useful, not perfect. Performance bugs, security issues, and outages happen when lower-layer details leak through."
       next="The final trace follows one piece of code as it crosses those promises."
     />
-  </section>
+  </LayerSection>
 
-  <section class="layer zone-all" id="L12" data-title="Trace a method">
-    <div class="layer-head"><div class="layer-idx">★</div><div class="layer-titles"><h2>Watch it happen: one method, every layer</h2><div class="sub">the capstone · real algorithms, traced top to bottom</div></div></div>
+  <LayerSection {...L.L12}>
     <div class="capstone-ribbon">all layers converge here</div>
     <p class="prose">Pick an algorithm and watch one line of code echo through the machine.</p>
     <Tracer client:visible />
@@ -287,13 +269,11 @@ import Takeaway from '../components/Takeaway.astro';
       tradeoff="A trace is a lens, not the whole universe. It hides details so the important connections stay visible."
       next="Use it as the bridge back down the stack whenever software starts to feel magical again."
     />
-  </section>
+  </LayerSection>
 </Base>
 
 
 <style>
-  .zone-all{--accent:var(--blue)}
-  .zone-all .layer-head{margin-bottom:14px}
   .capstone-ribbon{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;
     color:var(--blue);border:1px solid var(--border-hot);border-radius:999px;padding:6px 12px;background:var(--blue-d);margin-bottom:16px}
   .capstone-ribbon::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--blue);box-shadow:0 0 12px var(--blue)}

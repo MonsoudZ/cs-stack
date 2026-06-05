@@ -1,0 +1,13 @@
+---
+// Section wrapper + standard head for one stack layer. Metadata comes from
+// src/data/layers.js (spread in as props); the bespoke body is the <slot>.
+// `navLabel` is accepted-and-ignored so callers can spread a whole layer object.
+const { id, num, zone, title, sub } = Astro.props;
+---
+<section class={`layer zone-${zone}`} id={id}>
+  <div class="layer-head">
+    <div class="layer-idx">{num}</div>
+    <div class="layer-titles"><h2>{title}</h2><div class="sub">{sub}</div></div>
+  </div>
+  <slot />
+</section>
