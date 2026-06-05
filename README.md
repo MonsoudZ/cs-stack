@@ -60,6 +60,7 @@ src/
     index.astro           the main stack — composes the layer sections, hydrates each island
     network.astro         a /network deep-dive reusing the same engine (Base takes a `layers` prop)
     compiler.astro        a /compiler deep-dive (lex → parse → bytecode → run)
+    render.astro          a /render deep-dive (DOM → style → layout → paint → composite)
     robots.txt.js         robots.txt generated from `site`
 scripts/
   audit.mjs               regex source/HTML quality gate (used by `npm run audit`)

@@ -1,0 +1,133 @@
+---
+import Base from '../layouts/Base.astro';
+import LayerSection from '../components/LayerSection.astro';
+import { renderLayers } from '../data/renderLayers.js';
+import RenderInvalidation from '../components/RenderInvalidation.svelte';
+import BrowserUi from '../components/BrowserUi.astro';
+import Why from '../components/Why.astro';
+import Takeaway from '../components/Takeaway.astro';
+const L = Object.fromEntries(renderLayers.map((l) => [l.id, l]));
+const title = 'THE STACK — the render pipeline';
+const description = 'A deep dive into how the browser turns code into pixels: the DOM tree, computed style, layout, paint, and composite — and why some changes are cheap and others force the whole pipeline.';
+---
+<Base {title} {description} layers={renderLayers}>
+  <div slot="hero">
+    <div class="kicker">A deep dive into layer 10.8</div>
+    <h1 class="title">THE <em>RENDER</em><br />PIPELINE</h1>
+    <p class="lede">The browser does this dance up to 60 times a second: turn your HTML and CSS into a tree, compute styles, lay out boxes, paint pixels, and composite layers onto the screen. Touch the wrong property and the whole thing re-runs.</p>
+    <div class="hero-meta"><a class="back-link" href="/">← back to the full stack</a> · DOM → style → layout → paint → composite</div>
+  </div>
+
+  <LayerSection {...L.R0}>
+    <p class="prose">The browser parses your HTML into the <span class="hl">DOM</span> — a live tree of nodes. Tags nest into parent/child relationships; this tree is what CSS targets and what JavaScript reads and mutates.</p>
+    <div class="widget">
+      <div class="w-label">a snippet of HTML, parsed into a node tree</div>
+      <div class="domtree">
+        <div class="dom-node">html
+          <div class="dom-kids">
+            <div class="dom-node">head</div>
+            <div class="dom-node">body
+              <div class="dom-kids">
+                <div class="dom-node">h1 <span class="dom-text">“Hello”</span></div>
+                <div class="dom-node">p <span class="dom-text">“…”</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <Takeaway>The DOM is the browser's editable model of the page — a tree, not the text you typed.</Takeaway>
+    <Why
+      problem="HTML is flat text, but styling, scripting, and rendering all need to know which element is inside which."
+      idea="Parse the markup once into a tree of nodes, where nesting is explicit — every later stage operates on this structure."
+      tradeoff="The DOM is large and live: touching it can be slow, and frameworks exist largely to batch and minimize DOM work."
+      next="An untyled tree isn't enough — every node needs its computed look."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.R1}>
+    <p class="prose">For every node, the browser resolves which CSS rules apply and who wins — that's the <b>cascade</b>: more specific selectors and later rules override earlier ones. The result is a fully computed style for each element.</p>
+    <Takeaway>Style turns "here are some rules" into "here is exactly how this element looks," resolving every conflict by specificity and order.</Takeaway>
+    <Why
+      problem="Many rules can target the same element with conflicting values — there has to be one definite answer per property."
+      idea="The cascade ranks declarations by origin, specificity, and source order, then computes one final value for every property on every node."
+      tradeoff="Specificity battles and !important wars are the dark side; the same flexibility that makes CSS powerful makes it hard to predict."
+      next="A styled node still has no size or position — that's layout."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.R2}>
+    <p class="prose">Layout (reflow) walks the styled tree and computes <b>geometry</b>: where every box sits and how big it is. Each box is content wrapped in padding, a border, and margin — the <span class="hl">box model</span>.</p>
+    <div class="widget">
+      <div class="w-label">the box model — every element is boxes inside boxes</div>
+      <div class="boxmodel">
+        <div class="bm bm-margin"><span class="bm-tag">margin</span>
+          <div class="bm bm-border"><span class="bm-tag">border</span>
+            <div class="bm bm-padding"><span class="bm-tag">padding</span>
+              <div class="bm bm-content">content</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <Takeaway>Layout is geometry: turning "this element exists and is styled" into "it occupies exactly this rectangle."</Takeaway>
+    <Why
+      problem="Pixels need coordinates, but CSS describes sizes relatively — percentages, flex, auto, content-driven heights."
+      idea="Resolve all of that into concrete rectangles by walking the tree, sizing each box and positioning it relative to its neighbours and parent."
+      tradeoff="Layout is expensive and global-ish: one changed size can shift everything after it, so reflow is a common performance cost."
+      next="Boxes with positions still aren't visible — paint fills them in."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.R3}>
+    <p class="prose">Paint fills each box with actual pixels — text, colors, borders, shadows — often onto separate <span class="hl">layers</span>. The compositor then assembles those layers into the final frame, usually on the <b>GPU</b>.</p>
+    <Takeaway>Paint rasterizes boxes into pixels; compositing stitches the layers into the frame you see.</Takeaway>
+    <Why
+      problem="A positioned box is still abstract — the screen needs concrete coloured pixels, assembled fast enough for smooth motion."
+      idea="Rasterize content into layers, then let the compositor (often the GPU) transform and stack those layers into a frame."
+      tradeoff="Layers cost memory, and too many or badly chosen ones hurt instead of help; compositing is fast only because layout and paint already did the hard part."
+      next="Not every change needs all of these stages — which is the whole performance game."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.R4}>
+    <p class="prose">A style change doesn't always re-run everything. Changing geometry (<code>width</code>) forces layout, paint, and composite. A color change skips layout. But <code>transform</code> and <code>opacity</code> only re-composite — the compositor just moves an existing layer.</p>
+    <RenderInvalidation client:visible />
+    <Takeaway>Animate transform and opacity, not width and top: the cheap properties skip layout and paint entirely.</Takeaway>
+    <Why
+      problem="Janky pages usually come from doing too much per frame — recomputing layout and repainting when it wasn't necessary."
+      idea="Know which stage each property invalidates: geometry → layout, appearance → paint, transform/opacity → composite only."
+      tradeoff="The cheap path needs its own layer (and the memory that costs), and over-promoting layers can backfire."
+      next="Put it together and it's one frame, sixty times a second."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.R5}>
+    <p class="prose">End to end, every frame: HTML becomes the <b>DOM</b>, CSS computes <b>style</b>, the tree is laid out into boxes, the boxes are <b>painted</b>, and the layers are <b>composited</b> to the screen — then any change kicks off just the stages it touched, again and again.</p>
+    <BrowserUi />
+    <Takeaway>What you see is the last step of a pipeline the browser re-runs continuously — and the art is making each pass do as little as possible.</Takeaway>
+    <Why
+      problem="Interfaces feel instantaneous, which hides how much repeated work stands between a state change and a pixel."
+      idea="Treat rendering as a pipeline run per frame: build, style, layout, paint, composite — each stage handing structure to the next."
+      tradeoff="The pipeline buys a declarative, flexible UI model at the cost of performance cliffs when a change forces expensive early stages."
+      next="Zoom back out: this is what the main stack's Browser/UI layer is doing at the very top of the climb."
+    />
+  </LayerSection>
+</Base>
+
+<style>
+  .back-link{color:var(--accent,var(--signal))}
+  /* DOM tree */
+  .domtree{font-family:var(--mono);font-size:14px;color:var(--ink);padding:4px 2px}
+  .dom-node{padding:3px 0}
+  .dom-kids{margin-left:14px;padding-left:14px;border-left:1px solid var(--border)}
+  .dom-text{color:var(--violet)}
+  /* box model */
+  .boxmodel{display:flex;justify-content:center;font-family:var(--mono);font-size:11px}
+  .bm{position:relative;border-radius:8px;padding:26px 18px 14px;text-align:center}
+  .bm-tag{position:absolute;top:5px;left:10px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+  .bm-margin{border:1px dashed var(--border);background:rgba(255,180,84,.06)}
+  .bm-border{border:1px solid var(--blue);background:var(--blue-d)}
+  .bm-padding{border:1px dashed var(--signal);background:var(--signal-d)}
+  .bm-content{border:1px solid var(--border-hot);background:var(--surface);padding:18px 28px;color:var(--ink);font-weight:700}
+</style>

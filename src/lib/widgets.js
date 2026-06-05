@@ -226,3 +226,15 @@ export function buildVm() {
   snap(-1, 'one value left on the stack: 3 + 4 × 2 = ' + stack[0] + ' — × bound tighter, so it ran first', stack[0]);
   return out;
 }
+
+// --- RENDER PIPELINE (/render) ---
+
+// Which pipeline stages a style change forces to re-run. A geometry change
+// invalidates from Layout; a paint-only change from Paint; transform/opacity
+// only re-composite (the cheap, GPU path). kind: 'layout' | 'paint' | 'composite'.
+export const RENDER_STAGES = ['Layout', 'Paint', 'Composite'];
+export function invalidatedStages(kind) {
+  const startAt = { layout: 0, paint: 1, composite: 2 }[kind];
+  if (startAt === undefined) throw new Error('unknown change kind: ' + kind);
+  return RENDER_STAGES.map((name, i) => ({ name, rerun: i >= startAt }));
+}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm } from './widgets.js';
+import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages } from './widgets.js';
 
 const sum = (arr) => arr.reduce((a, b) => a + b, 0);
 
@@ -183,6 +183,20 @@ describe('buildVm (stack machine)', () => {
   });
   it('the operand stack peaks at 3 entries (PUSH 3, 4, 2)', () => {
     expect(Math.max(...steps.map((s) => s.stack.length))).toBe(3);
+  });
+});
+
+describe('invalidatedStages (render pipeline)', () => {
+  it('a geometry change re-runs Layout, Paint, and Composite', () => {
+    expect(invalidatedStages('layout').map((s) => s.rerun)).toEqual([true, true, true]);
+  });
+  it('a paint-only change skips Layout', () => {
+    expect(invalidatedStages('paint').map((s) => s.rerun)).toEqual([false, true, true]);
+  });
+  it('transform/opacity only re-composite (the cheap GPU path)', () => {
+    const r = invalidatedStages('composite');
+    expect(r.map((s) => s.rerun)).toEqual([false, false, true]);
+    expect(r.filter((s) => s.rerun)).toHaveLength(1);
   });
 });
 

@@ -58,6 +58,20 @@ test('Adder island: setting the high A bit carries into a sum of 16', async ({ p
   }).toPass({ timeout: 8000 });
 });
 
+test('Render page: own nav, transform re-runs only the composite stage', async ({ page }) => {
+  await page.goto('/render');
+  await expect(page.locator('h1.title')).toContainText('RENDER');
+  await expect(page.locator('.spine .rung')).toHaveCount(6);
+  const ri = page.locator('#R4');
+  await ri.scrollIntoViewIfNeeded();
+  await expect(ri.locator('.ri-stage.rerun')).toHaveCount(3); // default (width) re-runs all three
+  await expect(async () => {
+    await ri.getByRole('button', { name: /transform/ }).click();
+    await expect(ri.locator('.ri-stage.rerun')).toHaveCount(1, { timeout: 400 });
+  }).toPass({ timeout: 8000 });
+  await expect(ri.locator('.ri-stage.rerun .ri-name')).toHaveText('Composite'); // the cheap path
+});
+
 test('Compiler page: own nav, tokenizer emits tokens, the VM evaluates to 11', async ({ page }) => {
   await page.goto('/compiler');
   await expect(page.locator('h1.title')).toContainText('COMPILER');
