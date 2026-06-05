@@ -58,6 +58,22 @@ test('Adder island: setting the high A bit carries into a sum of 16', async ({ p
   }).toPass({ timeout: 8000 });
 });
 
+test('FlipFlop island: Q holds its bit until the clock ticks', async ({ page }) => {
+  await page.goto('/');
+  const ff = page.locator('#L2b');
+  await ff.scrollIntoViewIfNeeded();
+  const q = ff.locator('.ff-out');
+  await expect(q).toHaveText('0');
+  const dBtn = ff.getByRole('button', { name: /data input/ });
+  await expect(async () => {
+    await dBtn.click();
+    await expect(dBtn).toHaveAttribute('aria-pressed', 'true', { timeout: 400 }); // hydration probe
+  }).toPass({ timeout: 8000 });
+  await expect(q).toHaveText('0'); // Q held while D changed — the whole point
+  await ff.getByRole('button', { name: /tick/i }).click();
+  await expect(q).toHaveText('1'); // the tick captured D
+});
+
 test('FloatBits island: toggling the sign bit negates the value', async ({ page }) => {
   await page.goto('/');
   const widget = page.locator('#L4b');

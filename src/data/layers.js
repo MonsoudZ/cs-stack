@@ -12,6 +12,7 @@ export const layers = [
   { id: 'L0', num: '00', navLabel: 'Voltage', zone: 'physical', title: 'A wire that is either pushed or not', sub: 'physical · electricity' },
   { id: 'L1', num: '01', navLabel: 'Transistor', zone: 'physical', title: 'The transistor: a wire that controls another wire', sub: 'physical · the switch' },
   { id: 'L2', num: '02', navLabel: 'Logic gates', zone: 'physical', title: 'Gates: transistors that compute true & false', sub: 'logic · boolean algebra' },
+  { id: 'L2b', num: '02.5', navLabel: 'Flip-flop', zone: 'physical', title: 'Flip-flops: how a circuit remembers a bit', sub: 'logic · sequential logic · the clock' },
   { id: 'L3', num: '03', navLabel: 'Bits → numbers', zone: 'number', title: 'Eight wires become a number', sub: 'numbers · binary place value' },
   { id: 'L4', num: '04', navLabel: 'Arithmetic', zone: 'number', title: 'Gates that add — arithmetic from logic', sub: 'numbers · the ripple-carry adder' },
   { id: 'L4b', num: '04.5', navLabel: 'Floating point', zone: 'number', title: 'Floating point: the convenient lie of decimals', sub: 'numbers · IEEE-754 · sign · exponent · mantissa' },

@@ -5,6 +5,7 @@ import { layerById as L } from '../data/layers.js';
 import Mosfet from '../components/Mosfet.svelte';
 import Voltage from '../components/Voltage.astro';
 import LogicGate from '../components/LogicGate.svelte';
+import FlipFlop from '../components/FlipFlop.svelte';
 import Bits from '../components/Bits.svelte';
 import CallStack from '../components/CallStack.svelte';
 import Scheduler from '../components/Scheduler.svelte';
@@ -73,6 +74,19 @@ import Takeaway from '../components/Takeaway.astro';
       idea="Logic gates package transistor patterns into reusable decisions like AND, OR, NOT, and XOR. They let circuits answer small questions mechanically."
       tradeoff="Every gate takes time and consumes power. Large circuits must coordinate thousands of tiny delays so the answer arrives when expected."
       next="Multiple true/false answers side by side can be treated as a binary number."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.L2b}>
+    <p class="prose">A gate computes and instantly forgets — its output just follows its input. To <b>remember</b>, wire a gate's output back to its input: now it can hold a value. A <span class="hl">flip-flop</span> is that loop tamed by a <b>clock</b>, which says exactly when to capture a new bit.</p>
+    <FlipFlop client:visible />
+    <Takeaway>A flip-flop is one bit of memory; the clock is the shared heartbeat that decides when every bit updates at once.</Takeaway>
+    <p class="aside">Stack a row of these and you have a <span class="hl">register</span> — the thing layer 03 reads as a number, and the thing the CPU keeps its working values in.</p>
+    <Why
+      problem="Logic gates are stateless: the output is always just a function of the inputs right now. A computer needs to hold values over time — counts, addresses, the current instruction."
+      idea="Feed a gate's output back to its input and it can latch a value. Add a clock signal and you get a flip-flop: it captures its input on each tick and holds it steady until the next one."
+      tradeoff="Timing becomes everything: signals must be stable before the edge (setup) and after it (hold), the clock has to reach every flip-flop together, and a late signal can leave a bit metastable."
+      next="Line up flip-flops into registers and those held bits become the binary numbers of the next layer."
     />
   </LayerSection>
 
