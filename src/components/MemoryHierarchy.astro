@@ -55,7 +55,7 @@ const tiers = [
       </div>
     ))}
   </div>
-  <div class="hierarchy-rule">
+  <div class="hierarchy-rule widget-note">
     The CPU is fast because it mostly touches nearby data. When it reaches farther away, the machine pays in waiting.
   </div>
 </div>
@@ -80,8 +80,7 @@ const tiers = [
   .tier-facts{display:grid;gap:8px}
   .tier-facts span{border:1px solid var(--border);border-radius:10px;padding:8px 10px;color:var(--dim);background:rgba(255,255,255,.025)}
   .tier-facts b{display:block;margin-bottom:3px;font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--faint)}
-  .hierarchy-rule{position:relative;z-index:1;margin-top:14px;border:1px solid rgba(91,157,255,.32);border-radius:13px;
-    padding:13px 15px;background:var(--blue-d);color:var(--dim);font-size:14px;line-height:1.6}
+  .hierarchy-rule{border-color:rgba(91,157,255,.32);background:var(--blue-d)}
   @media(max-width:760px){
     .tier-row{grid-template-columns:auto minmax(0,1fr)}
     .tier-facts{grid-column:2;grid-template-columns:1fr 1fr}

@@ -11,7 +11,7 @@ const stages = [
   <div class="runtime-flow">
     {stages.map(([key, name, copy], i) => (
       <>
-        <div class={`runtime-stage stage-${key}`}>
+        <div class={`runtime-stage stage-${key} widget-card`}>
           <div class="stage-num">{String(i + 1).padStart(2, '0')}</div>
           <div>
             <div class="stage-name">{name}</div>
@@ -37,8 +37,7 @@ const stages = [
 <style>
   .runtime-widget{border-color:rgba(183,123,255,.3)}
   .runtime-flow{position:relative;z-index:1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:stretch}
-  .runtime-stage{border:1px solid var(--border);border-radius:14px;padding:15px;background:rgba(8,11,18,.58);
-    display:flex;gap:11px;min-height:150px}
+  .runtime-stage{display:flex;gap:11px;min-height:150px}
   .stage-num{font-family:var(--mono);font-size:11px;color:var(--violet);border:1px solid rgba(183,123,255,.35);
     background:var(--violet-d);border-radius:9px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
   .stage-name{font-family:var(--disp);font-weight:800;font-size:21px;color:var(--ink);letter-spacing:-.01em}
