@@ -51,19 +51,19 @@ export const LID = {
   '10.8':'L10c',
 };
 export const LNUM = {
-  3:'03',
-  4:'04',
-  5:'05',
-  '5.5':'05.5',
-  6:'06',
-  '6.5':'06.5',
-  7:'07',
-  '7.5':'07.5',
-  '8.5':'08.5',
-  9:'09',
-  10:'10',
-  '10.5':'10.5',
-  '10.8':'10.8',
+  3:'04',
+  4:'05',
+  5:'07',
+  '5.5':'08',
+  6:'09',
+  '6.5':'10',
+  7:'11',
+  '7.5':'12',
+  '8.5':'15',
+  9:'16',
+  10:'17',
+  '10.5':'18',
+  '10.8':'19',
 };
 export const LCLASS = {
   3:'t-num',
@@ -101,7 +101,7 @@ function step(o, struct, touchDefault = []) {
 export const METHODS = {
   twosum:{ name:'Two Sum', header:'two_sum([2, 10, 7, 8], 18) → expect [1, 3]',
     intro:'This run is rigged so keys 2 and 10 collide in bucket 2 — watch the chain form, then get walked on lookup.',
-    structLabel:'③ the hash · buckets in memory — collisions chain (layers 06.5/07/07.5)',
+    structLabel:'③ the hash · buckets in memory — collisions chain (layers 10/11/12)',
     src:['def two_sum(nums, target)','  seen = {}','  nums.each_with_index do |n, i|','    complement = target - n','    return [seen[complement], i] if seen.key?(complement)','    seen[n] = i','  end','end'],
     build(){ const nums=[2,10,7,8],target=18,buckets=Array.from({length:8},()=>[]),steps=[];
       const snap=()=>buckets.map(ch=>ch.map(e=>({...e})));
@@ -128,7 +128,7 @@ export const METHODS = {
       push({line:7,vm:['return nil'],vars,touches:[],note:'no pair found → nil'}); return steps; } },
   bsearch:{ name:'Binary search', header:'bsearch([1, 3, 5, 7, 9, 11, 13], 9) → expect index 4',
     intro:'Each step throws away half of what is left — that is why a million sorted items take only ~20 probes.',
-    structLabel:'③ the array · the search window halves each step (layers 06.5/07/07.5)',
+    structLabel:'③ the array · the search window halves each step (layers 10/11/12)',
     src:['def bsearch(arr, target)','  lo, hi = 0, arr.length - 1','  while lo <= hi','    mid = (lo + hi) / 2','    return mid if arr[mid] == target','    if arr[mid] < target','      lo = mid + 1','    else','      hi = mid - 1','    end','  end','  -1','end'],
     build(){ const arr=[1,3,5,7,9,11,13],target=9,steps=[]; let lo=0,hi=arr.length-1,mid=-1;
       const push=o=>steps.push(step(o,{kind:'window',arr:arr.slice(),lo,hi,mid:o.mid!==undefined?o.mid:mid,target,compared:!!o.compared}));
@@ -147,7 +147,7 @@ export const METHODS = {
       push({line:11,vm:['return -1'],vars,touches:[],result:-1,finale:true,note:'window empty → not found → -1'}); return steps; } },
   bfs:{ name:'BFS', header:"bfs(graph, 'A') → visits A, B, C, D, E",
     intro:'The queue is the whole trick: FIFO order is exactly what makes this breadth-first instead of depth-first.',
-    structLabel:'③ the graph + queue · the breadth-first frontier (layers 06.5/07/07.5)',
+    structLabel:'③ the graph + queue · the breadth-first frontier (layers 10/11/12)',
     src:['def bfs(graph, start)','  visited = [start]','  queue = [start]','  until queue.empty?','    node = queue.shift','    graph[node].each do |nbr|','      next if visited.include?(nbr)','      visited << nbr','      queue.push(nbr)','    end','  end','  visited','end'],
     build(){ const G={A:['B','C'],B:['A','D'],C:['A','D','E'],D:['B','C'],E:['C']},start='A',visited=[start],queue=[start],steps=[];
       const vstr=()=>'['+visited.join(', ')+']',qstr=()=>'['+queue.join(', ')+']';
@@ -164,7 +164,7 @@ export const METHODS = {
       push({line:11,vm:['queue empty → return visited'],vars:{start,visited:vstr(),queue:'[]',node:'–'},touches:[10.8,10.5,10,9,8.5,7.5,7,6.5,6,5.5,5,3],result:visited.slice(),finale:true,note:'queue empty → done. order visited: '+visited.join(' → ')}); return steps; } },
   recursion:{ name:'Recursion', header:'sum_to(4) → 4 + 3 + 2 + 1 + 0 = 10',
     intro:'Recursion is the call stack made visible — it descends to the base case, then every frame returns on the way back up.',
-    structLabel:'③ the call stack · frames push, then pop on the way up (layers 06.5/07/07.5)',
+    structLabel:'③ the call stack · frames push, then pop on the way up (layers 10/11/12)',
     src:['def sum_to(n)','  return 0 if n == 0','  n + sum_to(n - 1)','end'],
     build(){ const frames=[],steps=[]; const snap=()=>frames.map(f=>({...f}));
       const push=o=>steps.push(step(o,{kind:'stack',frames:snap()}));
@@ -185,7 +185,7 @@ export const METHOD_ORDER = ['twosum','bsearch','bfs','recursion'];
 const MORE = {
   twopointer:{ name:'Two-pointer', header:'sorted two-sum([2, 5, 8, 11, 15], 16) → expect [1, 3]',
     intro:'Same problem as the hash Two Sum, but on a SORTED array — two pointers squeeze in from both ends with O(1) extra space.',
-    structLabel:'③ the array · two pointers converge from the ends (layers 06.5/07/07.5)',
+    structLabel:'③ the array · two pointers converge from the ends (layers 10/11/12)',
     src:['def two_sum_sorted(arr, target)','  lo, hi = 0, arr.length - 1','  while lo < hi','    s = arr[lo] + arr[hi]','    return [lo, hi] if s == target','    s < target ? lo += 1 : hi -= 1','  end','end'],
     build(){ const arr=[2,5,8,11,15],target=16,steps=[]; let lo=0,hi=arr.length-1;
       const cells=(cmp)=>arr.map((_,i)=>{let role='',mark=''; if(i<lo||i>hi)role='dimx'; if(i===lo)mark='L'; if(i===hi)mark=(mark?mark+' ':'')+'R'; if(cmp&&(i===lo||i===hi))role='cmp'; return {role,mark};});
@@ -205,7 +205,7 @@ const MORE = {
 
   sliding:{ name:'Sliding window', header:'max_window([2, 1, 5, 1, 3, 2], 3) → expect 9',
     intro:'Find the best window of k items without re-adding the whole window each move — add the entering item, drop the leaving one.',
-    structLabel:'③ the array · a fixed-width window slides right (layers 06.5/07/07.5)',
+    structLabel:'③ the array · a fixed-width window slides right (layers 10/11/12)',
     src:['def max_window(arr, k)','  sum = arr[0...k].sum','  best = sum','  (k...arr.length).each do |r|','    sum += arr[r] - arr[r - k]','    best = [best, sum].max','  end','  best','end'],
     build(){ const arr=[2,1,5,1,3,2],k=3,steps=[];
       const win=(L,R,cur)=>arr.map((_,i)=>{let role='',mark=''; if(i>=L&&i<=R)role='win'; if(cur!=null&&i===cur)role='cmp'; if(i===L)mark='L'; if(i===R)mark=(mark?mark+' ':'')+'R'; return {role,mark};});
@@ -222,7 +222,7 @@ const MORE = {
 
   dfs:{ name:'DFS', header:"dfs(graph, 'A') → A, B, D, C, E",
     intro:'Same graph as BFS, but a LIFO stack instead of a queue — so it plunges deep before going wide. Watch the order differ.',
-    structLabel:'③ the graph + stack · depth-first dives deep (layers 06.5/07/07.5)',
+    structLabel:'③ the graph + stack · depth-first dives deep (layers 10/11/12)',
     src:['def dfs(graph, start)','  visited = []','  stack = [start]','  until stack.empty?','    node = stack.pop','    next if visited.include?(node)','    visited << node','    graph[node].reverse_each { |n| stack.push(n) }','  end','  visited','end'],
     build(){ const G={A:['B','C'],B:['A','D'],C:['A','D','E'],D:['B','C'],E:['C']},start='A',visited=[],stack=[start],steps=[];
       const vstr=()=>'['+visited.join(', ')+']',sstr=()=>'['+stack.join(', ')+']';
@@ -239,7 +239,7 @@ const MORE = {
 
   dp:{ name:'DP (memo)', header:'fib(6) → 8 (built from cached subproblems)',
     intro:'Dynamic programming = remember answers so you never recompute. The memo array fills left to right, each cell the sum of two cached neighbors.',
-    structLabel:'③ the memo · a cache of solved subproblems (layers 06.5/07/07.5)',
+    structLabel:'③ the memo · a cache of solved subproblems (layers 10/11/12)',
     src:['def fib(n)','  memo = [0, 1]','  (2..n).each do |i|','    memo[i] = memo[i - 1] + memo[i - 2]','  end','  memo[n]','end'],
     build(){ const n=6,memo=[0,1],steps=[];
       const view=()=>{const a=[];for(let i=0;i<=n;i++)a.push(memo[i]!==undefined?memo[i]:'·');return a;};
@@ -254,7 +254,7 @@ const MORE = {
 
   insort:{ name:'Insertion sort', header:'insertion_sort([5, 2, 4, 1, 3]) → [1, 2, 3, 4, 5]',
     intro:'Grow a sorted prefix one item at a time, sliding each new element left past everything larger than it.',
-    structLabel:'③ the array · a sorted prefix grows in place (layers 06.5/07/07.5)',
+    structLabel:'③ the array · a sorted prefix grows in place (layers 10/11/12)',
     src:['def insertion_sort(arr)','  (1...arr.length).each do |i|','    key = arr[i]','    j = i - 1','    while j >= 0 && arr[j] > key','      arr[j + 1] = arr[j]','      j -= 1','    end','    arr[j + 1] = key','  end','  arr','end'],
     build(){ const arr=[5,2,4,1,3],steps=[];
       const cells=(sortedUpto,key,cmp)=>arr.map((_,i)=>{let role='',mark=''; if(i<=sortedUpto)role='sorted'; if(i===key){role='cmp';mark='key';} if(cmp!=null&&i===cmp)role='cmp'; return {role,mark};});
@@ -276,7 +276,7 @@ const MORE = {
 
   linear:{ name:'Linear search', header:'linear_search([8, 3, 11, 7, 5, 9], 7) → expect index 3',
     intro:'The honest baseline: check every slot in order until the target turns up. No structure, no shortcuts — this is exactly what binary search and hashing improve on.',
-    structLabel:'③ the array · scan every slot left to right (layers 06.5/07/07.5)',
+    structLabel:'③ the array · scan every slot left to right (layers 10/11/12)',
     src:['def linear_search(arr, target)','  arr.each_with_index do |v, i|','    return i if v == target','  end','  -1','end'],
     build(){ const arr=[8,3,11,7,5,9],target=7,steps=[];
       const cells=(cur,found)=>arr.map((_,i)=>{let role='',mark=''; if(i<cur)role='dimx'; if(i===cur){role=found?'sorted':'cmp';mark=found?'found':'i';} return {role,mark};});
@@ -291,7 +291,7 @@ const MORE = {
 
   bubble:{ name:'Bubble sort', header:'bubble_sort([5, 1, 4, 2, 8]) → [1, 2, 4, 5, 8]',
     intro:'The simplest sort: compare neighbours and swap the bigger one rightward, so each pass floats the largest remaining value to the end.',
-    structLabel:'③ the array · the largest value bubbles to the end each pass (layers 06.5/07/07.5)',
+    structLabel:'③ the array · the largest value bubbles to the end each pass (layers 10/11/12)',
     src:['def bubble_sort(arr)','  loop do','    swapped = false','    (1...arr.length).each do |i|','      next unless arr[i - 1] > arr[i]','      arr[i - 1], arr[i] = arr[i], arr[i - 1]','      swapped = true','    end','    break unless swapped','  end','  arr','end'],
     build(){ const arr=[5,1,4,2,8],n=arr.length,steps=[];
       const cells=(a,b,settled,swap)=>arr.map((_,i)=>{let role='',mark=''; if(i>=n-settled)role='sorted'; if(i===a||i===b)role='cmp'; if(swap&&(i===a||i===b))mark='swap'; return {role,mark};});
@@ -313,7 +313,7 @@ const MORE = {
 
   kadane:{ name:'Max subarray', header:'max_subarray([-2, 1, -3, 4, -1, 2, 1, -5, 4]) → expect 6',
     intro:'Kadane’s trick: at each element, either extend the current run or start fresh — whichever running sum is larger. The best sum ever seen is the answer.',
-    structLabel:'③ the array · the current run grows or resets each step (layers 06.5/07/07.5)',
+    structLabel:'③ the array · the current run grows or resets each step (layers 10/11/12)',
     src:['def max_subarray(arr)','  best = cur = arr[0]','  (1...arr.length).each do |i|','    cur = [arr[i], cur + arr[i]].max','    best = [best, cur].max','  end','  best','end'],
     build(){ const arr=[-2,1,-3,4,-1,2,1,-5,4],steps=[];
       const cells=(runStart,cur)=>arr.map((_,k)=>{let role='',mark=''; if(runStart!=null&&k>=runStart&&k<=cur)role='win'; if(k===cur){role='cmp';mark='i';} return {role,mark};});

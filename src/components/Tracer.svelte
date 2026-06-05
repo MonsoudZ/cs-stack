@@ -128,7 +128,13 @@
     {#if s.touches.length}
       <span class="trace-tags">
         touches
-        {#each s.touches as t}<button type="button" class="ttag {LCLASS[t] || ''}" onclick={() => gotoLayer(t)} title="jump to layer {LNUM[t] || String(t).padStart(2,'0')} · {LNAME[t] || ''}">{LNUM[t] || String(t).padStart(2,'0')} {LNAME[t] || ''}</button>{/each}
+        {#if s.finale && s.touches.length > 6}
+          <button type="button" class="ttag t-full" onclick={() => gotoLayer(11)} title="jump to the whole-stack summary">
+            full stack return
+          </button>
+        {:else}
+          {#each s.touches as t}<button type="button" class="ttag {LCLASS[t] || ''}" onclick={() => gotoLayer(t)} title="jump to layer {LNUM[t] || String(t).padStart(2,'0')} · {LNAME[t] || ''}">{LNUM[t] || String(t).padStart(2,'0')} {LNAME[t] || ''}</button>{/each}
+        {/if}
       </span>
     {/if}
   </div>
@@ -214,6 +220,7 @@
   .ttag.t-mean{border-color:var(--violet);color:var(--violet)}
   .ttag.t-phys{border-color:var(--signal);color:var(--signal)}
   .ttag.t-sec{border-color:var(--amber);color:var(--amber)}
+  .ttag.t-full{border-color:var(--blue);color:var(--ink);background:linear-gradient(90deg,var(--blue-d),var(--violet-d))}
   @media(max-width:860px){
     .trace-hero{grid-template-columns:1fr}
     .trace-progress{justify-self:start}
