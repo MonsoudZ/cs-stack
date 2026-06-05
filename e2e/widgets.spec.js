@@ -111,6 +111,23 @@ test('Memory page: own nav, a cache access hits, a virtual address translates to
   await expect(vm.locator('.vmt-phys')).toContainText('122');
 });
 
+test('Cross-stack footer: lists every deep dive on home, omits the current one on a deep dive', async ({ page }) => {
+  // home: all ten deep dives are linked, no "back to full stack" (we're home)
+  await page.goto('/');
+  const homeNav = page.locator('.stacknav');
+  await expect(homeNav.locator('.stacknav-link')).toHaveCount(10);
+  await expect(homeNav.locator('.stacknav-home')).toHaveCount(0);
+  // a deep dive: the current stack is omitted (nine others) and home link returns
+  await page.goto('/memory');
+  const sibNav = page.locator('.stacknav');
+  await expect(sibNav.locator('.stacknav-link')).toHaveCount(9);
+  await expect(sibNav.getByRole('link', { name: /the Memory stack/i })).toHaveCount(0);
+  // the links actually navigate to a sibling explorable
+  await sibNav.getByRole('link', { name: /the Crypto stack/i }).click();
+  await expect(page).toHaveURL(/\/crypto\/?$/);
+  await expect(page.locator('h1.title')).toContainText('CRYPTO');
+});
+
 test('Silicon page: own nav, doping adds carriers, the diode conducts forward, CMOS inverts', async ({ page }) => {
   await page.goto('/silicon');
   await expect(page.locator('h1.title')).toContainText('SILICON');

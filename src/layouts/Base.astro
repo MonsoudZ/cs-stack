@@ -20,6 +20,10 @@ import splineBody from '@fontsource/spline-sans/files/spline-sans-latin-400-norm
 // powers sibling explorables. The page's sections render from the same array,
 // so the nav and content can't drift.
 import { layers as mainLayers } from '../data/layers.js';
+import StackNav from '../components/StackNav.astro';
+// The current page's slug (''/home for the main stack), used to tell the
+// cross-stack footer which deep-dive to omit from its list.
+const currentSlug = Astro.url.pathname.replace(/\//g, '');
 const {
   title = 'THE STACK — electrons to the cloud',
   description = 'An explorable explanation of the computing stack, from silicon to the cloud. Climb the layers — transistors, gates, bits, the CPU, memory, the OS, the network — and trace a real algorithm all the way down.',
@@ -145,6 +149,7 @@ const jsonLd = {
     </nav>
     <main id="main" tabindex="-1" aria-keyshortcuts="j k">
       <slot />
+      <StackNav current={currentSlug} />
     </main>
   </div>
 

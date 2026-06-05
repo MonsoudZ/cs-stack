@@ -37,6 +37,8 @@ src/
   data/layers.js          single source of truth for the main stack's layers
                           (id, num, label, zone, title, sub) — nav + sections read it
   data/networkLayers.js   the same shape for the /network deep-dive (sibling explorable)
+  data/*Layers.js         one per deep-dive (memLayers, osLayers, structLayers, …)
+  data/stacks.js          single source of truth for the deep-dive list — drives StackNav
   styles/                 global.css just @imports base.css + widgets.css + mobile.css
   lib/
     stepper.svelte.js     shared STEP / AUTO / RESET store — every step widget uses it
@@ -53,6 +55,7 @@ src/
     MemoryHierarchy / DataStructures / SecurityBoundaries /
       RuntimePipeline / DatabaseSystem / BrowserUi   static .astro explainers
     Why / Takeaway        small presentational components used per layer
+    StackNav.astro        cross-stack footer (the deep-dive map) — on every page via Base
     Tracer.svelte         the multi-method capstone
     Struct.svelte         renders a trace step's data structure (hash/window/array/graph/stack)
   layouts/Base.astro      hero, SEO + JSON-LD, spine nav, guided tour, scroll script

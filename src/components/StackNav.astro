@@ -1,0 +1,43 @@
+---
+// The cross-stack footer: a complete map of the deep-dive explorables, shown on
+// every page via Base.astro. On a deep-dive it lists the OTHER stacks (plus a
+// link home); on the main stack it lists all of them. Driven by stacks.js, so
+// adding a stack updates every page's nav at once — no per-page duplication.
+import { stacks } from '../data/stacks.js';
+const { current } = Astro.props;
+const others = stacks.filter((s) => s.slug !== current);
+const onDeepDive = stacks.some((s) => s.slug === current);
+---
+<nav class="stacknav" aria-label="Deep-dive explorables">
+  <div class="stacknav-head">
+    <h2 class="stacknav-h">{onDeepDive ? 'Other deep dives' : 'Go deeper'}</h2>
+    <p class="stacknav-sub">Each one zooms into a single layer of the stack — its own little explorable.</p>
+  </div>
+  <ul class="stacknav-grid">
+    {others.map((s) => (
+      <li class="stacknav-item">
+        <a class="stacknav-link" href={`/${s.slug}`}>
+          <span class="stacknav-layer">layer {s.layer}</span>
+          <span class="stacknav-name">the {s.name} {s.kind}</span>
+          <span class="stacknav-blurb">{s.blurb}</span>
+        </a>
+      </li>
+    ))}
+  </ul>
+  {onDeepDive && <a class="stacknav-home" href="/">← back to the full stack</a>}
+</nav>
+
+<style>
+  .stacknav{max-width:var(--measure,1080px);margin:0 auto;padding:64px 24px 96px;border-top:1px solid var(--border)}
+  .stacknav-head{margin-bottom:24px}
+  .stacknav-h{font-family:var(--display,var(--mono));font-size:clamp(22px,4vw,30px);margin:0 0 6px;color:var(--ink)}
+  .stacknav-sub{margin:0;color:var(--dim);font-size:14px}
+  .stacknav-grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(248px,1fr));gap:12px}
+  .stacknav-link{display:flex;flex-direction:column;gap:5px;height:100%;padding:16px 18px;border:1px solid var(--border);border-radius:14px;background:var(--surface);text-decoration:none;transition:border-color .15s,transform .15s,box-shadow .15s}
+  .stacknav-link:hover,.stacknav-link:focus-visible{border-color:var(--signal);transform:translateY(-2px);box-shadow:0 6px 22px rgba(0,0,0,.18)}
+  .stacknav-layer{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+  .stacknav-name{font-family:var(--display,var(--mono));font-weight:700;font-size:17px;color:var(--ink)}
+  .stacknav-blurb{font-size:13px;color:var(--dim);line-height:1.45}
+  .stacknav-home{display:inline-block;margin-top:24px;font-family:var(--mono);font-size:14px;color:var(--accent,var(--signal));text-decoration:none}
+  .stacknav-home:hover{text-decoration:underline}
+</style>
