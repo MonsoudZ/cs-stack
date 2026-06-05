@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS } from './widgets.js';
+import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat } from './widgets.js';
 
 const sum = (arr) => arr.reduce((a, b) => a + b, 0);
 
@@ -94,5 +94,45 @@ describe('buildCloudHops', () => {
   it('round-robins the app server index into the note', () => {
     expect(buildCloudHops({ server: 0 }).some((h) => h.note.includes('app server #1'))).toBe(true);
     expect(buildCloudHops({ server: 2 }).some((h) => h.note.includes('app server #3'))).toBe(true);
+  });
+});
+
+describe('decodeMiniFloat (toy 8-bit IEEE-754)', () => {
+  // bits are [s, e3,e2,e1,e0, m2,m1,m0]
+  it('decodes a normal number: 0 0111 100 → 1.5', () => {
+    const r = decodeMiniFloat([0, 0, 1, 1, 1, 1, 0, 0]);
+    expect(r.kind).toBe('normal');
+    expect(r.value).toBe(1.5); // 1.100b × 2^0
+  });
+
+  it('applies the sign and exponent: 1 0110 000 → −0.5', () => {
+    expect(decodeMiniFloat([1, 0, 1, 1, 0, 0, 0, 0]).value).toBe(-0.5); // −1.0 × 2^(6−7)
+  });
+
+  it('zero is subnormal with value 0', () => {
+    const r = decodeMiniFloat([0, 0, 0, 0, 0, 0, 0, 0]);
+    expect(r.kind).toBe('subnormal');
+    expect(r.value).toBe(0);
+  });
+
+  it('smallest positive subnormal is 1/8 × 2^-6', () => {
+    expect(decodeMiniFloat([0, 0, 0, 0, 0, 0, 0, 1]).value).toBeCloseTo((1 / 8) * 2 ** -6, 12);
+  });
+
+  it('exponent all ones → infinity (m=0) or NaN (m≠0)', () => {
+    expect(decodeMiniFloat([0, 1, 1, 1, 1, 0, 0, 0])).toMatchObject({ kind: 'inf', value: Infinity });
+    expect(decodeMiniFloat([1, 1, 1, 1, 1, 0, 0, 0]).value).toBe(-Infinity);
+    expect(decodeMiniFloat([0, 1, 1, 1, 1, 1, 0, 0]).kind).toBe('nan');
+  });
+
+  it('representable steps are non-uniform (the "lie"): the gap doubles each octave', () => {
+    // 1.0 (0 0111 000) → next code 0 0111 001 is 1.125; gap 0.125
+    const a = decodeMiniFloat([0, 0, 1, 1, 1, 0, 0, 0]).value; // 1.0
+    const b = decodeMiniFloat([0, 0, 1, 1, 1, 0, 0, 1]).value; // 1.125
+    // 2.0 (0 1000 000) → next 0 1000 001 is 2.25; gap 0.25 (twice as coarse)
+    const c = decodeMiniFloat([0, 1, 0, 0, 0, 0, 0, 0]).value; // 2.0
+    const d = decodeMiniFloat([0, 1, 0, 0, 0, 0, 0, 1]).value; // 2.25
+    expect(b - a).toBeCloseTo(0.125, 12);
+    expect(d - c).toBeCloseTo(0.25, 12);
   });
 });

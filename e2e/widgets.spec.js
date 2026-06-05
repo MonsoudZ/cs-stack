@@ -58,6 +58,19 @@ test('Adder island: setting the high A bit carries into a sum of 16', async ({ p
   }).toPass({ timeout: 8000 });
 });
 
+test('FloatBits island: toggling the sign bit negates the value', async ({ page }) => {
+  await page.goto('/');
+  const widget = page.locator('#L4b');
+  await widget.scrollIntoViewIfNeeded();
+  const val = widget.locator('.val');
+  await expect(val).toContainText('1.5'); // default mini-float
+  const signBit = widget.getByRole('button', { name: /sign bit/ });
+  await expect(async () => {
+    await signBit.click();
+    await expect(val).toContainText('-1.5', { timeout: 400 });
+  }).toPass({ timeout: 8000 });
+});
+
 test('Voltage (CSS-only): tapping the wire flips LOW to HIGH with no JS', async ({ page }) => {
   await page.goto('/');
   const widget = page.locator('.voltage-static');

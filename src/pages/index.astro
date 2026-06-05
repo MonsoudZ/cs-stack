@@ -12,6 +12,7 @@ import SecurityBoundaries from '../components/SecurityBoundaries.astro';
 import Tracer from '../components/Tracer.svelte';
 import Transistor from '../components/Transistor.astro';
 import Adder from '../components/Adder.svelte';
+import FloatBits from '../components/FloatBits.svelte';
 import NumbersThings from '../components/NumbersThings.svelte';
 import RuntimePipeline from '../components/RuntimePipeline.astro';
 import Cpu from '../components/Cpu.svelte';
@@ -96,6 +97,19 @@ import Takeaway from '../components/Takeaway.astro';
       idea="Adder circuits use logic gates to combine two bits plus a carry. Chaining that tiny pattern across a word makes arithmetic happen in hardware."
       tradeoff="Simple adders wait for carries to ripple across the whole number. Faster designs spend more circuitry to shorten that wait."
       next="Now numbers can be transformed, so the same bit patterns can represent data, addresses, or instructions."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.L4b}>
+    <p class="prose">Whole numbers are exact, but the world has fractions. Floating point trades a fixed number of bits for a <b>scientific-notation</b> number: a sign, an exponent that slides the decimal point, and a mantissa for the digits.</p>
+    <FloatBits client:visible />
+    <Takeaway>Floating point can represent a huge range, but only at a grid of values — most decimals get rounded to the nearest one.</Takeaway>
+    <p class="aside">This is why <code>0.1 + 0.2</code> is <code>0.30000000000000004</code>: neither 0.1 nor 0.2 lands exactly on the grid, so the sum carries the rounding error. Same trick as the toy float above — just 64 bits instead of 8.</p>
+    <Why
+      problem="Programs need fractions and a vast range of magnitudes, but a fixed-width integer can only count whole steps over a fixed span."
+      idea="Store numbers like scientific notation: a sign, an exponent that scales, and a mantissa for the significant digits. The same bits can reach from tiny to enormous."
+      tradeoff="The representable values sit on an uneven grid — dense near zero, sparse far away — so most real numbers are rounded, and rounding errors accumulate."
+      next="Once a pattern of bits can mean an integer, a fraction, or much else, the next question is what else a number can stand for."
     />
   </LayerSection>
 

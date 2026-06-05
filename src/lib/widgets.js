@@ -93,3 +93,24 @@ export function buildCloudHops({ cacheHit = false, server = 0 } = {}) {
   add('sidekiq', 0, 'meanwhile, async: a Sidekiq worker pulls the job off the queue and runs it — the user already has their answer', true);
   return h;
 }
+
+// --- 04.5 Floating point: a toy 8-bit IEEE-754 (1 sign · 4 exponent, bias 7 ·
+// 3 mantissa). bits is [s, e3,e2,e1,e0, m2,m1,m0]. Returns the real value it
+// stands for plus the pieces, so the widget can show the decode (and the gaps
+// between representable values — the "lie" of decimals). ---
+export const FLOAT_BIAS = 7;
+export function decodeMiniFloat(bits) {
+  const s = bits[0];
+  const e = (bits[1] << 3) | (bits[2] << 2) | (bits[3] << 1) | bits[4];
+  const m = (bits[5] << 2) | (bits[6] << 1) | bits[7];
+  const sign = s ? -1 : 1;
+  if (e === 15) {
+    if (m === 0) return { value: sign * Infinity, kind: 'inf', sign: s, e, m };
+    return { value: NaN, kind: 'nan', sign: s, e, m };
+  }
+  if (e === 0) {
+    // subnormal: no implicit leading 1, exponent fixed at 1 - bias
+    return { value: sign * (m / 8) * 2 ** (1 - FLOAT_BIAS), kind: 'subnormal', sign: s, e, m, exp: 1 - FLOAT_BIAS, frac: m / 8 };
+  }
+  return { value: sign * (1 + m / 8) * 2 ** (e - FLOAT_BIAS), kind: 'normal', sign: s, e, m, exp: e - FLOAT_BIAS, frac: 1 + m / 8 };
+}

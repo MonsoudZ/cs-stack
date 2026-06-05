@@ -14,6 +14,7 @@ export const layers = [
   { id: 'L2', num: '02', navLabel: 'Logic gates', zone: 'physical', title: 'Gates: transistors that compute true & false', sub: 'logic · boolean algebra' },
   { id: 'L3', num: '03', navLabel: 'Bits → numbers', zone: 'number', title: 'Eight wires become a number', sub: 'numbers · binary place value' },
   { id: 'L4', num: '04', navLabel: 'Arithmetic', zone: 'number', title: 'Gates that add — arithmetic from logic', sub: 'numbers · the ripple-carry adder' },
+  { id: 'L4b', num: '04.5', navLabel: 'Floating point', zone: 'number', title: 'Floating point: the convenient lie of decimals', sub: 'numbers · IEEE-754 · sign · exponent · mantissa' },
   { id: 'L5', num: '05', navLabel: 'Numbers → things', zone: 'meaning', title: 'The same number, pretending to be many things', sub: 'meaning · encoding' },
   { id: 'L5b', num: '05.5', navLabel: 'Runtime', zone: 'meaning', title: 'Runtime: how code stops being text', sub: 'meaning · parsing · bytecode · machine code' },
   { id: 'L6', num: '06', navLabel: 'The CPU', zone: 'system', title: 'The CPU: a loop that obeys numbers', sub: 'systems · fetch · decode · execute' },
