@@ -1,13 +1,11 @@
 <script>
-  import { onDestroy } from 'svelte';
-  import { createStepper } from '../lib/stepper.svelte.js';
+  import { useStepper } from '../lib/stepper.svelte.js';
   import { buildPkt, PACKET_FRAGMENTS as FRAG } from '../lib/widgets.js';
   import Stepper from './Stepper.svelte';
-  const stepper = createStepper(buildPkt, { speed: 750 });
+  const stepper = useStepper(buildPkt, { speed: 750 });
   const { idx } = stepper;
   let s = $derived(stepper.all()[$idx]);
   let preview = $derived(s.slots.map((f) => f === null ? '····' : f).join(''));
-  onDestroy(() => stepper.destroy());
 </script>
 <div class="widget">
   <div class="csbar"><span class="csmini">the same request, chopped into 6 packets crossing a lossy internet</span></div>

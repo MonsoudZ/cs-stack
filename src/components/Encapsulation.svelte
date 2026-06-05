@@ -1,13 +1,11 @@
 <script>
-  import { onDestroy } from 'svelte';
-  import { createStepper } from '../lib/stepper.svelte.js';
+  import { useStepper } from '../lib/stepper.svelte.js';
   import { buildEnc } from '../lib/widgets.js';
   import Stepper from './Stepper.svelte';
-  const stepper = createStepper(buildEnc, { speed: 1100 });
+  const stepper = useStepper(buildEnc, { speed: 1100 });
   const { idx } = stepper;
   let s = $derived(stepper.all()[$idx]);
   let head = $derived(s.bytes - 22);
-  onDestroy(() => stepper.destroy());
 </script>
 <div class="widget">
   <div class="csbar"><span class="csmini">one HTTP request · wrapped going down, unwrapped going up</span></div>

@@ -1,4 +1,5 @@
 import { writable } from 'svelte/store';
+import { onDestroy } from 'svelte';
 
 // createStepper(buildFn, {speed}) ->
 //   { idx, autoOn, version (stores), stepOrRestart, reset, toggleAuto, rebuild,
@@ -46,4 +47,13 @@ export function createStepper(buildFn, { speed = 900 } = {}) {
   function destroy() { stop(); unsubscribe(); }
 
   return { idx, autoOn, version, stepOrRestart, reset, toggleAuto, rebuild, move, setIndex, current, isLast, all, destroy };
+}
+
+// Component-facing wrapper: same as createStepper, but registers destroy() on
+// the current component's onDestroy so a widget can never leak its timer or
+// subscription. Call it at the top of a Svelte <script> (component init).
+export function useStepper(buildFn, opts) {
+  const stepper = createStepper(buildFn, opts);
+  onDestroy(() => stepper.destroy());
+  return stepper;
 }

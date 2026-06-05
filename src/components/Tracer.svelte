@@ -1,6 +1,6 @@
 <script>
   import { onDestroy } from 'svelte';
-  import { createStepper } from '../lib/stepper.svelte.js';
+  import { useStepper } from '../lib/stepper.svelte.js';
   import { METHODS, METHOD_ORDER, LNAME, LCLASS, LID, LNUM } from '../lib/traces.js';
   import Stepper from './Stepper.svelte';
   import Struct from './Struct.svelte';
@@ -16,7 +16,7 @@
   }
   const init = fromUrl();
   let cur = $state(init.trace);
-  const stepper = createStepper(() => METHODS[cur].build(), { speed: 950 });
+  const stepper = useStepper(() => METHODS[cur].build(), { speed: 950 });
   const idx = stepper.idx;
   const version = stepper.version;
   idx.set(Math.min(init.step, stepper.all().length - 1)); // restore shared step
@@ -61,7 +61,7 @@
     return ok;
   }
 
-  onDestroy(() => { stepper.destroy(); clearTimeout(copyReset); });
+  onDestroy(() => clearTimeout(copyReset)); // stepper teardown handled by useStepper
 
   async function copyTraceLink() {
     if (typeof window === 'undefined') return;

@@ -1,12 +1,10 @@
 <script>
-  import { onDestroy } from 'svelte';
-  import { createStepper } from '../lib/stepper.svelte.js';
+  import { useStepper } from '../lib/stepper.svelte.js';
   import { buildCpu } from '../lib/widgets.js';
   import Stepper from './Stepper.svelte';
-  const stepper = createStepper(buildCpu, { speed: 650 });
+  const stepper = useStepper(buildCpu, { speed: 650 });
   const { idx } = stepper;
   let s = $derived(stepper.all()[$idx]);
-  onDestroy(() => stepper.destroy());
 </script>
 <div class="widget">
   <div class="w-label">a tiny program · press STEP</div>

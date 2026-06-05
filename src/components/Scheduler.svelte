@@ -1,15 +1,13 @@
 <script>
-  import { onDestroy } from 'svelte';
-  import { createStepper } from '../lib/stepper.svelte.js';
+  import { useStepper } from '../lib/stepper.svelte.js';
   import { simulateScheduler } from '../lib/sim.js';
   import Stepper from './Stepper.svelte';
   const sim = simulateScheduler();
   const PROCS = sim.PROCS;
-  const stepper = createStepper(() => sim.steps, { speed: 600 });
+  const stepper = useStepper(() => sim.steps, { speed: 600 });
   const { idx } = stepper;
   let s = $derived(stepper.all()[$idx]);
   let doneIds = $derived(s.states.map((st, i) => st === 'done' ? i : -1).filter((i) => i >= 0));
-  onDestroy(() => stepper.destroy());
 </script>
 {#snippet chip(i, sub)}
   <span class="pchip"><span class="dot proc-dot proc-{i}"></span>{PROCS[i].name}{#if sub}<span class="sub">{sub}</span>{/if}</span>

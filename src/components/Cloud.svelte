@@ -1,6 +1,5 @@
 <script>
-  import { onDestroy } from 'svelte';
-  import { createStepper } from '../lib/stepper.svelte.js';
+  import { useStepper } from '../lib/stepper.svelte.js';
   import { buildCloudHops } from '../lib/widgets.js';
   import Stepper from './Stepper.svelte';
   let cacheHit = $state(false);
@@ -8,7 +7,7 @@
   // requests land on different servers. Starts at -1 so the first build → 0.
   let server = $state(-1);
   const nextHops = () => { server = (server + 1) % 3; return buildCloudHops({ cacheHit, server }); };
-  const stepper = createStepper(nextHops, { speed: 850 });
+  const stepper = useStepper(nextHops, { speed: 850 });
   const { idx, version } = stepper;
   // `$version` is the dependency that makes the hop list recompute when
   // toggleCache rebuilds the steps (the cache hit/miss path) — without it this
@@ -20,7 +19,6 @@
   let lat = $derived(hops.slice(0, i + 1).filter((h) => !h.async).reduce((a, h) => a + h.ms, 0));
   function toggleCache() { cacheHit = !cacheHit; server = (server - 1 + 3) % 3; stepper.reset(); }
   const at = (k) => hop.loc === k;
-  onDestroy(() => stepper.destroy());
 </script>
 {#snippet node(key, cn, cd, dim)}
   <div class="cnode {at(key) ? 'active' : (visited.has(key) ? 'visited' : '')} {dim ? 'dim' : ''}" aria-current={at(key) ? 'true' : undefined}><div class="cn">{cn}</div><div class="cd">{cd}</div></div>

@@ -1,16 +1,14 @@
 <script>
-  import { onDestroy } from 'svelte';
-  import { createStepper } from '../lib/stepper.svelte.js';
+  import { useStepper } from '../lib/stepper.svelte.js';
   import { buildFact } from '../lib/sim.js';
   import Stepper from './Stepper.svelte';
   let N = $state(4);
-  const stepper = createStepper(() => buildFact(N), { speed: 850 });
+  const stepper = useStepper(() => buildFact(N), { speed: 850 });
   const { idx, version } = stepper;
   // `$version` keeps this in sync when setDepth rebuilds at step 0 (idx alone
   // would not change, so the derived would keep the old depth's frames).
   let step = $derived(($version, stepper.all()[$idx]));
   function setDepth(n) { N = n; stepper.rebuild(() => buildFact(N)); }
-  onDestroy(() => stepper.destroy());
 </script>
 <div class="widget">
   <div class="csbar">
