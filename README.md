@@ -1,57 +1,78 @@
-# THE STACK — Astro + Svelte islands + MDX
+# THE STACK — Astro + Svelte islands
 
 An "explorable explanation" of the computing stack, from silicon to the cloud.
-Restructured from a single 111KB HTML file into a real component project.
+Restructured from a single large HTML file into a real component project: ~20
+layers you can poke, climbing from electrons to the cloud, capped by a tracer
+that runs a real algorithm through every layer at once.
 
 ## Why this architecture
 - **Astro** ships the prose as static HTML with **zero JavaScript**. Only the
   interactive widgets become hydrated "islands" (`client:visible`), so they load
   lazily as you scroll. The page is fast and the JS is tiny and per-widget.
-- **Svelte** for the widgets: the step-clock + animation logic is far cleaner as
-  reactive components than as hand-rolled DOM updates.
-- The **validated algorithm logic is untouched** — it lives as pure JS in
-  `src/lib/` (the exact functions tested in the original build). Components are
-  thin: they call a builder, then render the current step.
+- **Svelte** for the step-through widgets: the clock + animation logic is far
+  cleaner as reactive components than as hand-rolled DOM updates.
+- Two layers are **plain `.astro` + a CSS checkbox trick** (Voltage, Transistor)
+  so they're interactive with zero JS; the static explainer sections are `.astro`
+  too. The spine nav and guided tour are progressive enhancement — they work
+  (navigation) or degrade gracefully without JS.
+- The **algorithm logic is pure, framework-agnostic JS** in `src/lib/` and is
+  unit-tested; components are thin (call a builder, render the current step).
 
 ## Run it
 ```bash
 npm install
 npm run dev      # http://localhost:4321
-npm run build    # static site -> dist/ (deploy anywhere, incl. Railway)
-npm test         # vitest — verifies every traced algorithm produces its stated answer
-npm run audit    # build + regex gate + axe-core accessibility checks on the HTML
-npm run test:e2e # playwright — drives chromium to confirm the widgets hydrate & respond
+npm run build    # static site -> dist/ (deploy anywhere)
+npm test         # vitest — unit tests for the trace/sim/stepper/widget logic
+npm run audit    # build + regex quality gate + axe-core a11y checks on the HTML
+npm run test:e2e # playwright — drives chromium to confirm the islands hydrate & respond
+npm run gen:og   # regenerate public/og.png (only when the branding changes)
 ```
+CI (`.github/workflows/ci.yml`) runs `test` + `audit` on one job and `test:e2e`
+on another for every push and PR.
 
 ## Layout
 ```
 src/
-  styles/global.css      design system (tokens + every widget class) — reused as-is
+  data/layers.js          single source of truth for the layers (id, num, label,
+                          zone, title, sub) — both the nav and the sections read it
+  styles/                 global.css just @imports base.css + widgets.css + mobile.css
   lib/
-    stepper.svelte.js     shared STEP/AUTO/RESET store — every step widget uses it
-    traces.js             capstone: 4 algorithms (twosum/bsearch/bfs/recursion) + struct renderers
+    stepper.svelte.js     shared STEP / AUTO / RESET store — every step widget uses it
+    traces.js             the capstone: 12 traced algorithms + the layer-touch maps
     sim.js                scheduler simulation + factorial call-stack builder
+    widgets.js            pure build*() functions for the CPU/network/cloud widgets
+    *.test.js             unit tests (answers, termination, shape, stepper lifecycle)
   components/
-    Stepper.svelte        shared controls (props: a stepper)
-    Voltage / Mosfet      toggle + slider widgets
-    LogicGate / Bits      gate truth-table + 8-bit register
-    CallStack / Scheduler step-through system widgets
+    LayerSection.astro    section wrapper + standard head (metadata via props)
+    Stepper.svelte        shared STEP/AUTO/RESET controls (props: a stepper)
+    Voltage / Transistor  .astro, CSS-only interactive (no JS)
+    Mosfet / LogicGate / Bits / Adder / NumbersThings   Svelte island widgets
+    Cpu / CallStack / Scheduler / Encapsulation / Packets / Cloud   step-through islands
+    MemoryHierarchy / DataStructures / SecurityBoundaries /
+      RuntimePipeline / DatabaseSystem / BrowserUi   static .astro explainers
+    Why / Takeaway        small presentational components used per layer
     Tracer.svelte         the multi-method capstone
-  layouts/Base.astro      hero, spine nav, background, scroll script
-  pages/index.astro       composes the 14 layer sections, hydrates each island
+    Struct.svelte         renders a trace step's data structure (hash/window/array/graph/stack)
+  layouts/Base.astro      hero, SEO + JSON-LD, spine nav, guided tour, scroll script
+  pages/
+    index.astro           composes the layer sections, hydrates each island
+    robots.txt.js         robots.txt generated from `site`
+scripts/
+  audit.mjs               regex source/HTML quality gate (used by `npm run audit`)
+  a11y.mjs                axe-core accessibility gate over the built HTML
+  gen-og.mjs              renders the 1200x630 social image
+e2e/                      playwright interaction tests
 ```
 
-## Status
-**All 13 interactive widgets are ported and building** as Svelte islands:
-−01 silicon, 00 voltage, 01 transistor, 02 logic gates, 03 bits, 04 adder,
-05 numbers→things, 06 CPU, 07 memory (call stack), 08 OS (scheduler),
-09 network (encapsulation + packets), 10 cloud, and the ★ tracer (now 9 algorithms).
+## The tracer
+The `★ Trace` capstone runs one of **12 algorithms** step-by-step through every
+layer at once — source line, VM ops, the data structure mutating in memory, and
+the CPU arithmetic: two-sum (hashing), binary search, BFS, DFS, recursion,
+two-pointer, sliding window, DP/memo, insertion + bubble sort, linear search,
+and Kadane's max subarray. The trace + step are deep-linkable (`?trace=bfs&step=4`).
 
-Each step-through widget shares `createStepper` (`src/lib/stepper.svelte.js`);
-the validated algorithm logic lives as pure JS in `src/lib/` and inside each
-component's builder, untouched from the tested single-file original.
-
-## Optional: move prose to MDX
-`@astrojs/mdx` is installed. To author content in Markdown with inline components,
-rename a page to `.mdx` and `import` the components at the top — the prose then
-lives as Markdown instead of inside `index.astro`.
+## Deploying
+Set `site` in `astro.config.mjs` to your real origin before launch — it's the
+only place the domain lives and it drives the canonical/OG URLs, sitemap,
+robots.txt, and JSON-LD. Then `npm run build` and serve `dist/`.

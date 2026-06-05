@@ -14,7 +14,6 @@
     "audit": "ASTRO_TELEMETRY_DISABLED=1 npm run build && node scripts/audit.mjs && node scripts/a11y.mjs"
   },
   "dependencies": {
-    "@astrojs/mdx": "^6.0.1",
     "@astrojs/sitemap": "^3.7.3",
     "@astrojs/svelte": "^8.1.2",
     "@fontsource-variable/bricolage-grotesque": "^5.2.10",
