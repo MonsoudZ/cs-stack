@@ -1,0 +1,128 @@
+---
+import Base from '../layouts/Base.astro';
+import LayerSection from '../components/LayerSection.astro';
+import { compilerLayers } from '../data/compilerLayers.js';
+import Tokenizer from '../components/Tokenizer.svelte';
+import BytecodeVm from '../components/BytecodeVm.svelte';
+import Why from '../components/Why.astro';
+import Takeaway from '../components/Takeaway.astro';
+const L = Object.fromEntries(compilerLayers.map((l) => [l.id, l]));
+const title = 'THE STACK — the compiler';
+const description = 'A deep dive into how code stops being text: lexing into tokens, parsing into an AST, lowering to bytecode, optimizing, and running it — interpreted, compiled, or JIT.';
+---
+<Base {title} {description} layers={compilerLayers}>
+  <div slot="hero">
+    <div class="kicker">A deep dive into layer 05.5</div>
+    <h1 class="title">THE <em>COMPILER</em><br />STACK</h1>
+    <p class="lede">You write <code>3 + 4 * 2</code>; the CPU runs numbered operations. Between them is a pipeline that scans, parses, lowers, optimizes, and finally executes — turning text into something a machine can obey.</p>
+    <div class="hero-meta"><a class="back-link" href="/">← back to the full stack</a> · source → tokens → tree → bytecode → run</div>
+  </div>
+
+  <LayerSection {...L.K0}>
+    <p class="prose">Source code is a <b>human</b> artifact: names, indentation, comments, infix math like <code>3 + 4 * 2</code>. The machine cares about none of it — to run, the text has to be taken apart and rebuilt as operations.</p>
+    <Takeaway>Source is for people; everything below this layer exists to translate it into something a CPU can execute.</Takeaway>
+    <Why
+      problem="A CPU executes numbered instructions, but people write expressive text full of conventions a processor has no concept of."
+      idea="Treat the source as input to a pipeline of transformations, each step a little closer to machine operations."
+      tradeoff="More translation stages mean more to build and more places for bugs, but also room to check errors early and optimize."
+      next="The first transformation is the simplest: chop the text into tokens."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.K1}>
+    <p class="prose">The <b>scanner</b> (lexer) reads the characters left to right and groups them into <span class="hl">tokens</span> — a number, an operator — throwing away whitespace. It's the same idea as reading letters into words.</p>
+    <Tokenizer client:visible />
+    <Takeaway>Lexing turns a flat character stream into a clean stream of typed tokens the parser can reason about.</Takeaway>
+    <Why
+      problem="Working character by character is painful: the parser would constantly re-ask “is this a digit? a space? part of a number?”"
+      idea="Do that classification once up front, producing tokens with a type and text, so later stages work with words instead of letters."
+      tradeoff="The lexer must agree exactly with the language's rules (what's a valid number, identifier, operator) or everything downstream misreads the program."
+      next="A flat list of tokens still has no structure — parsing gives it a shape."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.K2}>
+    <p class="prose">The <b>parser</b> turns the token stream into a tree (an <span class="hl">AST</span>) that captures structure and <b>precedence</b>: because <code>×</code> binds tighter than <code>+</code>, the multiply sits deeper, so it will be evaluated first.</p>
+    <div class="widget">
+      <div class="w-label">3 + 4 * 2, as a tree — depth encodes precedence</div>
+      <div class="ast">
+        <div class="ast-node">
+          <span class="ast-val ast-op">+</span>
+          <div class="ast-kids">
+            <div class="ast-node"><span class="ast-val ast-num">3</span></div>
+            <div class="ast-node">
+              <span class="ast-val ast-op">×</span>
+              <div class="ast-kids">
+                <div class="ast-node"><span class="ast-val ast-num">4</span></div>
+                <div class="ast-node"><span class="ast-val ast-num">2</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <Takeaway>The AST is the program's meaning made explicit — grammar and precedence baked into the shape of a tree.</Takeaway>
+    <Why
+      problem="Tokens in a row are ambiguous: does 3 + 4 * 2 mean (3 + 4) * 2 or 3 + (4 * 2)? Order changes the answer."
+      idea="Parse the tokens against the language's grammar into a tree where nesting encodes precedence and associativity — no ambiguity left."
+      tradeoff="Grammars get intricate fast, and good error messages (“expected a ) here”) are surprisingly hard to produce from a parser."
+      next="A tree is still abstract — lowering flattens it into linear operations."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.K3}>
+    <p class="prose">Walking the tree, the compiler emits a flat list of <b>bytecode</b> for a simple stack machine: push the operands, then let each operator pop two and push the result. Evaluating it is exactly the fetch-decode-execute loop of layer 06.</p>
+    <BytecodeVm client:visible />
+    <Takeaway>Lowering turns the tree into a linear instruction stream — the bridge from "structure" to "operations a machine runs."</Takeaway>
+    <Why
+      problem="A tree is convenient to reason about but not to execute; hardware and VMs run a linear sequence of simple operations."
+      idea="Traverse the AST and emit stack-machine (or register) instructions, so evaluation becomes a tight loop over a flat program."
+      tradeoff="Different targets (a VM's bytecode vs a real ISA) want different lowerings, and naive code generation leaves obvious waste behind."
+      next="That waste is what the optimizer removes."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.K4}>
+    <p class="prose">Before running, the compiler rewrites the program to do <b>less work for the same result</b>. <code>4 * 2</code> is constant, so <span class="hl">fold</span> it to <code>8</code> at compile time; unreachable branches are dropped as dead code.</p>
+    <Takeaway>Optimization is a search for a cheaper program that computes the identical answer — the user never sees the difference, except in speed.</Takeaway>
+    <Why
+      problem="Straightforward code generation is correct but wasteful: redundant computation, values recomputed, branches that can never run."
+      idea="Apply meaning-preserving rewrites — constant folding, dead-code elimination, inlining, common-subexpression elimination — guided by what the IR proves is safe."
+      tradeoff="Optimizations must never change behavior, which makes them subtle; aggressive ones cost compile time and can expose latent bugs."
+      next="Optimized or not, something finally has to execute the program."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.K5}>
+    <p class="prose">Three ways to actually run it: an <b>interpreter</b> walks the bytecode op by op (simple, portable, slower); an <b>ahead-of-time compiler</b> emits machine code once (fast start, less portable); a <b>JIT</b> interprets first, then compiles the hot paths to native code while running.</p>
+    <Takeaway>Interpret, compile ahead of time, or JIT — the same pipeline, differing only in when (and whether) bytecode becomes machine code.</Takeaway>
+    <Why
+      problem="Producing operations isn't enough — they have to execute, and the right strategy depends on startup time, peak speed, and portability."
+      idea="Pick where on the spectrum to sit: interpret bytecode directly, compile it all up front, or compile just the parts that run hot, just in time."
+      tradeoff="Interpreters are slow but simple; AOT is fast but rigid; JITs are fast and adaptive but carry a compiler at runtime and warm-up cost."
+      next="Zoom out: this whole pipeline is one rung of the climb from electrons to the cloud."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.K6}>
+    <p class="prose">End to end: <b>source</b> text is <b>scanned</b> into tokens, <b>parsed</b> into a tree that fixes precedence, <b>lowered</b> into linear bytecode, <b>optimized</b> to do less, and finally <b>run</b> — interpreted or compiled down to the numbered instructions the CPU obeys.</p>
+    <Takeaway>"Running a program" is this entire pipeline — most of it usually finished before your code ever executes a line.</Takeaway>
+    <Why
+      problem="It's easy to think of code as something the computer just reads and does; the gap between text and execution is invisible until it breaks."
+      idea="Each stage hands a cleaner, lower-level representation to the next — characters to tokens to tree to operations to machine code."
+      tradeoff="The pipeline buys expressive languages and portability at the cost of build complexity, and leaky abstractions (compile errors, performance cliffs) when a stage's assumptions break."
+      next="This is the bridge the main stack's Runtime layer points at — the rest of the climb is the machine that runs the result."
+    />
+  </LayerSection>
+</Base>
+
+<style>
+  .back-link{color:var(--accent,var(--signal))}
+  .ast{display:flex;justify-content:center;font-family:var(--mono);padding:8px 0}
+  .ast-node{display:flex;flex-direction:column;align-items:center;gap:12px}
+  .ast-val{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;border:2px solid var(--border)}
+  .ast-op{border-color:var(--blue);color:var(--blue);background:var(--blue-d)}
+  .ast-num{border-color:var(--amber);color:var(--amber);background:var(--amber-d)}
+  .ast-kids{display:flex;gap:22px;align-items:flex-start;position:relative;padding-top:14px}
+  .ast-kids::before{content:"";position:absolute;top:0;left:50%;width:1px;height:14px;background:var(--border)}
+</style>

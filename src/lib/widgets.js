@@ -183,3 +183,46 @@ export function buildDns({ name = 'thestack.dev', ip = '93.184.216.34' } = {}) {
   snap('resolver', 'cache', 'the resolver caches the answer (until its TTL expires) and hands the IP back to your app', ip);
   return out;
 }
+
+// --- COMPILER STACK (/compiler) ---
+
+// Lexing: scan source text left to right, grouping characters into tokens.
+export function buildLex({ source = '3 + 4 * 2' } = {}) {
+  const out = [];
+  const tokens = [];
+  const typeOf = (c) => (/[0-9]/.test(c) ? 'num' : c === '+' ? 'plus' : c === '*' ? 'star' : 'op');
+  const snap = (pos, note) => out.push({ pos, source, tokens: tokens.map((t) => ({ ...t })), note });
+  snap(-1, 'the scanner reads "' + source + '" left to right, grouping characters into tokens');
+  for (let i = 0; i < source.length; i++) {
+    const c = source[i];
+    if (c === ' ') { snap(i, 'skip the space — whitespace separates tokens but isn’t one'); continue; }
+    const type = typeOf(c);
+    tokens.push({ type, text: c });
+    snap(i, 'emit a ' + type.toUpperCase() + ' token "' + c + '"');
+  }
+  snap(-1, tokens.length + ' tokens — the raw text is now a clean stream the parser can read');
+  return out;
+}
+
+// Bytecode VM: run `3 + 4 * 2` as stack-machine ops (postfix 3 4 2 * +). Operands
+// push; operators pop two and push the result. Returns steps; last carries the value.
+export function buildVm() {
+  const PROG = [
+    { op: 'PUSH', arg: 3 }, { op: 'PUSH', arg: 4 }, { op: 'PUSH', arg: 2 }, { op: 'MUL' }, { op: 'ADD' },
+  ];
+  const prog = PROG.map((p) => (p.arg !== undefined ? p.op + ' ' + p.arg : p.op));
+  const out = [];
+  const stack = [];
+  const snap = (cur, note, result = null) => out.push({ cur, prog, stack: stack.slice(), note, result });
+  snap(-1, 'the expression 3 + 4 * 2 compiled to stack-machine bytecode — operands push, operators pop two and push the result');
+  PROG.forEach((ins, i) => {
+    if (ins.op === 'PUSH') { stack.push(ins.arg); snap(i, 'PUSH ' + ins.arg + ' → stack [' + stack.join(', ') + ']'); }
+    else {
+      const b = stack.pop(), a = stack.pop(), r = ins.op === 'MUL' ? a * b : a + b;
+      stack.push(r);
+      snap(i, ins.op + ' → pop ' + a + ' and ' + b + ', push ' + a + (ins.op === 'MUL' ? ' × ' : ' + ') + b + ' = ' + r);
+    }
+  });
+  snap(-1, 'one value left on the stack: 3 + 4 × 2 = ' + stack[0] + ' — × bound tighter, so it ran first', stack[0]);
+  return out;
+}

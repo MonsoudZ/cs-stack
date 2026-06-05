@@ -58,6 +58,30 @@ test('Adder island: setting the high A bit carries into a sum of 16', async ({ p
   }).toPass({ timeout: 8000 });
 });
 
+test('Compiler page: own nav, tokenizer emits tokens, the VM evaluates to 11', async ({ page }) => {
+  await page.goto('/compiler');
+  await expect(page.locator('h1.title')).toContainText('COMPILER');
+  await expect(page.locator('.spine .rung')).toHaveCount(7);
+  // lexer: stepping emits tokens
+  const lex = page.locator('#K1');
+  await lex.scrollIntoViewIfNeeded();
+  for (let i = 0; i < 5; i++) {
+    await lex.locator('.cpu-ctrl button').first().click();
+    if (await lex.locator('.lex-tok').count()) break;
+    await page.waitForTimeout(40);
+  }
+  await expect(lex.locator('.lex-tok').first()).toBeVisible();
+  // VM: stepping runs the bytecode to a result of 11
+  const vm = page.locator('#K3');
+  await vm.scrollIntoViewIfNeeded();
+  for (let i = 0; i < 8; i++) {
+    await vm.locator('.cpu-ctrl button').first().click();
+    if (await vm.locator('.vm-result.show').count()) break;
+    await page.waitForTimeout(40);
+  }
+  await expect(vm.locator('.vm-result')).toContainText('11');
+});
+
 test('Network page: own nav, routing TTL counts down, DNS resolves to an IP', async ({ page }) => {
   await page.goto('/network');
   await expect(page.locator('h1.title')).toContainText('NETWORK');

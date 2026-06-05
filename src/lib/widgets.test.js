@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns } from './widgets.js';
+import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm } from './widgets.js';
 
 const sum = (arr) => arr.reduce((a, b) => a + b, 0);
 
@@ -163,6 +163,26 @@ describe('buildDns (resolver walk)', () => {
     expect(steps.map((s) => s.kind)).toEqual(['ask', 'referral', 'referral', 'answer', 'cache']);
     expect(steps.find((s) => s.kind === 'answer').answer).toBe('93.184.216.34');
     expect(steps.at(-1).answer).toBe('93.184.216.34'); // resolver returns the cached IP
+  });
+});
+
+describe('buildLex (tokenizer)', () => {
+  const steps = buildLex();
+  it('turns "3 + 4 * 2" into 5 tokens, skipping whitespace', () => {
+    const toks = steps.at(-1).tokens;
+    expect(toks.map((t) => t.text)).toEqual(['3', '+', '4', '*', '2']);
+    expect(toks.map((t) => t.type)).toEqual(['num', 'plus', 'num', 'star', 'num']);
+  });
+});
+
+describe('buildVm (stack machine)', () => {
+  const steps = buildVm();
+  it('evaluates 3 + 4 * 2 = 11 with × binding tighter', () => {
+    expect(steps.at(-1).result).toBe(11);
+    expect(steps.at(-1).stack).toEqual([11]);
+  });
+  it('the operand stack peaks at 3 entries (PUSH 3, 4, 2)', () => {
+    expect(Math.max(...steps.map((s) => s.stack.length))).toBe(3);
   });
 });
 

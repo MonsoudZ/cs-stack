@@ -144,6 +144,7 @@ import Takeaway from '../components/Takeaway.astro';
     <p class="prose">Your source code is for humans. Before the CPU can obey it, language tools have to turn that text into structured operations.</p>
     <RuntimePipeline />
     <Takeaway>A runtime is the bridge between human language and machine operations.</Takeaway>
+    <p class="prose prose-follow"><a href="/compiler">→ go deeper: <b>the compiler stack</b></a> — lex an expression into tokens, parse it into a tree, lower it to bytecode, and run it on a stack machine.</p>
     <Why
       problem="The CPU cannot execute JavaScript, Ruby, Python, or C source text. It only follows lower-level operations."
       idea="Language tools parse the text, check structure, lower it into simpler steps, and either interpret, compile, or JIT those steps into CPU work."
