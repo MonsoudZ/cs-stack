@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum, DOPING, buildDiode, cmosInverter, ALU_OPS, computeAlu, PIPE_STAGES, buildPipeline, buildDeadlock, buildCas, buildLoadBalancer, buildReplication } from './widgets.js';
+import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum, DOPING, buildDiode, cmosInverter, ALU_OPS, computeAlu, PIPE_STAGES, buildPipeline, buildDeadlock, buildCas, buildLoadBalancer, buildReplication, buildLinkedList, buildStackQueue, GRAPH, buildGraphTraversal } from './widgets.js';
 
 const popcount = (n) => { let c = 0; n >>>= 0; while (n) { c += n & 1; n >>>= 1; } return c; };
 
@@ -506,6 +506,44 @@ describe('buildReplication (read replicas / eventual consistency)', () => {
     const last = steps[steps.length - 1];
     expect(last.primary).toBe(1);
     expect(last.replicas.every((r) => r.v === 1)).toBe(true);
+  });
+});
+
+describe('buildLinkedList (pointer insert)', () => {
+  const steps = buildLinkedList();
+  it('inserts 15 between 10 and 20 by repointing — final order 10,15,20,30', () => {
+    expect(steps[steps.length - 1].chain).toEqual([10, 15, 20, 30]);
+  });
+  it('stages the new node before it is linked in', () => {
+    expect(steps.some((s) => s.staged === 15 && !s.chain.includes(15))).toBe(true);
+  });
+});
+
+describe('buildStackQueue (LIFO vs FIFO)', () => {
+  const steps = buildStackQueue();
+  const removes = steps.filter((s) => s.op === 'remove');
+  it('the stack pops last-in-first-out (3 then 2)', () => {
+    expect(removes.map((s) => s.stackOut)).toEqual([3, 2]);
+  });
+  it('the queue removes first-in-first-out (1 then 2)', () => {
+    expect(removes.map((s) => s.queueOut)).toEqual([1, 2]);
+  });
+  it('after two removals, the stack keeps 1 and the queue keeps 3', () => {
+    const last = steps[steps.length - 1];
+    expect(last.stack).toEqual([1]);
+    expect(last.queue).toEqual([3]);
+  });
+});
+
+describe('buildGraphTraversal (BFS)', () => {
+  const steps = buildGraphTraversal();
+  it('visits breadth-first from A in order A,B,C,D,E', () => {
+    expect(steps[steps.length - 1].visited).toEqual(['A', 'B', 'C', 'D', 'E']);
+  });
+  it('every node is reached exactly once', () => {
+    const visits = steps.filter((s) => s.current).map((s) => s.current);
+    expect(new Set(visits).size).toBe(GRAPH.nodes.length);
+    expect(visits).toHaveLength(GRAPH.nodes.length);
   });
 });
 

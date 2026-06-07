@@ -10,7 +10,7 @@ export const stacks = [
   { slug: 'compiler', name: 'Compiler', kind: 'stack', layer: '05.5', accent: '#a78bfa', blurb: 'lexing, parsing, bytecode, and a tiny VM' },
   { slug: 'cpu', name: 'CPU', kind: 'stack', layer: '06', accent: '#5b9dff', blurb: 'registers, fetch-decode-execute, the ALU, pipelining, and the clock' },
   { slug: 'memory', name: 'Memory', kind: 'stack', layer: '06.5', accent: '#5b9dff', blurb: 'caches, the hierarchy, virtual memory, and the TLB' },
-  { slug: 'structures', name: 'Structures', kind: 'stack', layer: '07.5', accent: '#2ee6c0', blurb: 'dynamic arrays, hash maps, trees, and Big-O' },
+  { slug: 'structures', name: 'Structures', kind: 'stack', layer: '07.5', accent: '#2ee6c0', blurb: 'linked lists, stacks & queues, hash maps, trees, and graphs' },
   { slug: 'os', name: 'OS', kind: 'stack', layer: '08', accent: '#5b9dff', blurb: 'the scheduler, context switches, syscalls, and interrupts' },
   { slug: 'concurrency', name: 'Concurrency', kind: 'stack', layer: '08.2', accent: '#a78bfa', blurb: 'threads, race conditions, deadlock, and lock-free atomics' },
   { slug: 'crypto', name: 'Crypto', kind: 'stack', layer: '08.5', accent: '#ff6b6b', blurb: 'hashing, keys, key exchange, certificates, and TLS' },

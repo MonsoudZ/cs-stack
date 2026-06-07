@@ -3,15 +3,19 @@ import Base from '../layouts/Base.astro';
 import LayerSection from '../components/LayerSection.astro';
 import { structLayers } from '../data/structLayers.js';
 import DynamicArray from '../components/DynamicArray.svelte';
+import LinkedList from '../components/LinkedList.svelte';
+import StackQueue from '../components/StackQueue.svelte';
 import HashMap from '../components/HashMap.svelte';
 import BTreeSearch from '../components/BTreeSearch.svelte';
+import Graph from '../components/Graph.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
 const L = Object.fromEntries(structLayers.map((l) => [l.id, l]));
 const title = 'THE STACK — data structures';
-const description = 'A deep dive into data structures: arrays and contiguous memory, dynamic arrays that grow by doubling, hash maps that turn keys into buckets, trees that search by halving, and the Big-O trade-offs that make you choose.';
+const description = 'A deep dive into data structures: arrays, linked lists, dynamic arrays, stacks and queues, hash maps, trees, graphs, and the Big-O trade-offs that make you choose between them.';
 const bigo = [
   { name: 'Array (by index)', lookup: 'O(1)', search: 'O(n)', insert: 'O(n)', note: 'instant if you know where; slow to find or insert in the middle' },
+  { name: 'Linked list', lookup: 'O(n)', search: 'O(n)', insert: 'O(1)', note: 'no random access, but splicing a known spot is just two pointer writes' },
   { name: 'Dynamic array (append)', lookup: 'O(1)', search: 'O(n)', insert: 'O(1)*', note: '*amortized — the occasional doubling averages out' },
   { name: 'Hash map', lookup: '—', search: 'O(1)*', insert: 'O(1)*', note: '*average; great by key, but unordered and worst-case O(n)' },
   { name: 'Balanced tree', lookup: '—', search: 'O(log n)', insert: 'O(log n)', note: 'a bit slower than a hash, but stays sorted for ranges' },
@@ -22,7 +26,7 @@ const bigo = [
     <div class="kicker">A deep dive into layer 07.5</div>
     <h1 class="title">THE <em>STRUCTURES</em><br />STACK</h1>
     <p class="lede">Memory is just numbered boxes. A data structure is a rule for laying values into those boxes and finding them again — and every rule makes some operations fast by making others slow. This is the art of choosing your costs on purpose.</p>
-    <div class="hero-meta"><a class="back-link" href="/">← back to the full stack</a> · arrays → dynamic arrays → hash maps → trees → big-O</div>
+    <div class="hero-meta"><a class="back-link" href="/">← back to the full stack</a> · arrays → linked lists → stacks & queues → hash maps → trees → graphs → big-O</div>
   </div>
 
   <LayerSection {...L.S0}>
@@ -32,11 +36,23 @@ const bigo = [
       problem="Programs constantly need a pile of same-typed values they can reach by position without hunting for each one."
       idea="Lay them out back-to-back in memory so any element’s address is pure arithmetic from its index."
       tradeoff="The block is a fixed size and middle insertions mean shifting everything — so you either over-allocate or you need something that can grow."
-      next="What happens when you don’t know how many items there’ll be?"
+      next="What if you want to add and remove in the middle without shifting anything?"
     />
   </LayerSection>
 
   <LayerSection {...L.S1}>
+    <p class="prose">A <b>linked list</b> drops the contiguity. Each <span class="hl">node</span> sits anywhere in memory and holds a value plus a <b>pointer</b> to the next one — order comes from the links. Splicing a node in or out is just a couple of pointer writes, <b>O(1)</b>, where an array would shift everything after it.</p>
+    <LinkedList client:visible />
+    <Takeaway>A linked list trades the array’s instant indexing for instant splicing: no random access, but inserting or removing at a known spot never shifts a thing.</Takeaway>
+    <Why
+      problem="Arrays make middle insertions and deletions expensive, because every later element has to move."
+      idea="Give each element a pointer to the next, so order lives in the links — then inserting means allocating a node and redirecting two pointers."
+      tradeoff="You lose O(1) indexing (reaching element i means walking the chain) and pay a pointer per node, with poor cache locality."
+      next="With arrays and lists as the raw material, we can build structures defined by how you’re allowed to use them."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.S2}>
     <p class="prose">A <b>dynamic array</b> hides the fixed-size problem: it keeps spare capacity, and when it fills, it allocates a block <span class="hl">twice as big</span> and copies everything over. The doublings get rarer as it grows, so appends average out to <b>O(1)</b> — that's <i>amortized</i> cost.</p>
     <DynamicArray client:visible />
     <Takeaway>Growing by doubling makes most appends instant and the rare copy infrequent enough that, averaged out, appending stays O(1).</Takeaway>
@@ -44,11 +60,23 @@ const bigo = [
       problem="A plain array can’t grow, but you usually don’t know the final size up front."
       idea="Keep slack capacity and, when it runs out, double the block and copy — paying a big cost rarely instead of a small cost constantly."
       tradeoff="You waste up to half the allocated memory, and the occasional doubling is a real O(n) stall — bad if it lands at the wrong moment."
-      next="Indexing is fast, but what if you want to find by a key, not a position?"
+      next="A growable array is the perfect backing for our first restricted-access structures."
     />
   </LayerSection>
 
-  <LayerSection {...L.S2}>
+  <LayerSection {...L.S3}>
+    <p class="prose">Sometimes the <i>restriction</i> is the feature. A <b>stack</b> only lets you add and remove at one end — <span class="hl">last in, first out</span> (think the call stack, or undo). A <b>queue</b> adds at the back and removes from the front — <span class="hl">first in, first out</span> (think a job queue). Same data, opposite order.</p>
+    <StackQueue client:visible />
+    <Takeaway>Stacks and queues are arrays or lists with deliberately narrow rules — LIFO and FIFO — and that narrowness is exactly what makes them useful.</Takeaway>
+    <Why
+      problem="Many algorithms need to process things in a specific order — most-recent-first, or in arrival order — without re-sorting."
+      idea="Restrict where you add and remove: one end for a stack (LIFO), opposite ends for a queue (FIFO), each O(1) on an array or linked list."
+      tradeoff="You give up arbitrary access entirely — that’s the point — so they’re building blocks inside algorithms, not general-purpose containers."
+      next="To find a value by key rather than by order, we need a different idea entirely."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.S4}>
     <p class="prose">A <b>hash map</b> turns a key into an array index by <span class="hl">hashing</span> it to a bucket. Lookup jumps straight to that bucket — no scanning. Two keys can hash to the same bucket (a <b>collision</b>), so each bucket holds a short chain you scan through.</p>
     <HashMap client:visible />
     <Takeaway>A hash map buys near-instant lookup by key — at the cost of order, and of degrading to a scan when too many keys pile into one bucket.</Takeaway>
@@ -60,7 +88,7 @@ const bigo = [
     />
   </LayerSection>
 
-  <LayerSection {...L.S3}>
+  <LayerSection {...L.S5}>
     <p class="prose">A <b>tree</b> links nodes by <i>choices</i>. A balanced search tree keeps keys ordered so every step throws away half the remaining options — finding one key among thousands takes only a handful of comparisons: <b>O(log n)</b>.</p>
     <BTreeSearch client:visible />
     <Takeaway>A search tree trades a hash map's flat speed for ordering: lookups are O(log n), but the data stays sorted, so ranges and "next-largest" come free.</Takeaway>
@@ -68,11 +96,23 @@ const bigo = [
       problem="Hash maps are fast but unordered — useless when you need sorted output, ranges, or the nearest key."
       idea="Arrange keys in a balanced tree so each comparison halves the search space and an in-order walk yields everything sorted."
       tradeoff="Each lookup is several pointer-chasing hops (worse locality than an array) and the tree must be rebalanced as it changes."
-      next="Four structures, four different cost profiles — how do you choose?"
+      next="A tree forbids cycles. Drop that rule and you get the most general structure of all."
     />
   </LayerSection>
 
-  <LayerSection {...L.S4}>
+  <LayerSection {...L.S6}>
+    <p class="prose">A <b>graph</b> is just <span class="hl">nodes</span> joined by <span class="hl">edges</span> — a tree without the no-cycles rule, which makes it the shape of almost everything connected: friend networks, roads, web links, dependencies. To explore one you visit a node and fan out; <b>breadth-first search</b> uses a <i>queue</i> to sweep level by level.</p>
+    <Graph client:visible />
+    <Takeaway>A graph models any web of relationships; traversals like BFS (powered by the very queue from earlier) turn “is everything connected?” and “what’s the shortest path?” into a systematic walk.</Takeaway>
+    <Why
+      problem="Real relationships aren’t neatly hierarchical — things connect to many other things, sometimes in cycles a tree can’t express."
+      idea="Represent the data as nodes and edges, then explore it with a traversal — BFS for shortest hops, DFS for going deep — each tracking what’s already seen."
+      tradeoff="Generality costs structure: there’s no inherent order, traversals must guard against revisiting nodes, and some graph problems get genuinely expensive."
+      next="Seven structures, seven cost profiles — so how do you choose?"
+    />
+  </LayerSection>
+
+  <LayerSection {...L.S7}>
     <p class="prose">There's no best structure, only the right one for your operations. Picking a structure <i>is</i> picking which operations are cheap and which are expensive. Big-O names that trade-off so you can choose with your eyes open.</p>
     <div class="widget bigo-widget">
       <div class="w-label">cost by operation — pick the structure whose cheap column matches what you do most</div>

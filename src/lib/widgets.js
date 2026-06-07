@@ -728,3 +728,63 @@ export function buildReplication() {
   snap('idle', 'this is eventual consistency: replicas converge, but a read in the gap sees stale data — strong consistency means reading the primary, giving up some of the scaling');
   return out;
 }
+
+// --- DATA STRUCTURES STACK (/structures), part 2: the linked ADTs ---
+
+// A linked list: nodes scattered in memory, each holding a value and a pointer
+// to the next. Inserting in the middle is two pointer writes — O(1) — where an
+// array would shift every later element. Returns the trace of inserting 15
+// between 10 and 20; `chain` is the ordered values, `staged` the new node.
+export function buildLinkedList() {
+  const out = [];
+  const snap = (chain, note, o = {}) => out.push({ chain: chain.slice(), staged: o.staged ?? null, highlight: o.highlight ?? null, note });
+  snap([10, 20, 30], 'a linked list is nodes scattered in memory; each holds a value and a pointer (→) to the next, so order comes from the links, not the layout');
+  snap([10, 20, 30], 'insert 15 after 10: first allocate the new node — it isn’t linked in yet', { staged: 15 });
+  snap([10, 20, 30], '15.next → 20: point the new node at whatever 10 currently points to', { staged: 15 });
+  snap([10, 15, 20, 30], '10.next → 15: redirect 10 to the new node. Two pointer writes, O(1) — nothing else moved', { highlight: 15 });
+  snap([10, 15, 20, 30], 'done: 10 → 15 → 20 → 30. An array would have shifted 20 and 30 to make room; the list just repointed');
+  return out;
+}
+
+// Stacks and queues: the same pushes, opposite removal order. A stack is LIFO
+// (pop the last in); a queue is FIFO (dequeue the first in). Runs identical
+// inputs through both so the divergence is the whole point. Returns snapshots
+// with both containers plus what each just removed.
+export function buildStackQueue() {
+  const out = [];
+  let stack = [], queue = [];
+  const snap = (note, o = {}) => out.push({ stack: stack.slice(), queue: queue.slice(), stackOut: o.stackOut ?? null, queueOut: o.queueOut ?? null, op: o.op ?? null, note });
+  snap('a stack and a queue, fed the exact same values — watch where each one removes from');
+  for (const v of [1, 2, 3]) { stack.push(v); queue.push(v); snap('push / enqueue ' + v + ' — both add to the back', { op: 'add' }); }
+  let s1 = stack.pop(), q1 = queue.shift();
+  snap('remove once: the stack pops ' + s1 + ' (last in, first out); the queue dequeues ' + q1 + ' (first in, first out)', { op: 'remove', stackOut: s1, queueOut: q1 });
+  let s2 = stack.pop(), q2 = queue.shift();
+  snap('remove again: stack pops ' + s2 + ', queue dequeues ' + q2 + ' — same inputs, mirror-image output order', { op: 'remove', stackOut: s2, queueOut: q2 });
+  snap('that’s the whole difference: a stack reverses, a queue preserves — LIFO vs FIFO, each built on an array or a linked list');
+  return out;
+}
+
+// A small undirected graph: nodes joined by edges, generalizing trees (which
+// forbid cycles). Adjacency in insertion order so traversal is deterministic.
+export const GRAPH = {
+  nodes: ['A', 'B', 'C', 'D', 'E'],
+  adj: { A: ['B', 'C'], B: ['A', 'D'], C: ['A', 'D', 'E'], D: ['B', 'C'], E: ['C'] },
+};
+// Breadth-first search from a start node: visit a node, enqueue its unseen
+// neighbours, repeat — exploring level by level using a queue (the same FIFO
+// from the stacks-and-queues section). Returns the visiting order trace.
+export function buildGraphTraversal({ start = 'A' } = {}) {
+  const out = [];
+  const visited = [], queue = [start], enqueued = new Set([start]);
+  const snap = (current, note) => out.push({ current, visited: visited.slice(), queue: queue.slice(), note });
+  snap(null, 'breadth-first search from ' + start + ': a queue holds the frontier; we visit a node, then enqueue any neighbour we haven’t seen');
+  while (queue.length) {
+    const node = queue.shift();
+    visited.push(node);
+    const fresh = GRAPH.adj[node].filter((n) => !enqueued.has(n));
+    fresh.forEach((n) => { enqueued.add(n); queue.push(n); });
+    snap(node, 'visit ' + node + (fresh.length ? ' → enqueue its new neighbours: ' + fresh.join(', ') : ' → no new neighbours; its links were already seen'));
+  }
+  snap(null, 'visited in order ' + visited.join(' → ') + ' — BFS fans out level by level, which is why it finds the shortest path in hops');
+  return out;
+}

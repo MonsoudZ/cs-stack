@@ -2,8 +2,11 @@
 // shared engine (Base nav, LayerSection, scroll-spy) powers it unchanged.
 export const structLayers = [
   { id: 'S0', num: '00', navLabel: 'Arrays', zone: 'system', title: 'Arrays: neighbours in a row', sub: 'structures · contiguous memory · O(1) index' },
-  { id: 'S1', num: '01', navLabel: 'Dynamic arrays', zone: 'system', title: 'Dynamic arrays: growing without knowing the size', sub: 'structures · doubling · amortized append' },
-  { id: 'S2', num: '02', navLabel: 'Hash maps', zone: 'system', title: 'Hash maps: a key becomes an address', sub: 'structures · hashing · collisions · chaining' },
-  { id: 'S3', num: '03', navLabel: 'Trees', zone: 'system', title: 'Trees: keep it ordered, search by halving', sub: 'structures · nodes · branches · O(log n)' },
-  { id: 'S4', num: '04', navLabel: 'Big-O', zone: 'all', title: 'Big-O: every structure picks its poison', sub: 'the trade-off · what each shape makes cheap' },
+  { id: 'S1', num: '01', navLabel: 'Linked lists', zone: 'system', title: 'Linked lists: order from pointers, not place', sub: 'structures · nodes · pointers · O(1) splice' },
+  { id: 'S2', num: '02', navLabel: 'Dynamic arrays', zone: 'system', title: 'Dynamic arrays: growing without knowing the size', sub: 'structures · doubling · amortized append' },
+  { id: 'S3', num: '03', navLabel: 'Stacks & queues', zone: 'system', title: 'Stacks & queues: order is the whole idea', sub: 'structures · LIFO · FIFO' },
+  { id: 'S4', num: '04', navLabel: 'Hash maps', zone: 'system', title: 'Hash maps: a key becomes an address', sub: 'structures · hashing · collisions · chaining' },
+  { id: 'S5', num: '05', navLabel: 'Trees', zone: 'system', title: 'Trees: keep it ordered, search by halving', sub: 'structures · nodes · branches · O(log n)' },
+  { id: 'S6', num: '06', navLabel: 'Graphs', zone: 'system', title: 'Graphs: anything connected to anything', sub: 'structures · nodes · edges · traversal' },
+  { id: 'S7', num: '07', navLabel: 'Big-O', zone: 'all', title: 'Big-O: every structure picks its poison', sub: 'the trade-off · what each shape makes cheap' },
 ];

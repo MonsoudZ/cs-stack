@@ -271,12 +271,12 @@ test('Numbers page: own nav, two’s complement negates to −5, and 0.1 + 0.2 �
   await expect(page.locator('#NB4 .fs-val').first()).toContainText('0.1000000000000000');
 });
 
-test('Structures page: own nav, the array grows by doubling, a hash lookup finds its key', async ({ page }) => {
+test('Structures page: own nav, the array grows by doubling, a hash lookup finds its key, BFS visits every node', async ({ page }) => {
   await page.goto('/structures');
   await expect(page.locator('h1.title')).toContainText('STRUCTURES');
-  await expect(page.locator('.spine .rung')).toHaveCount(5);
-  // dynamic array: stepping eventually triggers a capacity doubling (a copy)
-  const da = page.locator('#S1');
+  await expect(page.locator('.spine .rung')).toHaveCount(8);
+  // dynamic array (now section S2): stepping triggers a capacity doubling
+  const da = page.locator('#S2');
   await da.scrollIntoViewIfNeeded();
   for (let i = 0; i < 6; i++) {
     await da.locator('.cpu-ctrl button').first().click();
@@ -284,8 +284,8 @@ test('Structures page: own nav, the array grows by doubling, a hash lookup finds
     await page.waitForTimeout(40);
   }
   await expect(da.locator('.da-cells.grew')).toBeVisible();
-  // hash map: stepping through inserts + lookup finds "bird" in its chain
-  const hm = page.locator('#S2');
+  // hash map (now section S4): stepping finds "bird" in its chain
+  const hm = page.locator('#S4');
   await hm.scrollIntoViewIfNeeded();
   for (let i = 0; i < 8; i++) {
     await hm.locator('.cpu-ctrl button').first().click();
@@ -293,6 +293,15 @@ test('Structures page: own nav, the array grows by doubling, a hash lookup finds
     await page.waitForTimeout(40);
   }
   await expect(hm.locator('.hm-key.hit')).toHaveText('bird');
+  // graph (section S6): BFS eventually visits node E (the last, deepest node)
+  const gr = page.locator('#S6');
+  await gr.scrollIntoViewIfNeeded();
+  for (let i = 0; i < 7; i++) {
+    await gr.locator('.cpu-ctrl button').first().click();
+    if (await gr.locator('.gr-node.seen').count() >= 5) break;
+    await page.waitForTimeout(40);
+  }
+  await expect(gr.locator('.gr-node.seen')).toHaveCount(5);
 });
 
 test('OS page: own nav, the scheduler runs a process, a syscall traps into the kernel', async ({ page }) => {
