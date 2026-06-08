@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum, DOPING, buildDiode, cmosInverter, ALU_OPS, computeAlu, PIPE_STAGES, buildPipeline, buildDeadlock, buildCas, buildLoadBalancer, buildReplication, buildLinkedList, buildStackQueue, GRAPH, buildGraphTraversal } from './widgets.js';
+import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum, DOPING, buildDiode, cmosInverter, ALU_OPS, computeAlu, PIPE_STAGES, buildPipeline, buildDeadlock, buildCas, buildLoadBalancer, buildReplication, buildLinkedList, buildStackQueue, GRAPH, buildGraphTraversal, buildStackHeap, buildAllocator, buildGc } from './widgets.js';
 
 const popcount = (n) => { let c = 0; n >>>= 0; while (n) { c += n & 1; n >>>= 1; } return c; };
 
@@ -544,6 +544,45 @@ describe('buildGraphTraversal (BFS)', () => {
     const visits = steps.filter((s) => s.current).map((s) => s.current);
     expect(new Set(visits).size).toBe(GRAPH.nodes.length);
     expect(visits).toHaveLength(GRAPH.nodes.length);
+  });
+});
+
+describe('buildStackHeap (allocation regions)', () => {
+  const steps = buildStackHeap();
+  it('pushes f’s frame on the call, pops it on return — and the heap block survives', () => {
+    const maxStack = Math.max(...steps.map((s) => s.stack.length));
+    expect(maxStack).toBe(2); // main + f
+    const last = steps[steps.length - 1];
+    expect(last.stack).toEqual(['main()']); // f popped
+    expect(last.heap).toHaveLength(1);       // heap block persists
+  });
+});
+
+describe('buildAllocator (external fragmentation)', () => {
+  const steps = buildAllocator();
+  it('after freeing B, a 3-cell malloc fails despite 3 cells free (fragmented)', () => {
+    const failStep = steps.find((s) => s.failed);
+    expect(failStep).toBeTruthy();
+    expect(failStep.free).toBe(3); // enough total…
+    // …but not contiguous: D never appears in the heap
+    expect(failStep.cells.includes('D')).toBe(false);
+  });
+});
+
+describe('buildGc (mark-and-sweep)', () => {
+  const steps = buildGc();
+  const last = steps[steps.length - 1];
+  it('marks the reachable objects (1,2,3) and sweeps the unreachable (4,5)', () => {
+    const byId = Object.fromEntries(last.objects.map((o) => [o.id, o]));
+    expect(byId[1].marked && byId[2].marked && byId[3].marked).toBe(true);
+    expect(byId[4].swept && byId[5].swept).toBe(true);
+    expect(byId[4].marked || byId[5].marked).toBe(false);
+  });
+  it('has a mark phase before the sweep phase', () => {
+    const firstSweep = steps.findIndex((s) => s.phase === 'sweep');
+    const firstMark = steps.findIndex((s) => s.phase === 'mark');
+    expect(firstMark).toBeGreaterThanOrEqual(0);
+    expect(firstMark).toBeLessThan(firstSweep);
   });
 });
 

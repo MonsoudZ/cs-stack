@@ -87,12 +87,21 @@ test('Database page: own nav, B-tree finds the key, a crash without a txn loses 
   await expect(tx.locator('.txn-acct.total .txn-val')).toHaveText('250');
 });
 
-test('Memory page: own nav, a cache access hits, a virtual address translates to 122', async ({ page }) => {
+test('Memory page: own nav, fragmentation fails a malloc, a cache hits, an address translates to 122', async ({ page }) => {
   await page.goto('/memory');
   await expect(page.locator('h1.title')).toContainText('MEMORY');
-  await expect(page.locator('.spine .rung')).toHaveCount(6);
-  // cache: stepping eventually lands on a HIT (addresses 1,2,3 hit line 0 after 0 loads it)
-  const cache = page.locator('#M1');
+  await expect(page.locator('.spine .rung')).toHaveCount(9);
+  // allocator (section M2): stepping reaches a fragmented malloc that fails
+  const al = page.locator('#M2');
+  await al.scrollIntoViewIfNeeded();
+  for (let i = 0; i < 7; i++) {
+    await al.locator('.cpu-ctrl button').first().click();
+    if (await al.locator('.al-heap.failed').count()) break;
+    await page.waitForTimeout(40);
+  }
+  await expect(al.locator('.al-heap.failed')).toBeVisible();
+  // cache (now section M4): stepping eventually lands on a HIT
+  const cache = page.locator('#M4');
   await cache.scrollIntoViewIfNeeded();
   for (let i = 0; i < 9; i++) {
     await cache.locator('.cpu-ctrl button').first().click();
@@ -100,8 +109,8 @@ test('Memory page: own nav, a cache access hits, a virtual address translates to
     await page.waitForTimeout(40);
   }
   await expect(cache.locator('.ca-badge.hit')).toBeVisible();
-  // address translation: stepping resolves the first virtual address to physical 122
-  const vm = page.locator('#M3');
+  // address translation (now section M6): resolves the first virtual address to physical 122
+  const vm = page.locator('#M6');
   await vm.scrollIntoViewIfNeeded();
   for (let i = 0; i < 4; i++) {
     await vm.locator('.cpu-ctrl button').first().click();

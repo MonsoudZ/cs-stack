@@ -5,18 +5,21 @@ import { memLayers } from '../data/memLayers.js';
 import CacheSim from '../components/CacheSim.svelte';
 import AddressTranslation from '../components/AddressTranslation.svelte';
 import MemoryHierarchy from '../components/MemoryHierarchy.astro';
+import StackHeap from '../components/StackHeap.svelte';
+import Allocator from '../components/Allocator.svelte';
+import GarbageCollector from '../components/GarbageCollector.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
 const L = Object.fromEntries(memLayers.map((l) => [l.id, l]));
 const title = 'THE STACK — memory';
-const description = 'A deep dive into memory: addresses, caches and locality, the speed/size hierarchy, virtual memory and page tables, and the TLB — how a single load actually reaches its bytes.';
+const description = 'A deep dive into memory: addresses, the stack and heap, allocation and fragmentation, garbage collection, caches and locality, the hierarchy, virtual memory and the TLB — how a program’s bytes are placed, managed, and reached.';
 ---
 <Base {title} {description} layers={memLayers}>
   <div slot="hero">
     <div class="kicker">A deep dive into layer 10</div>
     <h1 class="title">THE <em>MEMORY</em><br />STACK</h1>
-    <p class="lede">"Memory" looks like one flat array of bytes, but reaching one is a journey: through caches that bet on locality, a hierarchy that trades size for speed, and a translation from the address your program sees to the one the chips use.</p>
-    <div class="hero-meta"><a class="back-link" href="/">← back to the full stack</a> · addresses → cache → hierarchy → virtual memory → TLB</div>
+    <p class="lede">"Memory" looks like one flat array of bytes — but a program has to carve it up (the stack and the heap), manage it (allocate, free, or collect), and then the hardware has to reach it fast (caches, the hierarchy, virtual memory). Two stories about the same bytes: how they're placed, and how they're found.</p>
+    <div class="hero-meta"><a class="back-link" href="/">← back to the full stack</a> · addresses → stack & heap → allocation → GC → cache → hierarchy → virtual memory → TLB</div>
   </div>
 
   <LayerSection {...L.M0}>
@@ -26,11 +29,47 @@ const description = 'A deep dive into memory: addresses, caches and locality, th
       problem="A program needs somewhere to keep values, and the CPU needs a uniform way to read and write them."
       idea="Expose memory as a flat, numbered array of bytes: give an address, get (or set) a byte."
       tradeoff="The model is simple but the physics isn't — main memory is far and slow relative to the CPU, so a naive read stalls it for hundreds of cycles."
-      next="The first trick against that latency is the cache."
+      next="Before worrying about speed: how does a program decide which bytes to use?"
     />
   </LayerSection>
 
   <LayerSection {...L.M1}>
+    <p class="prose">A program carves its address space into two regions. The <b>stack</b> grows and shrinks automatically with function calls — each call pushes a frame of locals, each return pops it. The <b>heap</b> is for data that must outlive a call; you allocate from it by hand, and it stays until freed.</p>
+    <StackHeap client:visible />
+    <Takeaway>The stack is automatic and call-scoped; the heap is manual and long-lived — where a value lives is decided by how long it needs to survive.</Takeaway>
+    <Why
+      problem="A program has short-lived locals tied to a function call and long-lived data that must outlast it — and these want opposite treatment."
+      idea="Use a stack that pushes and pops frames automatically with calls, and a heap you allocate from explicitly for anything that must persist."
+      tradeoff="Stack memory is effortless but vanishes on return; heap memory persists but you own its lifetime — and getting that wrong is a whole class of bugs."
+      next="So how is that heap actually carved up and handed out?"
+    />
+  </LayerSection>
+
+  <LayerSection {...L.M2}>
+    <p class="prose">The heap is managed by an <b>allocator</b>. <code>malloc(n)</code> finds a run of <i>n</i> contiguous free cells; <code>free</code> returns a block to the pool. But freeing in any order leaves <span class="hl">holes</span> — and a request can fail even when enough total space is free, just because it's scattered. That's <b>external fragmentation</b>.</p>
+    <Allocator client:visible />
+    <Takeaway>An allocator hands out contiguous runs and reclaims them on free; the catch is fragmentation — free space that exists but is too broken up to use.</Takeaway>
+    <Why
+      problem="The heap serves allocations of all sizes in any order, and must find room for each without moving the ones already in use."
+      idea="Track free space and fit each request into a gap (first-fit, best-fit, …), returning freed blocks to the pool for reuse."
+      tradeoff="Repeated alloc/free shatters memory into unusable gaps, so allocators must compact, coalesce neighbours, or hand out fixed-size slabs — none free."
+      next="Manual freeing is error-prone, so many languages free memory for you."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.M3}>
+    <p class="prose">Forgetting to <code>free</code> leaks memory; freeing too early corrupts it. So managed languages add a <b>garbage collector</b>: it treats your live variables as <span class="hl">roots</span>, follows every reference to find what's still reachable, and reclaims the rest. The classic algorithm is <b>mark and sweep</b>.</p>
+    <GarbageCollector client:visible />
+    <Takeaway>A garbage collector frees memory by reachability: anything you can still reach from a root is kept, everything else is collected — no manual free, at the cost of a tracing pause.</Takeaway>
+    <Why
+      problem="Manual memory management is a relentless source of bugs — leaks, double-frees, use-after-free — that are easy to introduce and hard to find."
+      idea="Let a collector decide what’s garbage by tracing references from the roots; whatever it can’t reach can’t be used again, so it’s safe to reclaim."
+      tradeoff="You trade those bugs for the collector’s cost: CPU spent tracing and pauses that can interrupt the program at awkward moments."
+      next="That’s how memory is placed and managed. Now: how does the hardware reach it fast?"
+    />
+  </LayerSection>
+
+  <LayerSection {...L.M4}>
     <p class="prose">A <b>cache</b> is a small, fast store near the CPU. A miss doesn't fetch one byte — it loads a whole <span class="hl">line</span> of neighbours, betting on <b>locality</b>: code usually touches nearby addresses next. Evict a line and touching it again misses anew.</p>
     <CacheSim client:visible />
     <Takeaway>Caches win on locality: one miss pulls in a line so the next several accesses hit — until that line gets evicted.</Takeaway>
@@ -42,7 +81,7 @@ const description = 'A deep dive into memory: addresses, caches and locality, th
     />
   </LayerSection>
 
-  <LayerSection {...L.M2}>
+  <LayerSection {...L.M5}>
     <p class="prose">No single memory is both huge and fast, so the machine stacks several: tiny fast registers, then L1/L2/L3 caches, then RAM, then disk — each step bigger, slower, and farther from the core.</p>
     <MemoryHierarchy />
     <Takeaway>The hierarchy is a speed-vs-size bargain: the closer to the CPU, the faster and smaller; the farther, the larger and slower.</Takeaway>
@@ -54,7 +93,7 @@ const description = 'A deep dive into memory: addresses, caches and locality, th
     />
   </LayerSection>
 
-  <LayerSection {...L.M3}>
+  <LayerSection {...L.M6}>
     <p class="prose">Each program sees its own clean <b>virtual</b> address space. The MMU translates a virtual address — split into a <span class="hl">page</span> number and an offset — to a physical one, by looking the page up in a <b>page table</b>.</p>
     <AddressTranslation client:visible />
     <Takeaway>Virtual memory gives every process a private address space; a page table maps its virtual pages to wherever they physically live.</Takeaway>
@@ -66,7 +105,7 @@ const description = 'A deep dive into memory: addresses, caches and locality, th
     />
   </LayerSection>
 
-  <LayerSection {...L.M4}>
+  <LayerSection {...L.M7}>
     <p class="prose">Walking the page table on every access would be far too slow, so the MMU caches recent translations in the <span class="hl">TLB</span>. A hit skips the walk entirely; a miss pays for the walk once, then caches the result.</p>
     <Takeaway>The TLB is a cache for address translation — the same locality trick, applied to page lookups instead of data.</Takeaway>
     <Why
@@ -77,7 +116,7 @@ const description = 'A deep dive into memory: addresses, caches and locality, th
     />
   </LayerSection>
 
-  <LayerSection {...L.M5}>
+  <LayerSection {...L.M8}>
     <p class="prose">One load, end to end: the virtual address is translated (TLB, else a page-table walk), then the physical address is looked up in the caches (L1 → L2 → L3), and only on a full miss does it reach <b>RAM</b> — hundreds of cycles later.</p>
     <Takeaway>A single memory read is a gauntlet of caches and translations, all racing to avoid the long trip to RAM.</Takeaway>
     <Why

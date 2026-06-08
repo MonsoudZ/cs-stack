@@ -788,3 +788,89 @@ export function buildGraphTraversal({ start = 'A' } = {}) {
   snap(null, 'visited in order ' + visited.join(' → ') + ' — BFS fans out level by level, which is why it finds the shortest path in hops');
   return out;
 }
+
+// --- MEMORY STACK (/memory), part 2: allocation ---
+
+// Stack vs heap. A call pushes a frame onto the stack (automatic, LIFO, freed
+// on return); the heap holds things that must outlive the call (manual, freed
+// explicitly). Returns the trace of main() calling f(), which heap-allocates a
+// block and returns — the frame vanishes, the heap block survives.
+export function buildStackHeap() {
+  const out = [];
+  let stack = [], heap = [];
+  const snap = (note, o = {}) => out.push({ stack: stack.slice(), heap: heap.slice(), note, highlight: o.highlight ?? null });
+  snap('a program splits its memory in two: the stack (automatic, for calls) and the heap (manual, for data that outlives a call)');
+  stack = ['main()'];
+  snap('main() starts → its frame is pushed onto the stack, holding its local variables');
+  stack = ['main()', 'f()'];
+  snap('main() calls f() → a new frame is pushed; f’s locals live here and vanish when f returns', { highlight: 'f()' });
+  heap = [{ id: 'block', owner: 'f()' }];
+  snap('f runs p = malloc(…) → a block is carved from the heap; the pointer p sits in f’s frame, but the block lives on the heap', { highlight: 'block' });
+  stack = ['main()'];
+  snap('f() returns → its frame is popped automatically, locals gone — but the heap block is still there (that’s why you’d heap-allocate)', { highlight: 'block' });
+  snap('the stack freed f’s memory for you on return; the heap block persists until something calls free(). Forget to, and it leaks');
+  return out;
+}
+
+// A heap allocator and external fragmentation. malloc carves a contiguous run
+// of cells; free releases one, leaving a hole. After frees, the total free
+// space can exceed a request yet still not fit, because it’s split into
+// non-adjacent gaps. Returns the trace; `cells` is the heap (owner or null).
+export function buildAllocator({ size = 8 } = {}) {
+  const out = [];
+  const cells = Array(size).fill(null);
+  const snap = (note, o = {}) => out.push({ cells: cells.slice(), note, failed: !!o.failed, free: cells.filter((c) => c === null).length });
+  const place = (id, n) => { // first-fit: find a run of n free cells
+    for (let i = 0; i + n <= size; i++) {
+      if (cells.slice(i, i + n).every((c) => c === null)) { for (let k = i; k < i + n; k++) cells[k] = id; return true; }
+    }
+    return false;
+  };
+  snap('the heap is one block of memory; malloc carves a contiguous run of cells, free returns one to the pool');
+  place('A', 3); snap('malloc A (3) → first-fit finds room at the front');
+  place('B', 2); snap('malloc B (2) → placed right after A');
+  place('C', 2); snap('malloc C (2) → placed after B; one cell left free at the end');
+  for (let i = 0; i < size; i++) if (cells[i] === 'B') cells[i] = null;
+  snap('free B → its 2 cells return to the pool, leaving a hole between A and C');
+  const ok = place('D', 3);
+  snap('malloc D (3) → there are 3 free cells, but split into a 2-gap and a 1-gap — no contiguous run of 3, so it FAILS', { failed: !ok });
+  snap('that’s external fragmentation: enough free memory in total, but too scattered to use — the reason allocators compact, or hand out fixed-size slabs');
+  return out;
+}
+
+// Mark-and-sweep garbage collection. Start from the roots and follow every
+// reference, marking what’s reachable; then sweep away everything unmarked.
+// Objects 4 and 5 are allocated but unreachable, so they’re collected — no
+// manual free, at the cost of a tracing pause. Returns the trace.
+export function buildGc() {
+  const objs = {
+    1: { refs: [2] }, 2: { refs: [3] }, 3: { refs: [] }, 4: { refs: [5] }, 5: { refs: [] },
+  };
+  const roots = [1];
+  const marked = new Set();
+  const swept = new Set();
+  const out = [];
+  const snap = (phase, current, note) => out.push({
+    phase, current,
+    objects: Object.keys(objs).map((id) => ({ id: +id, refs: objs[id].refs, marked: marked.has(+id), swept: swept.has(+id) })),
+    roots, note,
+  });
+  snap('idle', null, 'five objects are allocated; the roots (live variables) reference object 1. The GC keeps whatever it can reach from a root');
+  // BFS mark from roots
+  const queue = [...roots];
+  while (queue.length) {
+    const id = queue.shift();
+    if (marked.has(id)) continue;
+    marked.add(id);
+    for (const r of objs[id].refs) if (!marked.has(r)) { queue.push(r); }
+    const note = id === roots[0]
+      ? 'start at the root → mark object 1 reachable; follow it to ' + objs[id].refs.join(', ')
+      : (objs[id].refs.length ? 'mark ' + id + ' reachable → follow it to ' + objs[id].refs.join(', ') : 'mark ' + id + ' reachable → it references nothing, this branch ends');
+    snap('mark', id, note);
+  }
+  snap('mark', null, 'marking done: 1, 2, 3 are reachable. Objects 4 and 5 were never reached — no path from any root');
+  for (const id of [4, 5]) swept.add(id);
+  snap('sweep', null, 'sweep: free every unmarked object → 4 and 5 are reclaimed automatically, no free() call needed');
+  snap('idle', null, 'mark-and-sweep collects exactly the unreachable objects; the price is the collector must trace the graph, sometimes pausing the program');
+  return out;
+}
