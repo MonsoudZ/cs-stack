@@ -337,6 +337,38 @@ export function buildTransaction({ atomic = true } = {}) {
   return out;
 }
 
+// Isolation levels: with concurrent transactions, what T1 is allowed to see of
+// T2's changes depends on the level. The same interleaving (T2 writes x, T1
+// reads it three times around T2's commit) yields different reads — exposing a
+// dirty read, a non-repeatable read, or neither. Returns the trace per level.
+export const ISOLATION_LEVELS = ['READ UNCOMMITTED', 'READ COMMITTED', 'REPEATABLE READ'];
+export function buildIsolation({ level = 'READ COMMITTED' } = {}) {
+  let committed = 100, pending = null;
+  const snapshot = 100; // T1's view as of its start (for REPEATABLE READ)
+  const t1reads = [];
+  const out = [];
+  const read = () => level === 'READ UNCOMMITTED' ? (pending != null ? pending : committed)
+    : level === 'READ COMMITTED' ? committed : snapshot;
+  const snap = (note, o = {}) => out.push({ committed, pending, t1reads: t1reads.slice(), actor: o.actor ?? null, anomaly: o.anomaly ?? null, level, note });
+  snap('row x = 100. T1 and T2 run at once; the isolation level decides how much of T2’s change T1 may see');
+  snap('T1 BEGIN', { actor: 'T1' });
+  { const v = read(); t1reads.push(v); snap('T1 reads x = ' + v + ' — its first look', { actor: 'T1' }); }
+  pending = 120; snap('T2 BEGIN, writes x = 120 — but has NOT committed yet', { actor: 'T2' });
+  { const v = read(); t1reads.push(v); const dirty = v === 120;
+    snap('T1 reads x → ' + v + (dirty ? ' — a DIRTY READ: it sees T2’s uncommitted write (which could still roll back)' : ' — it refuses to read uncommitted data'), { actor: 'T1', anomaly: dirty ? 'dirty' : null }); }
+  committed = 120; pending = null; snap('T2 COMMIT — x is now officially 120', { actor: 'T2' });
+  { const v = read(); t1reads.push(v); const changed = v !== t1reads[0];
+    snap('T1 reads x once more → ' + v + (changed ? ' — a NON-REPEATABLE READ: the value shifted under T1 mid-transaction' : ' — still T1’s original snapshot, perfectly consistent'), { actor: 'T1', anomaly: changed ? 'nonrepeatable' : null }); }
+  snap('T1 COMMIT', { actor: 'T1' });
+  const verdict = level === 'READ UNCOMMITTED'
+    ? 'READ UNCOMMITTED allows both a dirty read and a non-repeatable read — fastest, least safe'
+    : level === 'READ COMMITTED'
+      ? 'READ COMMITTED blocks the dirty read, but the value still changed between T1’s reads — a non-repeatable read'
+      : 'REPEATABLE READ hands T1 a stable snapshot: every read returns 100, no anomaly — this is what MVCC buys, at the cost of keeping old row versions around';
+  snap(verdict);
+  return out;
+}
+
 // --- MEMORY STACK (/memory) ---
 
 // A fully-associative cache, LRU eviction. A miss loads a whole line of

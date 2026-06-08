@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum, DOPING, buildDiode, cmosInverter, ALU_OPS, computeAlu, PIPE_STAGES, buildPipeline, buildDeadlock, buildCas, buildLoadBalancer, buildReplication, buildLinkedList, buildStackQueue, GRAPH, buildGraphTraversal, buildStackHeap, buildAllocator, buildGc } from './widgets.js';
+import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum, DOPING, buildDiode, cmosInverter, ALU_OPS, computeAlu, PIPE_STAGES, buildPipeline, buildDeadlock, buildCas, buildLoadBalancer, buildReplication, buildLinkedList, buildStackQueue, GRAPH, buildGraphTraversal, buildStackHeap, buildAllocator, buildGc, ISOLATION_LEVELS, buildIsolation } from './widgets.js';
 
 const popcount = (n) => { let c = 0; n >>>= 0; while (n) { c += n & 1; n >>>= 1; } return c; };
 
@@ -583,6 +583,27 @@ describe('buildGc (mark-and-sweep)', () => {
     const firstMark = steps.findIndex((s) => s.phase === 'mark');
     expect(firstMark).toBeGreaterThanOrEqual(0);
     expect(firstMark).toBeLessThan(firstSweep);
+  });
+});
+
+describe('buildIsolation (isolation levels)', () => {
+  const reads = (level) => buildIsolation({ level })[buildIsolation({ level }).length - 1].t1reads;
+  const anomalies = (level) => buildIsolation({ level }).map((s) => s.anomaly).filter(Boolean);
+  it('READ UNCOMMITTED suffers a dirty read (T1 sees 120 while uncommitted)', () => {
+    expect(reads('READ UNCOMMITTED')).toEqual([100, 120, 120]);
+    expect(anomalies('READ UNCOMMITTED')).toContain('dirty');
+  });
+  it('READ COMMITTED blocks the dirty read but allows a non-repeatable read', () => {
+    expect(reads('READ COMMITTED')).toEqual([100, 100, 120]);
+    expect(anomalies('READ COMMITTED')).not.toContain('dirty');
+    expect(anomalies('READ COMMITTED')).toContain('nonrepeatable');
+  });
+  it('REPEATABLE READ gives a stable snapshot — every read is 100, no anomalies', () => {
+    expect(reads('REPEATABLE READ')).toEqual([100, 100, 100]);
+    expect(anomalies('REPEATABLE READ')).toHaveLength(0);
+  });
+  it('exposes exactly three named levels', () => {
+    expect(ISOLATION_LEVELS).toEqual(['READ UNCOMMITTED', 'READ COMMITTED', 'REPEATABLE READ']);
   });
 });
 

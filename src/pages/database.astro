@@ -4,6 +4,7 @@ import LayerSection from '../components/LayerSection.astro';
 import { dbLayers } from '../data/dbLayers.js';
 import BTreeSearch from '../components/BTreeSearch.svelte';
 import DbTransaction from '../components/DbTransaction.svelte';
+import Isolation from '../components/Isolation.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
 const L = Object.fromEntries(dbLayers.map((l) => [l.id, l]));
@@ -15,7 +16,7 @@ const description = 'A deep dive into a database: rows in pages, B-tree indexes,
     <div class="kicker">A deep dive into layer 18</div>
     <h1 class="title">THE <em>DATABASE</em><br />STACK</h1>
     <p class="lede">A database is memory that survives questions: rows on disk, indexes that find them fast, transactions that keep them consistent, and copies that keep them alive. Each layer turns raw storage into a reliable answer.</p>
-    <div class="hero-meta"><a class="back-link" href="/">← back to the full stack</a> · tables → indexes → queries → transactions → durability</div>
+    <div class="hero-meta"><a class="back-link" href="/">← back to the full stack</a> · tables → indexes → queries → transactions → isolation → durability → replication</div>
   </div>
 
   <LayerSection {...L.D0}>
@@ -60,11 +61,23 @@ const description = 'A deep dive into a database: rows in pages, B-tree indexes,
       problem="Real updates touch multiple rows, and a failure partway through can leave the data in an impossible state — money debited but never credited."
       idea="Wrap related changes in a transaction that commits as a unit or rolls back entirely, with isolation so concurrent transactions don't corrupt each other."
       tradeoff="Guarantees cost coordination: locks or versions, log writes, and the classic isolation-vs-throughput tradeoffs."
-      next="Atomic in memory isn't enough — a commit has to survive losing power."
+      next="Atomicity handles crashes — but what about other transactions running at the same time?"
     />
   </LayerSection>
 
   <LayerSection {...L.D4}>
+    <p class="prose">Atomicity is the <i>A</i> of ACID; <b>isolation</b> is the <i>I</i>. When transactions run concurrently, one can glimpse another's half-finished work — a <span class="hl">dirty read</span> — or watch a value change underneath it — a <span class="hl">non-repeatable read</span>. The isolation level sets how much interference is allowed; <b>MVCC</b> gives each transaction a stable snapshot.</p>
+    <Isolation client:visible />
+    <Takeaway>Isolation levels trade safety for speed: weaker levels are faster but let transactions see each other’s mess; a snapshot (MVCC) makes a transaction’s reads stable and consistent.</Takeaway>
+    <Why
+      problem="Many transactions run at once on the same rows, and a naïvely-interleaved read can see uncommitted or shifting data — corrupting decisions made on it."
+      idea="Define isolation levels (read uncommitted → committed → repeatable read → serializable) and enforce them, often by keeping multiple row versions so readers get a consistent snapshot (MVCC)."
+      tradeoff="Stronger isolation means more locking or version-keeping and less concurrency; serializable is safest but slowest, so most systems default to a weaker level."
+      next="Atomic and isolated in memory still isn't enough — a commit has to survive losing power."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.D5}>
     <p class="prose">Before changing the data pages, the engine appends the change to a <span class="hl">write-ahead log</span> and flushes that. If the power dies, replaying the log on restart redoes committed work and undoes the rest — so a commit is truly durable.</p>
     <Takeaway>Durability comes from logging the intent first: a committed transaction survives a crash because the log can replay it.</Takeaway>
     <Why
@@ -75,7 +88,7 @@ const description = 'A deep dive into a database: rows in pages, B-tree indexes,
     />
   </LayerSection>
 
-  <LayerSection {...L.D5}>
+  <LayerSection {...L.D6}>
     <p class="prose">A single server is a single point of failure. <b>Replication</b> streams the log to replica machines: reads can spread across them, and if the primary dies, a replica is promoted to take over.</p>
     <Takeaway>Replication copies the database across machines so reads scale and a failure doesn't lose the data — at the cost of consistency tradeoffs.</Takeaway>
     <Why

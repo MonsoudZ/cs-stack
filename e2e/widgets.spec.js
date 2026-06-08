@@ -58,10 +58,10 @@ test('Adder island: setting the high A bit carries into a sum of 16', async ({ p
   }).toPass({ timeout: 8000 });
 });
 
-test('Database page: own nav, B-tree finds the key, a crash without a txn loses money', async ({ page }) => {
+test('Database page: own nav, B-tree finds the key, a crash without a txn loses money, isolation levels differ', async ({ page }) => {
   await page.goto('/database');
   await expect(page.locator('h1.title')).toContainText('DATABASE');
-  await expect(page.locator('.spine .rung')).toHaveCount(6);
+  await expect(page.locator('.spine .rung')).toHaveCount(7);
   // b-tree: descend to the found key
   const bt = page.locator('#D1');
   await bt.scrollIntoViewIfNeeded();
@@ -85,6 +85,19 @@ test('Database page: own nav, B-tree finds the key, a crash without a txn loses 
     await page.waitForTimeout(40);
   }
   await expect(tx.locator('.txn-acct.total .txn-val')).toHaveText('250');
+  // isolation (section D4): READ UNCOMMITTED exposes a dirty read
+  const iso = page.locator('#D4');
+  await iso.scrollIntoViewIfNeeded();
+  await expect(async () => {
+    await iso.getByRole('button', { name: 'READ UNCOMMITTED' }).click();
+    await expect(iso.getByRole('button', { name: 'READ UNCOMMITTED' })).toHaveAttribute('aria-pressed', 'true', { timeout: 400 });
+  }).toPass({ timeout: 8000 });
+  for (let i = 0; i < 8; i++) {
+    await iso.locator('.cpu-ctrl button').first().click();
+    if (await iso.locator('.iso-flag').count()) break;
+    await page.waitForTimeout(40);
+  }
+  await expect(iso.locator('.iso-flag')).toContainText('dirty read');
 });
 
 test('Memory page: own nav, fragmentation fails a malloc, a cache hits, an address translates to 122', async ({ page }) => {
