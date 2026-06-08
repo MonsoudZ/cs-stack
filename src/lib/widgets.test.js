@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { quizzes } from '../data/quizzes.js';
 import { stacks } from '../data/stacks.js';
-import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum, DOPING, buildDiode, cmosInverter, nand, buildUniversal, mux2, ALU_OPS, computeAlu, PIPE_STAGES, buildPipeline, buildDeadlock, buildCas, buildLoadBalancer, buildReplication, buildLinkedList, buildStackQueue, GRAPH, buildGraphTraversal, buildStackHeap, buildAllocator, buildGc, ISOLATION_LEVELS, buildIsolation, buildTypeCheck, buildEventLoop, FS, buildPathResolve, buildJournal, buildSockets, buildHttp } from './widgets.js';
+import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum, DOPING, buildDiode, cmosInverter, nand, buildUniversal, mux2, ALU_OPS, computeAlu, PIPE_STAGES, buildPipeline, buildDeadlock, buildCas, buildLoadBalancer, buildReplication, buildLinkedList, buildStackQueue, GRAPH, buildGraphTraversal, buildStackHeap, buildAllocator, buildGc, ISOLATION_LEVELS, buildIsolation, buildTypeCheck, buildEventLoop, FS, buildPathResolve, buildJournal, buildSockets, buildHttp, buildJoin } from './widgets.js';
 
 const popcount = (n) => { let c = 0; n >>>= 0; while (n) { c += n & 1; n >>>= 1; } return c; };
 
@@ -747,6 +747,23 @@ describe('buildHttp (request/response)', () => {
     const statusIdx = steps.findIndex((s) => s.status === 200);
     const bodyIdx = steps.findIndex((s) => s.done);
     expect(statusIdx).toBeLessThan(bodyIdx);
+  });
+});
+
+describe('buildJoin (inner join, nested loop)', () => {
+  const steps = buildJoin();
+  const last = steps[steps.length - 1];
+  it('emits matched pairs and drops unmatched left rows (inner join)', () => {
+    expect(last.result).toEqual([
+      { name: 'Ana', item: 'book' },
+      { name: 'Ana', item: 'pen' },
+      { name: 'Cy', item: 'lamp' },
+    ]);
+    // Bo has no orders → not in the result
+    expect(last.result.some((r) => r.name === 'Bo')).toBe(false);
+  });
+  it('does n×m comparisons (3 users × 3 orders = 9)', () => {
+    expect(last.comparisons).toBe(9);
   });
 });
 

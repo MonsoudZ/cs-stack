@@ -386,6 +386,33 @@ export function buildDiffieHellman({ p = 23, g = 5, a = 6, b = 15 } = {}) {
 
 // --- DATABASE STACK (/database) ---
 
+// A join combines rows from two tables wherever a key matches. This traces an
+// inner join (users ⋈ orders ON users.id = orders.user_id) by the simplest
+// algorithm — a nested loop: for every left row, scan every right row. It emits
+// matched pairs, drops unmatched left rows, and counts comparisons (the n×m cost
+// an index or hash join exists to avoid).
+export const JOIN_USERS = [{ id: 1, name: 'Ana' }, { id: 2, name: 'Bo' }, { id: 3, name: 'Cy' }];
+export const JOIN_ORDERS = [{ id: 91, user_id: 1, item: 'book' }, { id: 92, user_id: 1, item: 'pen' }, { id: 93, user_id: 3, item: 'lamp' }];
+export function buildJoin() {
+  const out = [];
+  const result = [];
+  let comparisons = 0;
+  const snap = (note, o = {}) => out.push({ left: o.left ?? null, right: o.right ?? null, match: o.match ?? null, result: result.map((r) => ({ ...r })), comparisons, note, done: !!o.done });
+  snap('an inner join stitches two tables together where a key lines up — here users ⋈ orders on users.id = orders.user_id');
+  for (const u of JOIN_USERS) {
+    let matched = 0;
+    for (const o of JOIN_ORDERS) {
+      comparisons++;
+      const hit = u.id === o.user_id;
+      if (hit) { matched++; result.push({ name: u.name, item: o.item }); }
+      snap('compare ' + u.name + ' (id ' + u.id + ') with order ' + o.id + ' (user_id ' + o.user_id + ') → ' + (hit ? 'match → emit (' + u.name + ', ' + o.item + ')' : 'no match'), { left: u.id, right: o.id, match: hit });
+    }
+    if (!matched) snap(u.name + ' had no matching orders → an inner join drops them entirely', { left: u.id });
+  }
+  snap(result.length + ' rows out, after ' + comparisons + ' comparisons — every user against every order (n×m). An index on orders.user_id, or a hash join, turns that scan into a lookup', { done: true });
+  return out;
+}
+
 // A tiny B-tree over keys 1..15: a root of separator keys and four leaves.
 export const BTREE = {
   root: { keys: [4, 8, 12], children: ['n0', 'n1', 'n2', 'n3'] },

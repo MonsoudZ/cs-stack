@@ -3,6 +3,7 @@ import Base from '../layouts/Base.astro';
 import LayerSection from '../components/LayerSection.astro';
 import { dbLayers } from '../data/dbLayers.js';
 import BTreeSearch from '../components/BTreeSearch.svelte';
+import Join from '../components/Join.svelte';
 import DbTransaction from '../components/DbTransaction.svelte';
 import Isolation from '../components/Isolation.svelte';
 import Why from '../components/Why.astro';
@@ -19,7 +20,7 @@ const description = 'A deep dive into a database: rows in pages, B-tree indexes,
     <div class="kicker">A deep dive into layer 18</div>
     <h1 class="title">THE <em>DATABASE</em><br />STACK</h1>
     <p class="lede">A database is memory that survives questions: rows on disk, indexes that find them fast, transactions that keep them consistent, and copies that keep them alive. Each layer turns raw storage into a reliable answer.</p>
-    <div class="hero-meta"><a class="back-link" href="/">← back to the full stack</a> · tables → indexes → queries → transactions → isolation → durability → replication</div>
+    <div class="hero-meta"><a class="back-link" href="/">← back to the full stack</a> · tables → indexes → queries → joins → transactions → isolation → durability → replication</div>
   </div>
 
   <LayerSection {...L.D0}>
@@ -53,11 +54,24 @@ const description = 'A deep dive into a database: rows in pages, B-tree indexes,
       problem="There are many ways to compute the same result, with wildly different costs, and you don't want to hand-code the fastest one each time."
       idea="Let the query describe the result declaratively, and have a cost-based optimizer use statistics to choose an execution plan."
       tradeoff="Planners are heuristic: bad statistics or unusual queries can pick a terrible plan, which is why EXPLAIN exists."
-      next="Reads are half the story — changing data safely is the other half."
+      next="The planner's hardest call is how to combine two tables — a join."
     />
   </LayerSection>
 
   <LayerSection {...L.D3}>
+    <p class="prose">Data is split across tables to avoid repeating it (an order stores a <code>user_id</code>, not the whole user). A <b>join</b> stitches them back together where a key matches — <code>users ⋈ orders ON users.id = orders.user_id</code>. The simplest way is a <span class="hl">nested loop</span>: check every left row against every right row.</p>
+    <Join client:visible />
+    <Takeaway>A join recombines normalized tables on a matching key; an inner join keeps only the rows that pair up — and done naively it costs n×m comparisons.</Takeaway>
+    <SeeAlso slug="structures" note="a hash join builds a hash map on one table so the other just probes it — O(n+m)" />
+    <Why
+      problem="Normalizing data across tables avoids duplication, but answering real questions means recombining it — and the obvious nested loop is quadratic."
+      idea="Match rows on a key. Speed it up with the index from earlier (index-nested-loop: look the key up instead of scanning) or a hash join (build a hash table on one side, probe with the other)."
+      tradeoff="Each strategy wins in a different regime — small tables, an indexed key, or one side that fits in memory — which is exactly the call the planner makes."
+      next="Reads and joins are half the story — changing data safely is the other half."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.D4}>
     <p class="prose">A <b>transaction</b> groups changes so they're <span class="hl">all-or-nothing</span>. Transfer money and crash halfway, and a transaction rolls back to a consistent state — without one, the debit sticks and money vanishes.</p>
     <DbTransaction client:visible />
     <Takeaway>Transactions give you ACID — here, atomicity: the transfer happens completely or not at all, even across a crash.</Takeaway>
@@ -69,7 +83,7 @@ const description = 'A deep dive into a database: rows in pages, B-tree indexes,
     />
   </LayerSection>
 
-  <LayerSection {...L.D4}>
+  <LayerSection {...L.D5}>
     <p class="prose">Atomicity is the <i>A</i> of ACID; <b>isolation</b> is the <i>I</i>. When transactions run concurrently, one can glimpse another's half-finished work — a <span class="hl">dirty read</span> — or watch a value change underneath it — a <span class="hl">non-repeatable read</span>. The isolation level sets how much interference is allowed; <b>MVCC</b> gives each transaction a stable snapshot.</p>
     <Isolation client:visible />
     <Takeaway>Isolation levels trade safety for speed: weaker levels are faster but let transactions see each other’s mess; a snapshot (MVCC) makes a transaction’s reads stable and consistent.</Takeaway>
@@ -81,7 +95,7 @@ const description = 'A deep dive into a database: rows in pages, B-tree indexes,
     />
   </LayerSection>
 
-  <LayerSection {...L.D5}>
+  <LayerSection {...L.D6}>
     <p class="prose">Before changing the data pages, the engine appends the change to a <span class="hl">write-ahead log</span> and flushes that. If the power dies, replaying the log on restart redoes committed work and undoes the rest — so a commit is truly durable.</p>
     <Takeaway>Durability comes from logging the intent first: a committed transaction survives a crash because the log can replay it.</Takeaway>
     <Why
@@ -92,7 +106,7 @@ const description = 'A deep dive into a database: rows in pages, B-tree indexes,
     />
   </LayerSection>
 
-  <LayerSection {...L.D6}>
+  <LayerSection {...L.D7}>
     <p class="prose">A single server is a single point of failure. <b>Replication</b> streams the log to replica machines: reads can spread across them, and if the primary dies, a replica is promoted to take over.</p>
     <Takeaway>Replication copies the database across machines so reads scale and a failure doesn't lose the data — at the cost of consistency tradeoffs.</Takeaway>
     <SeeAlso slug="cloud" note="how this scales reads across a fleet, and the CAP tradeoff it forces" />

@@ -17,6 +17,6 @@ export const stacks = [
   { slug: 'crypto', name: 'Crypto', kind: 'stack', layer: '15', accent: '#ff6b6b', blurb: 'hashing, keys, key exchange, certificates, and TLS' },
   { slug: 'network', name: 'Network', kind: 'stack', layer: '16', accent: '#5b9dff', blurb: 'encapsulation, routing, DNS, sockets, HTTP, and a packet’s journey' },
   { slug: 'cloud', name: 'Cloud', kind: 'stack', layer: '17', accent: '#2ee6c0', blurb: 'scaling out, load balancing, replicas, and the CAP tradeoff' },
-  { slug: 'database', name: 'Database', kind: 'stack', layer: '18', accent: '#ffb454', blurb: 'B-trees, transactions, isolation levels, durability, and replication' },
+  { slug: 'database', name: 'Database', kind: 'stack', layer: '18', accent: '#ffb454', blurb: 'B-trees, joins, transactions, isolation levels, durability, and replication' },
   { slug: 'render', name: 'Render', kind: 'pipeline', layer: '19', accent: '#a78bfa', blurb: 'DOM, style, layout, paint, compositing, and the event loop' },
 ];

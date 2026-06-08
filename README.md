@@ -70,7 +70,7 @@ src/
     compiler.astro        a /compiler deep-dive (lex → parse → type check → bytecode → optimize → run)
     render.astro          a /render deep-dive (DOM → style → layout → paint → composite → the event loop)
     crypto.astro          a /crypto deep-dive (hashing → keys → exchange → certs → TLS)
-    database.astro        a /database deep-dive (tables → indexes → queries → txns → isolation → durability → replication)
+    database.astro        a /database deep-dive (tables → indexes → queries → joins → txns → isolation → durability → replication)
     memory.astro          a /memory deep-dive (addresses → stack/heap → allocation → GC → cache → hierarchy → virtual memory → TLB)
     os.astro              an /os deep-dive (processes → scheduler → context switch → syscalls → interrupts → filesystem → journaling)
     structures.astro      a /structures deep-dive (arrays → linked lists → stacks/queues → hash maps → trees → graphs → big-O)

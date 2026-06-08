@@ -61,7 +61,7 @@ test('Adder island: setting the high A bit carries into a sum of 16', async ({ p
 test('Database page: own nav, B-tree finds the key, a crash without a txn loses money, isolation levels differ', async ({ page }) => {
   await page.goto('/database');
   await expect(page.locator('h1.title')).toContainText('DATABASE');
-  await expect(page.locator('.spine .rung')).toHaveCount(7);
+  await expect(page.locator('.spine .rung')).toHaveCount(8);
   // b-tree: descend to the found key
   const bt = page.locator('#D1');
   await bt.scrollIntoViewIfNeeded();
@@ -71,8 +71,17 @@ test('Database page: own nav, B-tree finds the key, a crash without a txn loses 
     await page.waitForTimeout(40);
   }
   await expect(bt.locator('.bt-key.found')).toHaveText('10');
+  // joins (section D3): stepping the nested loop produces the matched result rows
+  const jn = page.locator('#D3');
+  await jn.scrollIntoViewIfNeeded();
+  for (let i = 0; i < 12; i++) {
+    await jn.locator('.cpu-ctrl button').first().click();
+    if (await jn.locator('.jn-tbl.out tbody tr').count() >= 3) break;
+    await page.waitForTimeout(40);
+  }
+  await expect(jn.locator('.jn-tbl.out tbody tr')).toHaveCount(3);
   // transaction off → the crash loses money (total drops to 250)
-  const tx = page.locator('#D3');
+  const tx = page.locator('#D4');
   await tx.scrollIntoViewIfNeeded();
   const txBtn = tx.getByRole('button', { name: /transaction:/ });
   await expect(async () => {
@@ -85,8 +94,8 @@ test('Database page: own nav, B-tree finds the key, a crash without a txn loses 
     await page.waitForTimeout(40);
   }
   await expect(tx.locator('.txn-acct.total .txn-val')).toHaveText('250');
-  // isolation (section D4): READ UNCOMMITTED exposes a dirty read
-  const iso = page.locator('#D4');
+  // isolation (section D5): READ UNCOMMITTED exposes a dirty read
+  const iso = page.locator('#D5');
   await iso.scrollIntoViewIfNeeded();
   await expect(async () => {
     await iso.getByRole('button', { name: 'READ UNCOMMITTED' }).click();
