@@ -166,6 +166,19 @@ test('Cross-references: sibling deep-dives link to each other where concepts tou
   await expect(page).toHaveURL(/\/cpu\/?$/);
 });
 
+test('Search: a query returns results that link to the right page', async ({ page }) => {
+  await page.goto('/search');
+  const input = page.locator('#search input').first();
+  await input.waitFor({ state: 'visible', timeout: 8000 }); // Pagefind injects it after loading the index
+  await input.fill('deadlock');
+  const result = page.locator('.pagefind-ui__result a').first();
+  await expect(result).toBeVisible({ timeout: 8000 });
+  await expect(result).toHaveAttribute('href', /\/concurrency\/?/);
+  // the footer links to search from any page
+  await page.goto('/cpu');
+  await expect(page.locator('.stacknav a[href="/search"]').first()).toBeVisible();
+});
+
 test('Reduced motion: the global reset neutralizes animations and transitions', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/silicon');

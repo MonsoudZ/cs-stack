@@ -69,6 +69,12 @@ set of completed lesson keys; a correct quiz answer adds its slug).
 | `npm run test:e2e` | Playwright — islands actually hydrate and respond; nav, quizzes, the path, reduced motion |
 | `npm run gen:og` | regenerate the social cards from `stacks.js` (committed PNGs; build/CI never run this) |
 
+**Search** is [Pagefind](https://pagefind.app): a `postbuild` script (`pagefind
+--site dist`) indexes the built HTML into `dist/pagefind/` (not committed) after
+every `astro build`. `<main>` is marked `data-pagefind-body` so only content is
+indexed (the repeated footer/spine are excluded); `/search` hosts the Pagefind UI.
+Search works in `preview`/production, not `astro dev` (no index there).
+
 CI (`.github/workflows/ci.yml`) runs them. Accessibility beyond axe (real
 Lighthouse, a computed contrast sweep of the palette, label-in-name, reduced
 motion) has been verified by hand; the reduced-motion reset lives in `base.css`

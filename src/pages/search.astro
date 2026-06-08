@@ -1,0 +1,47 @@
+---
+import Base from '../layouts/Base.astro';
+const title = 'THE STACK — search';
+const description = 'Search every layer and deep dive — find any concept across the whole stack.';
+---
+<Base {title} {description} chrome={false} layers={[]}>
+  <div slot="hero">
+    <div class="kicker">Search</div>
+    <h1 class="title">FIND IT IN<br /><em>THE STACK</em></h1>
+    <p class="lede">Search every layer and deep dive at once — caches, deadlock, two’s complement, the TLB, whatever you’re after. Results jump straight to the section.</p>
+    <div class="hero-meta"><a class="back-link" href="/">← back to the full stack</a></div>
+  </div>
+
+  <!-- This page indexes nothing itself; it hosts the search over every other page. -->
+  <section class="searchwrap" data-pagefind-ignore>
+    <div id="search" role="search" aria-label="Search the stack"></div>
+    <noscript><p class="search-noscript">Search needs JavaScript. With it off, use the <a href="/learn">guided path</a> or the map at the bottom of any page.</p></noscript>
+  </section>
+
+  <link rel="stylesheet" href="/pagefind/pagefind-ui.css" />
+  <script is:inline src="/pagefind/pagefind-ui.js"></script>
+  <script is:inline>
+    window.addEventListener('DOMContentLoaded', () => {
+      if (typeof PagefindUI === 'undefined') return; // index absent (e.g. astro dev) — page still loads
+      new PagefindUI({ element: '#search', showSubResults: true, showImages: false, resetStyles: false });
+      // autofocus the input once Pagefind has injected it
+      requestAnimationFrame(() => document.querySelector('#search input')?.focus());
+    });
+  </script>
+</Base>
+
+<style>
+  .back-link{color:var(--accent,var(--signal))}
+  .searchwrap{max-width:var(--measure,720px);margin:8px auto 0;padding:0 4px}
+  .search-noscript{color:var(--dim);font-family:var(--mono);font-size:14px}
+  .search-noscript a{color:var(--accent,var(--signal))}
+  /* tune Pagefind's UI tokens to the site palette (it reads CSS custom props) */
+  #search{
+    --pagefind-ui-primary:var(--signal);
+    --pagefind-ui-text:var(--ink);
+    --pagefind-ui-background:var(--surface);
+    --pagefind-ui-border:var(--border);
+    --pagefind-ui-tag:var(--fill);
+    --pagefind-ui-font:var(--body);
+    --pagefind-ui-border-radius:12px;
+  }
+</style>

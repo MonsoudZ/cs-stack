@@ -8,10 +8,10 @@ const { current } = Astro.props;
 const others = stacks.filter((s) => s.slug !== current);
 const onDeepDive = stacks.some((s) => s.slug === current);
 ---
-<nav class="stacknav" aria-label="Deep-dive explorables">
+<nav class="stacknav" aria-label="Deep-dive explorables" data-pagefind-ignore>
   <div class="stacknav-head">
     <h2 class="stacknav-h">{onDeepDive ? 'Other deep dives' : 'Go deeper'}</h2>
-    <p class="stacknav-sub">Each one zooms into a single layer of the stack — its own little explorable. <a class="stacknav-path" href="/learn">Or follow the guided path →</a></p>
+    <p class="stacknav-sub">Each one zooms into a single layer of the stack — its own little explorable. <a class="stacknav-path" href="/learn">Follow the guided path →</a> <a class="stacknav-path" href="/search">Search →</a></p>
   </div>
   <ul class="stacknav-grid">
     {others.map((s) => (
