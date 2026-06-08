@@ -7,6 +7,7 @@ import AluUnit from '../components/AluUnit.svelte';
 import Pipeline from '../components/Pipeline.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
+import SeeAlso from '../components/SeeAlso.astro';
 const L = Object.fromEntries(cpuLayers.map((l) => [l.id, l]));
 const title = 'THE STACK — the CPU';
 const description = 'A deep dive into the processor: registers, the fetch-decode-execute cycle, the ALU and its flags, pipelining and the hazards that stall it, and the clock — and why raw speed gave way to multiple cores.';
@@ -46,6 +47,7 @@ const description = 'A deep dive into the processor: registers, the fetch-decode
     <p class="prose">The <b>ALU</b> (arithmetic logic unit) is the calculator at the heart of execute. An opcode picks the operation; it runs over two inputs and produces a result plus <span class="hl">condition flags</span> — like <b>Z</b> (the result was zero) and <b>C</b> (it carried out of 8 bits) — which is how a later branch decides which way to go.</p>
     <AluUnit client:visible />
     <Takeaway>The ALU is one block that does all the arithmetic and logic; its flags are the breadcrumbs that let the CPU make decisions.</Takeaway>
+    <SeeAlso slug="numbers" note="how these bit patterns become signed numbers, and why they overflow" />
     <Why
       problem="Execute has to perform many different operations — add, subtract, compare, mask bits — without a separate machine for each."
       idea="Build one ALU whose opcode selects the operation, and have it emit condition flags alongside the result so comparisons and branches are nearly free."
@@ -80,6 +82,7 @@ const description = 'A deep dive into the processor: registers, the fetch-decode
   <LayerSection {...L.CP5}>
     <p class="prose">Every stage advances on the tick of a <b>clock</b>. A faster clock means more cycles per second — so for decades, chips simply ran hotter and faster. Then they hit a <span class="hl">power wall</span>: past a few GHz, the heat became unmanageable. The answer wasn't faster, it was <b>wider</b> — more cores.</p>
     <Takeaway>The clock turned out to have a ceiling: when raw speed stopped scaling, the industry went parallel — which is exactly why concurrency became everyone’s problem.</Takeaway>
+    <SeeAlso slug="concurrency" note="writing correct software for all those parallel cores" />
     <Why
       problem="A single clocked core can only be pushed so fast before power and heat grow faster than the performance you buy."
       idea="Stop chasing GHz and replicate the core: put many CPUs on one chip and run work in parallel across them."

@@ -10,6 +10,7 @@ import BTreeSearch from '../components/BTreeSearch.svelte';
 import Graph from '../components/Graph.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
+import SeeAlso from '../components/SeeAlso.astro';
 const L = Object.fromEntries(structLayers.map((l) => [l.id, l]));
 const title = 'THE STACK — data structures';
 const description = 'A deep dive into data structures: arrays, linked lists, dynamic arrays, stacks and queues, hash maps, trees, graphs, and the Big-O trade-offs that make you choose between them.';
@@ -92,6 +93,7 @@ const bigo = [
     <p class="prose">A <b>tree</b> links nodes by <i>choices</i>. A balanced search tree keeps keys ordered so every step throws away half the remaining options — finding one key among thousands takes only a handful of comparisons: <b>O(log n)</b>.</p>
     <BTreeSearch client:visible />
     <Takeaway>A search tree trades a hash map's flat speed for ordering: lookups are O(log n), but the data stays sorted, so ranges and "next-largest" come free.</Takeaway>
+    <SeeAlso slug="database" note="B-tree indexes use exactly this to find rows without scanning the table" />
     <Why
       problem="Hash maps are fast but unordered — useless when you need sorted output, ranges, or the nearest key."
       idea="Arrange keys in a balanced tree so each comparison halves the search space and an in-order walk yields everything sorted."

@@ -6,6 +6,7 @@ import HashAvalanche from '../components/HashAvalanche.svelte';
 import DiffieHellman from '../components/DiffieHellman.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
+import SeeAlso from '../components/SeeAlso.astro';
 const L = Object.fromEntries(cryptoLayers.map((l) => [l.id, l]));
 const title = 'THE STACK — cryptography';
 const description = 'A deep dive into the crypto behind a secure connection: hashing, symmetric and asymmetric keys, Diffie–Hellman key exchange, certificates, and how TLS combines them.';
@@ -78,6 +79,7 @@ const description = 'A deep dive into the crypto behind a secure connection: has
   <LayerSection {...L.X5}>
     <p class="prose">A TLS handshake composes all of it: the server presents a <b>certificate</b> (verified up the chain), the two sides run a <b>key exchange</b> to agree on a session secret, and from then on they talk with fast <b>symmetric</b> encryption — with hashes checking integrity throughout.</p>
     <Takeaway>HTTPS is this stack run at the start of every connection: verify who, agree on a key, then encrypt fast — the padlock in one handshake.</Takeaway>
+    <SeeAlso slug="network" note="the connection this handshake secures, packet by packet" />
     <Why
       problem="A real connection needs privacy, integrity, and authenticity at once, and symmetric speed without a pre-shared key."
       idea="Use asymmetric crypto and certificates to authenticate and agree on a key, then switch to symmetric encryption for the actual data, with hashes guarding integrity."

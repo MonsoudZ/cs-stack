@@ -150,6 +150,22 @@ test('Cross-stack footer: lists every deep dive on home, omits the current one o
   await expect(page.locator('h1.title')).toContainText('CRYPTO');
 });
 
+test('Cross-references: sibling deep-dives link to each other where concepts touch', async ({ page }) => {
+  // the CPU's ALU section points to the numbers stack…
+  await page.goto('/cpu');
+  const ref = page.locator('#CP2 .see-also a');
+  await ref.scrollIntoViewIfNeeded();
+  await expect(ref).toContainText('the Numbers stack');
+  await ref.click();
+  await expect(page).toHaveURL(/\/numbers\/?$/);
+  // …and numbers points back to the CPU (a reciprocal pair)
+  const back = page.locator('#NB1 .see-also a');
+  await back.scrollIntoViewIfNeeded();
+  await expect(back).toContainText('the CPU stack');
+  await back.click();
+  await expect(page).toHaveURL(/\/cpu\/?$/);
+});
+
 test('Social cards: each deep dive advertises its own per-stack OG image', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', /\/og\.png$/);

@@ -6,6 +6,7 @@ import RenderInvalidation from '../components/RenderInvalidation.svelte';
 import EventLoop from '../components/EventLoop.svelte';
 import BrowserUi from '../components/BrowserUi.astro';
 import Why from '../components/Why.astro';
+import SeeAlso from '../components/SeeAlso.astro';
 import Takeaway from '../components/Takeaway.astro';
 const L = Object.fromEntries(renderLayers.map((l) => [l.id, l]));
 const title = 'THE STACK — the render pipeline';
@@ -107,6 +108,7 @@ const description = 'A deep dive into how the browser turns code into pixels: th
     <p class="prose">All that work is driven by one <b>event loop</b>. Each turn: run a <span class="hl">task</span> (a click, a timer) to completion, drain every <span class="hl">microtask</span> (Promises) — then, if a frame is due, run <code>requestAnimationFrame</code> callbacks and render. Rendering and your JavaScript share one thread, so a slow task blocks the frame: that's <b>jank</b>.</p>
     <EventLoop client:visible />
     <Takeaway>The event loop interleaves your JS with rendering on a single thread — microtasks before the next frame, rAF just before paint, and any long task stalls the whole thing.</Takeaway>
+    <SeeAlso slug="os" note="how the OS shares the CPU too — but preemptively, so no single task can freeze it" />
     <Why
       problem="JavaScript and rendering run on one thread, so they must take turns — and the order (and what blocks what) decides whether the UI stays smooth."
       idea="Run one task fully, drain all microtasks, then render at most once per frame; schedule visual work in requestAnimationFrame and defer heavy work off the critical path."

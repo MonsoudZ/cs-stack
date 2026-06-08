@@ -7,6 +7,7 @@ import DbTransaction from '../components/DbTransaction.svelte';
 import Isolation from '../components/Isolation.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
+import SeeAlso from '../components/SeeAlso.astro';
 const L = Object.fromEntries(dbLayers.map((l) => [l.id, l]));
 const title = 'THE STACK — the database';
 const description = 'A deep dive into a database: rows in pages, B-tree indexes, query planning, ACID transactions, the write-ahead log, and replication — how storage becomes reliable answers.';
@@ -34,6 +35,7 @@ const description = 'A deep dive into a database: rows in pages, B-tree indexes,
     <p class="prose">An <b>index</b> is a sorted side-structure — usually a <span class="hl">B-tree</span> — that lets the engine descend a few levels to a row instead of scanning the whole table. A million rows become ~20 comparisons.</p>
     <BTreeSearch client:visible />
     <Takeaway>An index trades some write cost and space for lookups that go from O(n) scans to O(log n) tree descents.</Takeaway>
+    <SeeAlso slug="structures" note="the B-tree this index is built on, and how a search descends it" />
     <Why
       problem="Scanning every row to answer a query is fine for ten rows and ruinous for ten million."
       idea="Keep keys in a balanced tree (or hash) so a lookup follows a short path from root to leaf, touching a handful of pages."
@@ -91,6 +93,7 @@ const description = 'A deep dive into a database: rows in pages, B-tree indexes,
   <LayerSection {...L.D6}>
     <p class="prose">A single server is a single point of failure. <b>Replication</b> streams the log to replica machines: reads can spread across them, and if the primary dies, a replica is promoted to take over.</p>
     <Takeaway>Replication copies the database across machines so reads scale and a failure doesn't lose the data — at the cost of consistency tradeoffs.</Takeaway>
+    <SeeAlso slug="cloud" note="how this scales reads across a fleet, and the CAP tradeoff it forces" />
     <Why
       problem="If everything lives on one machine, its failure is the database's failure, and all reads contend for it."
       idea="Stream the write-ahead log to replicas that stay in sync; serve reads from them and fail over to one if the primary dies."

@@ -7,6 +7,7 @@ import Cloud from '../components/Cloud.svelte';
 import Replication from '../components/Replication.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
+import SeeAlso from '../components/SeeAlso.astro';
 const L = Object.fromEntries(cloudLayers.map((l) => [l.id, l]));
 const title = 'THE STACK — the cloud';
 const description = 'A deep dive into the cloud: scaling out instead of up, the load balancer and health checks, stateless servers, one request through the whole architecture, read replicas and replication lag, and the CAP tradeoff.';
@@ -57,6 +58,7 @@ const description = 'A deep dive into the cloud: scaling out instead of up, the 
     <p class="prose">Here's the whole architecture in motion: a request crosses the internet to the load balancer, lands on an app server, checks a <b>cache</b>, falls back to the <b>database</b> on a miss, enqueues slow work to a <b>queue</b>, and returns — while a worker finishes the rest after the user already has their answer.</p>
     <Cloud client:visible />
     <Takeaway>A cloud request is a tour of the repeated stack — balancer, app, cache, database, queue — each piece there to be fast, shared, or resilient.</Takeaway>
+    <SeeAlso slug="network" note="the journey each request makes across the internet to reach these servers" />
     <Why
       problem="A single request now touches many machines, and the slow or failure-prone parts can’t sit on the user’s critical path."
       idea="Layer the pieces: cache to skip the database, the database as the source of truth, and a queue to defer slow work asynchronously."
@@ -69,6 +71,7 @@ const description = 'A deep dive into the cloud: scaling out instead of up, the 
     <p class="prose">One database becomes the bottleneck, so reads get spread across <b>replicas</b>. Writes go to the <span class="hl">primary</span>, which streams changes out — but that streaming has <b>lag</b>. A read that hits a replica mid-lag sees <i>stale</i> data. The replicas converge soon after: that's <span class="hl">eventual consistency</span>.</p>
     <Replication client:visible />
     <Takeaway>Replicas scale reads by copying the primary — but replication lag means a read can briefly see the past, so the system is only eventually consistent.</Takeaway>
+    <SeeAlso slug="database" note="replication and its consistency tradeoffs from inside the database itself" />
     <Why
       problem="A single database caps your read throughput and is a single point of failure for the truth."
       idea="Copy the data to read replicas the primary streams updates to, so reads scale horizontally and a replica can be promoted if the primary dies."

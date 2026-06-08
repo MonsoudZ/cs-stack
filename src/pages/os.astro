@@ -6,6 +6,7 @@ import Scheduler from '../components/Scheduler.svelte';
 import Syscall from '../components/Syscall.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
+import SeeAlso from '../components/SeeAlso.astro';
 const L = Object.fromEntries(osLayers.map((l) => [l.id, l]));
 const title = 'THE STACK — operating system';
 const description = 'A deep dive into the operating system: processes, the scheduler that shares one CPU, context switches, system calls across the user/kernel boundary, and the interrupts that let the OS stay in charge.';
@@ -33,6 +34,7 @@ const description = 'A deep dive into the operating system: processes, the sched
     <p class="prose">There's usually one core but many ready processes, so the OS <b>time-slices</b>: it runs each for a short <span class="hl">quantum</span>, then moves on. Switch fast enough and everything <i>looks</i> simultaneous — though a process can also step aside early to wait on I/O.</p>
     <Scheduler client:visible />
     <Takeaway>The scheduler fakes "everything at once" by giving each process a quick turn in a relentless rotation.</Takeaway>
+    <SeeAlso slug="concurrency" note="that mid-instruction pausing is exactly what makes race conditions possible" />
     <Why
       problem="One CPU can run only one instruction stream at a time, yet a dozen programs all want to make progress now."
       idea="Slice time into small quanta and rotate the ready processes through the CPU, parking any that block on I/O until they’re ready again."

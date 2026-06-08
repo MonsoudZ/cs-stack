@@ -9,6 +9,7 @@ import FloatGrid from '../components/FloatGrid.svelte';
 import FloatSum from '../components/FloatSum.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
+import SeeAlso from '../components/SeeAlso.astro';
 const L = Object.fromEntries(numLayers.map((l) => [l.id, l]));
 const title = 'THE STACK — numbers';
 const description = 'A deep dive into how computers represent numbers: binary place value, two’s-complement negatives and overflow, IEEE-754 floating point, the uneven grid of representable values, and why 0.1 + 0.2 ≠ 0.3.';
@@ -37,6 +38,7 @@ const description = 'A deep dive into how computers represent numbers: binary pl
     <p class="prose">There's no wire for a minus sign, so the top bit is given a <b>negative</b> place value (−8 in four bits). To negate a number you <span class="hl">flip every bit and add one</span> — and the same trick makes addition, subtraction, and overflow all just work.</p>
     <TwosComplement client:visible />
     <Takeaway>Two’s complement encodes negatives by making the high bit count downward, so one adder handles both signs — at the cost of a hard wrap from the largest positive to the most negative.</Takeaway>
+    <SeeAlso slug="cpu" note="the ALU that runs this arithmetic in hardware, flags and all" />
     <Why
       problem="Programs need negative numbers, but the bits offer no symbol for a sign and we don’t want a second, separate subtractor."
       idea="Let the most significant bit carry a negative weight; then “flip and add one” negates, and ordinary binary addition handles mixed signs for free."

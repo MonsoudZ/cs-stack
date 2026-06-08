@@ -1,0 +1,26 @@
+---
+// A lightweight inline cross-reference between sibling deep-dives, for the
+// places where two stacks' concepts genuinely touch (e.g. the CPU's ALU and the
+// numbers stack). Name + kind come from stacks.js so links can't drift; `note`
+// is the one-line reason this connection matters here.
+import { stacks } from '../data/stacks.js';
+const { slug, note } = Astro.props;
+const s = stacks.find((x) => x.slug === slug);
+// One string so HTML compression can't drop the space between name and kind.
+const label = s && `the ${s.name} ${s.kind}`;
+---
+{s && (
+  <p class="see-also">
+    <a href={`/${s.slug}`}>↗ see also: <b>{label}</b></a>{note ? ' — ' + note : ''}
+  </p>
+)}
+
+<style>
+  .see-also{
+    font-size:14px;color:var(--dim);margin:14px 0 0;padding:8px 0 8px 14px;
+    border-left:2px solid var(--border);line-height:1.5;
+  }
+  .see-also a{color:var(--accent,var(--signal));text-decoration:none;font-weight:500}
+  .see-also a:hover,.see-also a:focus-visible{text-decoration:underline}
+  .see-also b{font-weight:700}
+</style>

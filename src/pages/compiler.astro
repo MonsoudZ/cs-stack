@@ -6,6 +6,7 @@ import Tokenizer from '../components/Tokenizer.svelte';
 import BytecodeVm from '../components/BytecodeVm.svelte';
 import TypeCheck from '../components/TypeCheck.svelte';
 import Why from '../components/Why.astro';
+import SeeAlso from '../components/SeeAlso.astro';
 import Takeaway from '../components/Takeaway.astro';
 const L = Object.fromEntries(compilerLayers.map((l) => [l.id, l]));
 const title = 'THE STACK — the compiler';
@@ -87,6 +88,7 @@ const description = 'A deep dive into how code stops being text: lexing into tok
     <p class="prose">Walking the tree, the compiler emits a flat list of <b>bytecode</b> for a simple stack machine: push the operands, then let each operator pop two and push the result. Evaluating it is exactly the fetch-decode-execute loop of layer 06.</p>
     <BytecodeVm client:visible />
     <Takeaway>Lowering turns the tree into a linear instruction stream — the bridge from "structure" to "operations a machine runs."</Takeaway>
+    <SeeAlso slug="cpu" note="the fetch-decode-execute loop that actually runs this bytecode" />
     <Why
       problem="A tree is convenient to reason about but not to execute; hardware and VMs run a linear sequence of simple operations."
       idea="Traverse the AST and emit stack-machine (or register) instructions, so evaluation becomes a tight loop over a flat program."

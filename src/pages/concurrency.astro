@@ -7,6 +7,7 @@ import Deadlock from '../components/Deadlock.svelte';
 import Cas from '../components/Cas.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
+import SeeAlso from '../components/SeeAlso.astro';
 const L = Object.fromEntries(ccLayers.map((l) => [l.id, l]));
 const title = 'THE STACK — concurrency';
 const description = 'A deep dive into concurrency: threads sharing one memory, race conditions and the locks that fix them, deadlock and lock ordering, lock-free atomics with compare-and-swap, and why concurrent bugs are so hard to reproduce.';
@@ -22,6 +23,7 @@ const description = 'A deep dive into concurrency: threads sharing one memory, r
   <LayerSection {...L.CC0}>
     <p class="prose">A process can run several <b>threads</b> at once. Unlike separate processes, threads of one program <span class="hl">share the same memory</span> — the same variables, the same heap — while each keeps its own stack and registers. That shared memory is what makes them fast to coordinate, and exactly what makes them dangerous.</p>
     <Takeaway>Threads are runners inside one program that share its memory — cheap to communicate through, but with nothing protecting that shared state by default.</Takeaway>
+    <SeeAlso slug="cpu" note="why one chip grew many cores for those threads to run on" />
     <Why
       problem="A modern chip has many cores, and a program often has many things to do at once — serve requests, render, fetch — that shouldn’t each wait on the others."
       idea="Run multiple threads in one process, sharing its address space, so they can divide the work and communicate just by reading and writing the same memory."
@@ -69,6 +71,7 @@ const description = 'A deep dive into concurrency: threads sharing one memory, r
   <LayerSection {...L.CC4}>
     <p class="prose">The deep difficulty is <b>nondeterminism</b>: a concurrent program can interleave in astronomically many ways, and a bug may surface in only a few of them. It passes every test, runs fine under the debugger (which changes the timing), and fails only in production — a <span class="hl">Heisenbug</span> that vanishes when observed.</p>
     <Takeaway>Concurrency is hard because correctness depends on timings you don’t control and can’t easily reproduce — which is why higher-level tools exist to take the sharing away.</Takeaway>
+    <SeeAlso slug="cloud" note="the same coordination problem, but spread across many machines" />
     <Why
       problem="A correct sequential program has one execution; a concurrent one has a combinatorial explosion of interleavings, and testing samples only a vanishing fraction."
       idea="Reason about all interleavings, not just the one you observed — or sidestep the problem with message passing, immutability, and higher-level primitives that don’t share mutable state."

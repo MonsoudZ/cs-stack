@@ -10,6 +10,7 @@ import Allocator from '../components/Allocator.svelte';
 import GarbageCollector from '../components/GarbageCollector.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
+import SeeAlso from '../components/SeeAlso.astro';
 const L = Object.fromEntries(memLayers.map((l) => [l.id, l]));
 const title = 'THE STACK — memory';
 const description = 'A deep dive into memory: addresses, the stack and heap, allocation and fragmentation, garbage collection, caches and locality, the hierarchy, virtual memory and the TLB — how a program’s bytes are placed, managed, and reached.';
@@ -97,6 +98,7 @@ const description = 'A deep dive into memory: addresses, the stack and heap, all
     <p class="prose">Each program sees its own clean <b>virtual</b> address space. The MMU translates a virtual address — split into a <span class="hl">page</span> number and an offset — to a physical one, by looking the page up in a <b>page table</b>.</p>
     <AddressTranslation client:visible />
     <Takeaway>Virtual memory gives every process a private address space; a page table maps its virtual pages to wherever they physically live.</Takeaway>
+    <SeeAlso slug="os" note="the OS owns that page table, and uses it to isolate one process from another" />
     <Why
       problem="Many programs run at once and must not see or clobber each other's memory, yet each wants a simple contiguous space."
       idea="Give each process virtual addresses and translate them per-page to physical frames through a page table the OS controls — adding isolation and the freedom to relocate or page out memory."

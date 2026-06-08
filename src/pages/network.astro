@@ -8,6 +8,7 @@ import Routing from '../components/Routing.svelte';
 import Dns from '../components/Dns.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
+import SeeAlso from '../components/SeeAlso.astro';
 const L = Object.fromEntries(networkLayers.map((l) => [l.id, l]));
 const title = 'THE STACK — the network, deep';
 const description = 'A deep dive into the network stack: signals on the wire, encapsulation, IP routing and TTL, TCP reliability, and DNS — how bytes leave one machine and arrive at another.';
@@ -82,6 +83,7 @@ const description = 'A deep dive into the network stack: signals on the wire, en
   <LayerSection {...L.N5}>
     <p class="prose">Type a URL and it all fires in order: <b>DNS</b> turns the name into an IP, <b>TCP</b> opens a connection (the SYN / SYN-ACK / ACK handshake), <b>TLS</b> negotiates keys and checks a certificate so the bytes are private, and finally <b>HTTP</b> carries your request — which descends every layer here, crosses the world, and climbs back up as a response.</p>
     <Takeaway>One click is this entire ladder, run twice — once down on the way out, once up on the way back.</Takeaway>
+    <SeeAlso slug="crypto" note="how that connection is encrypted before any data flows (TLS)" />
     <Why
       problem="Each layer solves one problem in isolation, but a real request needs all of them composed in the right order, every time."
       idea="Stack them: names resolve, a connection opens, encryption wraps the channel, and the application protocol rides inside — each layer leaning on the promise of the one below."
