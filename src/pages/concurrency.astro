@@ -10,7 +10,7 @@ import Takeaway from '../components/Takeaway.astro';
 import SeeAlso from '../components/SeeAlso.astro';
 const L = Object.fromEntries(ccLayers.map((l) => [l.id, l]));
 const title = 'THE STACK — concurrency';
-const description = 'A deep dive into concurrency: threads sharing one memory, race conditions and the locks that fix them, deadlock and lock ordering, lock-free atomics with compare-and-swap, and why concurrent bugs are so hard to reproduce.';
+const description = 'A deep dive into concurrency: threads sharing memory, race conditions and the locks that fix them, deadlock and lock ordering, and lock-free atomics.';
 ---
 <Base {title} {description} layers={ccLayers}>
   <div slot="hero">

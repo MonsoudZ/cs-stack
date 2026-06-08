@@ -29,6 +29,9 @@ const {
   title = 'THE STACK — electrons to the cloud',
   description = 'An explorable explanation of the computing stack, from silicon to the cloud. Climb the layers — transistors, gates, bits, the CPU, memory, the OS, the network — and trace a real algorithm all the way down.',
   layers = mainLayers,
+  // Utility pages (e.g. 404) set chrome={false} to drop the layer-spine nav,
+  // reader guide, guided-tour CTA, and keyboard hint — there are no sections.
+  chrome = true,
 } = Astro.props;
 const base = Astro.site ?? Astro.url;
 const canonical = new URL(Astro.url.pathname, base);
@@ -98,6 +101,7 @@ const jsonLd = {
 
   <!-- Open Graph / Twitter cards for link previews -->
   <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="THE STACK" />
   <meta property="og:title" content={title} />
   <meta property="og:description" content={description} />
   <meta property="og:url" content={canonical} />
@@ -128,33 +132,41 @@ const jsonLd = {
       <p class="lede">Every layer of computing is a <b>convenient lie</b> told by the layer beneath it. Climb the ladder and watch each lie get built — by hand, where you can poke it.</p>
       <div class="hero-meta">silicon → voltage → gates → bits → runtime → CPU → cache → memory → data structures → OS → security → network → cloud → database → UI</div>
     </slot>
-    <ol class="reader-guide" aria-label="How to read this site">
-      <li><b>1</b> poke the diagram</li>
-      <li><b>2</b> read the takeaway</li>
-      <li><b>3</b> open why</li>
-    </ol>
-    <!-- Enhancement only: revealed by the script, since the tour needs JS. -->
-    <button type="button" id="tourStart" class="tour-start" aria-expanded="false" hidden>▶ Play the climb</button>
-    <p class="kbd-hint">Tip: press <kbd>j</kbd> / <kbd>k</kbd> to jump between layers.</p>
+    {chrome && (
+      <Fragment>
+        <ol class="reader-guide" aria-label="How to read this site">
+          <li><b>1</b> poke the diagram</li>
+          <li><b>2</b> read the takeaway</li>
+          <li><b>3</b> open why</li>
+        </ol>
+        <!-- Enhancement only: revealed by the script, since the tour needs JS. -->
+        <button type="button" id="tourStart" class="tour-start" aria-expanded="false" hidden>▶ Play the climb</button>
+        <p class="kbd-hint">Tip: press <kbd>j</kbd> / <kbd>k</kbd> to jump between layers.</p>
+      </Fragment>
+    )}
   </header>
 
-  <noscript>
-    <p class="noscript-note">This page reads fine without JavaScript — all the prose, takeaways, and the
-    voltage and transistor toggles work. The step-through diagrams (the CPU, call stack, scheduler,
-    network, cloud, and the tracer) need JavaScript to animate; enable it to poke them.</p>
-  </noscript>
+  {chrome && (
+    <noscript>
+      <p class="noscript-note">This page reads fine without JavaScript — all the prose, takeaways, and the
+      voltage and transistor toggles work. The step-through diagrams (the CPU, call stack, scheduler,
+      network, cloud, and the tracer) need JavaScript to animate; enable it to poke them.</p>
+    </noscript>
+  )}
 
   <div class="stage">
-    <nav class="spine" aria-label="Layer navigation">
-      <div class="spine-track" id="spineTrack">
-        <div class="spine-line"></div>
-        <div class="spine-fill" id="spineFill"></div>
-        <div class="spine-pulse" id="spinePulse"></div>
-        {layers.map(({ num, navLabel, id }) => (
-          <a class="rung" href={`#${id}`}><span class="num">{num}</span><span class="lbl">{navLabel}</span></a>
-        ))}
-      </div>
-    </nav>
+    {chrome && (
+      <nav class="spine" aria-label="Layer navigation">
+        <div class="spine-track" id="spineTrack">
+          <div class="spine-line"></div>
+          <div class="spine-fill" id="spineFill"></div>
+          <div class="spine-pulse" id="spinePulse"></div>
+          {layers.map(({ num, navLabel, id }) => (
+            <a class="rung" href={`#${id}`}><span class="num">{num}</span><span class="lbl">{navLabel}</span></a>
+          ))}
+        </div>
+      </nav>
+    )}
     <main id="main" tabindex="-1" aria-keyshortcuts="j k">
       <slot />
       <StackNav current={currentSlug} />
@@ -244,10 +256,11 @@ const jsonLd = {
       const total = stage.offsetHeight - window.innerHeight;
       const p = Math.min(1, Math.max(0, (-r.top) / Math.max(1, total)));
       const line = $('.spine-line');
-      const trackH = line.offsetHeight;
-      const progressY = line.offsetTop + (p * trackH);
-      fill.style.height = (p * trackH) + 'px';
-      pulse.style.top = progressY + 'px';
+      if (line && fill && pulse) {
+        const trackH = line.offsetHeight;
+        fill.style.height = (p * trackH) + 'px';
+        pulse.style.top = (line.offsetTop + p * trackH) + 'px';
+      }
       let best = 0, bestD = 1e9;
       sections.forEach((s, i) => { if (!s) return; const d = Math.abs(s.getBoundingClientRect().top - 90); if (d < bestD) { bestD = d; best = i; } });
       activeBest = best;

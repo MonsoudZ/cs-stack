@@ -9,7 +9,7 @@ import Takeaway from '../components/Takeaway.astro';
 import SeeAlso from '../components/SeeAlso.astro';
 const L = Object.fromEntries(osLayers.map((l) => [l.id, l]));
 const title = 'THE STACK — operating system';
-const description = 'A deep dive into the operating system: processes, the scheduler that shares one CPU, context switches, system calls across the user/kernel boundary, and the interrupts that let the OS stay in charge.';
+const description = 'A deep dive into the operating system: processes, the scheduler, context switches, system calls across the user/kernel boundary, and interrupts.';
 ---
 <Base {title} {description} layers={osLayers}>
   <div slot="hero">

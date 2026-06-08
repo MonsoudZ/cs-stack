@@ -1,0 +1,17 @@
+---
+import Base from '../layouts/Base.astro';
+const title = 'THE STACK — 404';
+const description = 'That page is not part of the stack.';
+---
+<Base {title} {description} chrome={false} layers={[]}>
+  <div slot="hero">
+    <div class="kicker">Error 404</div>
+    <h1 class="title">THIS LAYER<br /><em>DOESN’T EXIST</em></h1>
+    <p class="lede">You’ve addressed a page that isn’t mapped — a segfault in the site, if you like. Everything that does exist is one click away: the full stack, or any of the deep dives below.</p>
+    <div class="hero-meta"><a class="back-link" href="/">← back to the full stack</a></div>
+  </div>
+</Base>
+
+<style>
+  .back-link{color:var(--accent,var(--signal))}
+</style>

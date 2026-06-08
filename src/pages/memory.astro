@@ -13,7 +13,7 @@ import Takeaway from '../components/Takeaway.astro';
 import SeeAlso from '../components/SeeAlso.astro';
 const L = Object.fromEntries(memLayers.map((l) => [l.id, l]));
 const title = 'THE STACK — memory';
-const description = 'A deep dive into memory: addresses, the stack and heap, allocation and fragmentation, garbage collection, caches and locality, the hierarchy, virtual memory and the TLB — how a program’s bytes are placed, managed, and reached.';
+const description = 'A deep dive into memory: the stack and heap, allocation and garbage collection, caches and locality, the hierarchy, virtual memory and the TLB.';
 ---
 <Base {title} {description} layers={memLayers}>
   <div slot="hero">

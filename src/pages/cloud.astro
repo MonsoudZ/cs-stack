@@ -10,7 +10,7 @@ import Takeaway from '../components/Takeaway.astro';
 import SeeAlso from '../components/SeeAlso.astro';
 const L = Object.fromEntries(cloudLayers.map((l) => [l.id, l]));
 const title = 'THE STACK — the cloud';
-const description = 'A deep dive into the cloud: scaling out instead of up, the load balancer and health checks, stateless servers, one request through the whole architecture, read replicas and replication lag, and the CAP tradeoff.';
+const description = 'A deep dive into the cloud: scaling out, the load balancer and health checks, stateless servers, read replicas and replication lag, and the CAP tradeoff.';
 ---
 <Base {title} {description} layers={cloudLayers}>
   <div slot="hero">

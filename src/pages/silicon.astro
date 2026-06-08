@@ -10,7 +10,7 @@ import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
 const L = Object.fromEntries(siliconLayers.map((l) => [l.id, l]));
 const title = 'THE STACK — silicon';
-const description = 'A deep dive into the physics under the stack: why silicon, how doping makes n-type and p-type material, the PN-junction diode, the MOSFET as a voltage-controlled switch, and how two switches become a CMOS logic gate.';
+const description = 'A deep dive into the physics under the stack: doping, the PN-junction diode, the MOSFET as a voltage-controlled switch, and how two switches make a CMOS gate.';
 ---
 <Base {title} {description} layers={siliconLayers}>
   <div slot="hero">

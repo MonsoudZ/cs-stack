@@ -12,7 +12,7 @@ import Takeaway from '../components/Takeaway.astro';
 import SeeAlso from '../components/SeeAlso.astro';
 const L = Object.fromEntries(numLayers.map((l) => [l.id, l]));
 const title = 'THE STACK — numbers';
-const description = 'A deep dive into how computers represent numbers: binary place value, two’s-complement negatives and overflow, IEEE-754 floating point, the uneven grid of representable values, and why 0.1 + 0.2 ≠ 0.3.';
+const description = 'A deep dive into how computers represent numbers: binary place value, two’s-complement negatives, IEEE-754 floating point, and why 0.1 + 0.2 ≠ 0.3.';
 ---
 <Base {title} {description} layers={numLayers}>
   <div slot="hero">

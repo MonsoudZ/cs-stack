@@ -10,7 +10,7 @@ import Takeaway from '../components/Takeaway.astro';
 import SeeAlso from '../components/SeeAlso.astro';
 const L = Object.fromEntries(cpuLayers.map((l) => [l.id, l]));
 const title = 'THE STACK — the CPU';
-const description = 'A deep dive into the processor: registers, the fetch-decode-execute cycle, the ALU and its flags, pipelining and the hazards that stall it, and the clock — and why raw speed gave way to multiple cores.';
+const description = 'A deep dive into the processor: registers, the fetch-decode-execute cycle, the ALU and its flags, pipelining and hazards, and why speed gave way to cores.';
 ---
 <Base {title} {description} layers={cpuLayers}>
   <div slot="hero">
