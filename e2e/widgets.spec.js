@@ -389,10 +389,10 @@ test('Render page: own nav, transform re-runs only the composite stage', async (
   await expect(ri.locator('.ri-stage.rerun .ri-name')).toHaveText('Composite'); // the cheap path
 });
 
-test('Compiler page: own nav, tokenizer emits tokens, the VM evaluates to 11', async ({ page }) => {
+test('Compiler page: own nav, tokenizer emits tokens, type checking rejects a bug, the VM evaluates to 11', async ({ page }) => {
   await page.goto('/compiler');
   await expect(page.locator('h1.title')).toContainText('COMPILER');
-  await expect(page.locator('.spine .rung')).toHaveCount(7);
+  await expect(page.locator('.spine .rung')).toHaveCount(8);
   // lexer: stepping emits tokens
   const lex = page.locator('#K1');
   await lex.scrollIntoViewIfNeeded();
@@ -402,8 +402,21 @@ test('Compiler page: own nav, tokenizer emits tokens, the VM evaluates to 11', a
     await page.waitForTimeout(40);
   }
   await expect(lex.locator('.lex-tok').first()).toBeVisible();
-  // VM: stepping runs the bytecode to a result of 11
-  const vm = page.locator('#K3');
+  // type checking (section K3): toggling in a bug surfaces a type error
+  const tc = page.locator('#K3');
+  await tc.scrollIntoViewIfNeeded();
+  await expect(async () => {
+    await tc.getByRole('button', { name: /program:/ }).click();
+    await expect(tc.getByRole('button', { name: /program:/ })).toContainText('has a bug', { timeout: 400 });
+  }).toPass({ timeout: 8000 });
+  for (let i = 0; i < 6; i++) {
+    await tc.locator('.cpu-ctrl button').first().click();
+    if (await tc.locator('.tc-verdict.bad').count()) break;
+    await page.waitForTimeout(40);
+  }
+  await expect(tc.locator('.tc-verdict.bad')).toContainText('type error');
+  // VM (now section K4): stepping runs the bytecode to a result of 11
+  const vm = page.locator('#K4');
   await vm.scrollIntoViewIfNeeded();
   for (let i = 0; i < 8; i++) {
     await vm.locator('.cpu-ctrl button').first().click();

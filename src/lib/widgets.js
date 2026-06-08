@@ -227,6 +227,34 @@ export function buildVm() {
   return out;
 }
 
+// Type checking (semantic analysis): after parsing, walk the AST bottom-up and
+// infer a type for every node, checking each operator's operands. A well-typed
+// expression yields a type; an ill-typed one (here, string × int) is rejected
+// before any code is generated. `buggy` switches between the two programs.
+export function buildTypeCheck({ buggy = false } = {}) {
+  const out = [];
+  const checked = [];
+  const expr = buggy ? '1 + "hi" * 3' : '1 + 2 * 3';
+  const snap = (note, o = {}) => out.push({ expr, checked: checked.slice(), errored: !!o.errored, ok: !!o.ok, note });
+  const add = (e, type, note, o = {}) => { checked.push({ expr: e, type, error: o.error || null }); snap(note, o); };
+  snap('parsing produced a tree; now infer a type for each node, leaves first, and check every operator’s operands');
+  if (!buggy) {
+    add('1', 'int', 'literal 1 → int');
+    add('2', 'int', 'literal 2 → int');
+    add('3', 'int', 'literal 3 → int');
+    add('2 * 3', 'int', '2 * 3 → int × int = int ✓');
+    add('1 + 2 * 3', 'int', '1 + (2 * 3) → int + int = int ✓');
+    snap('the whole expression is well-typed (int) — safe to lower to bytecode', { ok: true });
+  } else {
+    add('1', 'int', 'literal 1 → int');
+    add('"hi"', 'string', 'literal "hi" → string');
+    add('3', 'int', 'literal 3 → int');
+    add('"hi" * 3', '⊥', '"hi" * 3 → string × int — TYPE ERROR: * needs two numbers', { errored: true, error: '* expects numbers, got string × int' });
+    snap('type checking fails, so the compiler rejects the program before generating a single instruction — the bug never reaches the CPU', { errored: true });
+  }
+  return out;
+}
+
 // --- RENDER PIPELINE (/render) ---
 
 // Which pipeline stages a style change forces to re-run. A geometry change

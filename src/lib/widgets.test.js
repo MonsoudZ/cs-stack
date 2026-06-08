@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum, DOPING, buildDiode, cmosInverter, ALU_OPS, computeAlu, PIPE_STAGES, buildPipeline, buildDeadlock, buildCas, buildLoadBalancer, buildReplication, buildLinkedList, buildStackQueue, GRAPH, buildGraphTraversal, buildStackHeap, buildAllocator, buildGc, ISOLATION_LEVELS, buildIsolation } from './widgets.js';
+import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum, DOPING, buildDiode, cmosInverter, ALU_OPS, computeAlu, PIPE_STAGES, buildPipeline, buildDeadlock, buildCas, buildLoadBalancer, buildReplication, buildLinkedList, buildStackQueue, GRAPH, buildGraphTraversal, buildStackHeap, buildAllocator, buildGc, ISOLATION_LEVELS, buildIsolation, buildTypeCheck } from './widgets.js';
 
 const popcount = (n) => { let c = 0; n >>>= 0; while (n) { c += n & 1; n >>>= 1; } return c; };
 
@@ -604,6 +604,26 @@ describe('buildIsolation (isolation levels)', () => {
   });
   it('exposes exactly three named levels', () => {
     expect(ISOLATION_LEVELS).toEqual(['READ UNCOMMITTED', 'READ COMMITTED', 'REPEATABLE READ']);
+  });
+});
+
+describe('buildTypeCheck (semantic analysis)', () => {
+  it('a well-typed expression infers int and is accepted', () => {
+    const steps = buildTypeCheck();
+    const last = steps[steps.length - 1];
+    expect(last.ok).toBe(true);
+    expect(last.errored).toBe(false);
+    expect(last.checked[last.checked.length - 1].type).toBe('int');
+    expect(steps.some((s) => s.errored)).toBe(false);
+  });
+  it('string × int is a type error, rejected before codegen', () => {
+    const steps = buildTypeCheck({ buggy: true });
+    const last = steps[steps.length - 1];
+    expect(last.errored).toBe(true);
+    expect(last.ok).toBe(false);
+    const bad = last.checked.find((c) => c.error);
+    expect(bad.expr).toBe('"hi" * 3');
+    expect(bad.error).toMatch(/string/);
   });
 });
 

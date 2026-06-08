@@ -4,6 +4,7 @@ import LayerSection from '../components/LayerSection.astro';
 import { compilerLayers } from '../data/compilerLayers.js';
 import Tokenizer from '../components/Tokenizer.svelte';
 import BytecodeVm from '../components/BytecodeVm.svelte';
+import TypeCheck from '../components/TypeCheck.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
 const L = Object.fromEntries(compilerLayers.map((l) => [l.id, l]));
@@ -15,7 +16,7 @@ const description = 'A deep dive into how code stops being text: lexing into tok
     <div class="kicker">A deep dive into layer 08</div>
     <h1 class="title">THE <em>COMPILER</em><br />STACK</h1>
     <p class="lede">You write <code>3 + 4 * 2</code>; the CPU runs numbered operations. Between them is a pipeline that scans, parses, lowers, optimizes, and finally executes — turning text into something a machine can obey.</p>
-    <div class="hero-meta"><a class="back-link" href="/">← back to the full stack</a> · source → tokens → tree → bytecode → run</div>
+    <div class="hero-meta"><a class="back-link" href="/">← back to the full stack</a> · source → tokens → tree → type check → bytecode → run</div>
   </div>
 
   <LayerSection {...L.K0}>
@@ -66,11 +67,23 @@ const description = 'A deep dive into how code stops being text: lexing into tok
       problem="Tokens in a row are ambiguous: does 3 + 4 * 2 mean (3 + 4) * 2 or 3 + (4 * 2)? Order changes the answer."
       idea="Parse the tokens against the language's grammar into a tree where nesting encodes precedence and associativity — no ambiguity left."
       tradeoff="Grammars get intricate fast, and good error messages (“expected a ) here”) are surprisingly hard to produce from a parser."
-      next="A tree is still abstract — lowering flattens it into linear operations."
+      next="A well-formed tree can still be nonsense — type checking decides if it means anything."
     />
   </LayerSection>
 
   <LayerSection {...L.K3}>
+    <p class="prose">A tree can parse perfectly and still be meaningless — like multiplying a string by a number. <b>Type checking</b> (semantic analysis) walks the AST <span class="hl">bottom-up</span>, infers a type for each node, and verifies every operator's operands. Catch the error here and it never reaches the user. Toggle in a bug below.</p>
+    <TypeCheck client:visible />
+    <Takeaway>Type checking is the compiler reading for <i>meaning</i>, not just grammar — rejecting programs that would misbehave, before a single instruction is generated.</Takeaway>
+    <Why
+      problem="A grammatically valid program can still be nonsense — adding a number to a function, calling an undefined name — and running it would crash or corrupt data."
+      idea="Walk the AST inferring and checking types (and scopes), so whole classes of bugs are caught at compile time instead of at runtime."
+      tradeoff="It constrains what you can express and adds a phase to compile, and a type system strong enough to be useful is hard to design and sometimes fights the programmer."
+      next="Once the tree is known to be meaningful, it’s safe to lower into linear operations."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.K4}>
     <p class="prose">Walking the tree, the compiler emits a flat list of <b>bytecode</b> for a simple stack machine: push the operands, then let each operator pop two and push the result. Evaluating it is exactly the fetch-decode-execute loop of layer 06.</p>
     <BytecodeVm client:visible />
     <Takeaway>Lowering turns the tree into a linear instruction stream — the bridge from "structure" to "operations a machine runs."</Takeaway>
@@ -82,7 +95,7 @@ const description = 'A deep dive into how code stops being text: lexing into tok
     />
   </LayerSection>
 
-  <LayerSection {...L.K4}>
+  <LayerSection {...L.K5}>
     <p class="prose">Before running, the compiler rewrites the program to do <b>less work for the same result</b>. <code>4 * 2</code> is constant, so <span class="hl">fold</span> it to <code>8</code> at compile time; unreachable branches are dropped as dead code.</p>
     <Takeaway>Optimization is a search for a cheaper program that computes the identical answer — the user never sees the difference, except in speed.</Takeaway>
     <Why
@@ -93,7 +106,7 @@ const description = 'A deep dive into how code stops being text: lexing into tok
     />
   </LayerSection>
 
-  <LayerSection {...L.K5}>
+  <LayerSection {...L.K6}>
     <p class="prose">Three ways to actually run it: an <b>interpreter</b> walks the bytecode op by op (simple, portable, slower); an <b>ahead-of-time compiler</b> emits machine code once (fast start, less portable); a <b>JIT</b> interprets first, then compiles the hot paths to native code while running.</p>
     <Takeaway>Interpret, compile ahead of time, or JIT — the same pipeline, differing only in when (and whether) bytecode becomes machine code.</Takeaway>
     <Why
@@ -104,8 +117,8 @@ const description = 'A deep dive into how code stops being text: lexing into tok
     />
   </LayerSection>
 
-  <LayerSection {...L.K6}>
-    <p class="prose">End to end: <b>source</b> text is <b>scanned</b> into tokens, <b>parsed</b> into a tree that fixes precedence, <b>lowered</b> into linear bytecode, <b>optimized</b> to do less, and finally <b>run</b> — interpreted or compiled down to the numbered instructions the CPU obeys.</p>
+  <LayerSection {...L.K7}>
+    <p class="prose">End to end: <b>source</b> text is <b>scanned</b> into tokens, <b>parsed</b> into a tree that fixes precedence, <b>type-checked</b> for meaning, <b>lowered</b> into linear bytecode, <b>optimized</b> to do less, and finally <b>run</b> — interpreted or compiled down to the numbered instructions the CPU obeys.</p>
     <Takeaway>"Running a program" is this entire pipeline — most of it usually finished before your code ever executes a line.</Takeaway>
     <Why
       problem="It's easy to think of code as something the computer just reads and does; the gap between text and execution is invisible until it breaks."
