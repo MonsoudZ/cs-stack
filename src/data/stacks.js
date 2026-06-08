@@ -12,7 +12,7 @@ export const stacks = [
   { slug: 'cpu', name: 'CPU', kind: 'stack', layer: '09', accent: '#5b9dff', blurb: 'registers, fetch-decode-execute, the ALU, pipelining, and the clock' },
   { slug: 'memory', name: 'Memory', kind: 'stack', layer: '10', accent: '#5b9dff', blurb: 'the stack & heap, allocation, GC, caches, virtual memory, and the TLB' },
   { slug: 'structures', name: 'Structures', kind: 'stack', layer: '12', accent: '#2ee6c0', blurb: 'linked lists, stacks & queues, hash maps, trees, and graphs' },
-  { slug: 'os', name: 'OS', kind: 'stack', layer: '13', accent: '#5b9dff', blurb: 'the scheduler, context switches, syscalls, and interrupts' },
+  { slug: 'os', name: 'OS', kind: 'stack', layer: '13', accent: '#5b9dff', blurb: 'the scheduler, context switches, syscalls, interrupts, and the filesystem' },
   { slug: 'concurrency', name: 'Concurrency', kind: 'stack', layer: '14', accent: '#a78bfa', blurb: 'threads, race conditions, deadlock, and lock-free atomics' },
   { slug: 'crypto', name: 'Crypto', kind: 'stack', layer: '15', accent: '#ff6b6b', blurb: 'hashing, keys, key exchange, certificates, and TLS' },
   { slug: 'network', name: 'Network', kind: 'stack', layer: '16', accent: '#5b9dff', blurb: 'encapsulation, routing, DNS, and a packet’s journey' },

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { quizzes } from '../data/quizzes.js';
 import { stacks } from '../data/stacks.js';
-import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum, DOPING, buildDiode, cmosInverter, nand, buildUniversal, mux2, ALU_OPS, computeAlu, PIPE_STAGES, buildPipeline, buildDeadlock, buildCas, buildLoadBalancer, buildReplication, buildLinkedList, buildStackQueue, GRAPH, buildGraphTraversal, buildStackHeap, buildAllocator, buildGc, ISOLATION_LEVELS, buildIsolation, buildTypeCheck, buildEventLoop } from './widgets.js';
+import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum, DOPING, buildDiode, cmosInverter, nand, buildUniversal, mux2, ALU_OPS, computeAlu, PIPE_STAGES, buildPipeline, buildDeadlock, buildCas, buildLoadBalancer, buildReplication, buildLinkedList, buildStackQueue, GRAPH, buildGraphTraversal, buildStackHeap, buildAllocator, buildGc, ISOLATION_LEVELS, buildIsolation, buildTypeCheck, buildEventLoop, FS, buildPathResolve, buildJournal } from './widgets.js';
 
 const popcount = (n) => { let c = 0; n >>>= 0; while (n) { c += n & 1; n >>>= 1; } return c; };
 
@@ -690,6 +690,34 @@ describe('quizzes (check-your-understanding integrity)', () => {
         expect(o.why && o.why.length > 0, `${slug} option "${o.label}" needs a why`).toBe(true);
       }
     }
+  });
+});
+
+describe('buildPathResolve (filesystem path lookup)', () => {
+  const steps = buildPathResolve();
+  const last = steps[steps.length - 1];
+  it('walks /docs/notes.txt root → docs (inode 7) → notes.txt (inode 9)', () => {
+    const founds = steps.filter((s) => s.found != null).map((s) => s.found);
+    expect(founds).toEqual([7, 9]);
+  });
+  it('resolves to the file inode and its data blocks', () => {
+    expect(last.resolved).toBe(true);
+    expect(last.inode).toBe(9);
+    expect(last.blocks).toEqual(FS[9].blocks);
+  });
+});
+
+describe('buildJournal (crash consistency)', () => {
+  it('unjournaled: a crash mid-update leaves the filesystem inconsistent', () => {
+    const steps = buildJournal({ journaled: false });
+    expect(steps.some((s) => s.crashed)).toBe(true);
+    expect(steps[steps.length - 1].consistent).toBe(false);
+  });
+  it('journaled: a committed change replays to a consistent state', () => {
+    const steps = buildJournal({ journaled: true });
+    const last = steps[steps.length - 1];
+    expect(last.consistent).toBe(true);
+    expect(steps.some((s) => s.journal.includes('COMMIT'))).toBe(true);
   });
 });
 

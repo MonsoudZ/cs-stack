@@ -506,6 +506,57 @@ export function buildSyscall() {
   return out;
 }
 
+// Path resolution in a filesystem. A path is a chain of directory lookups: a
+// directory is just a file that maps names → inode numbers; an inode holds a
+// file's metadata and the list of disk blocks its bytes actually live in. To
+// open /docs/notes.txt the kernel walks root → docs → notes.txt, inode by inode.
+export const FS = {
+  2: { type: 'dir', name: '/', entries: { docs: 7, 'readme.txt': 4 } },
+  7: { type: 'dir', name: 'docs', entries: { 'notes.txt': 9, 'todo.txt': 5 } },
+  9: { type: 'file', name: 'notes.txt', blocks: [12, 27, 33] },
+};
+export function buildPathResolve({ path = '/docs/notes.txt' } = {}) {
+  const segs = path.split('/').filter(Boolean); // ['docs','notes.txt']
+  const out = [];
+  const snap = (note, o = {}) => out.push({ path, segs, note, inode: o.inode ?? null, entries: o.entries ?? null, want: o.want ?? null, found: o.found ?? null, blocks: o.blocks ?? null, resolved: !!o.resolved });
+  snap('a path is a chain of directory lookups — each directory maps a name to an inode number, and an inode points at the data blocks', {});
+  let inode = 2; // root is always a known inode number
+  snap('start at the root inode (#2) — the one inode the filesystem always knows how to find', { inode });
+  for (const seg of segs) {
+    const node = FS[inode];
+    snap('read inode ' + inode + ' (' + (node.name === '/' ? 'root' : node.name) + ') — a directory; look up "' + seg + '" in its entries', { inode, entries: node.entries, want: seg });
+    const next = node.entries[seg];
+    snap('found "' + seg + '" → inode ' + next, { inode, entries: node.entries, want: seg, found: next });
+    inode = next;
+  }
+  const file = FS[inode];
+  snap('inode ' + inode + ' is a file; its bytes live in blocks [' + file.blocks.join(', ') + '] — scattered on disk, gathered by the inode', { inode, blocks: file.blocks, resolved: true });
+  return out;
+}
+
+// Journaling: how a filesystem survives a crash mid-update. Changing metadata
+// (e.g. linking a new file into a directory) touches several structures; a crash
+// between them leaves the disk inconsistent. A journal write-aheads the intent
+// and a commit marker, so a crash either replays a committed change or discards
+// an incomplete one — never a half-applied mess. `journaled` toggles the two.
+export function buildJournal({ journaled = true } = {}) {
+  const out = [];
+  const snap = (note, o = {}) => out.push({ journaled, journal: o.journal ?? [], applied: !!o.applied, crashed: !!o.crashed, consistent: o.consistent, note });
+  if (!journaled) {
+    snap('no journal. Creating a file means two writes: add the directory entry, and write the new inode');
+    snap('write 1: add directory entry "report.txt → inode 18"');
+    snap('CRASH — power dies before inode 18 is written', { crashed: true });
+    snap('on restart: the directory points to inode 18, but it was never written → a dangling entry, a corrupt filesystem', { crashed: true, consistent: false });
+  } else {
+    snap('with a journal: write the whole intended change to the journal FIRST, then apply it to the real structures');
+    snap('journal: record "add entry report.txt→18, write inode 18", then write a COMMIT marker', { journal: ['add report.txt→18', 'write inode 18', 'COMMIT'] });
+    snap('CRASH — power dies right after the commit', { journal: ['add report.txt→18', 'write inode 18', 'COMMIT'], crashed: true });
+    snap('on restart: the journal entry is COMMITTED → replay it, finishing both writes → the filesystem is consistent', { journal: ['add report.txt→18', 'write inode 18', 'COMMIT'], applied: true, consistent: true });
+    snap('(had the crash hit before COMMIT, the entry would be discarded — the change simply never happened, still consistent)', { applied: true, consistent: true });
+  }
+  return out;
+}
+
 // --- DATA STRUCTURES STACK (/structures) ---
 
 // A dynamic array (vector / ArrayList). It owns a fixed block of memory; when

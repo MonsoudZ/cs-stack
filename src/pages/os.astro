@@ -4,6 +4,8 @@ import LayerSection from '../components/LayerSection.astro';
 import { osLayers } from '../data/osLayers.js';
 import Scheduler from '../components/Scheduler.svelte';
 import Syscall from '../components/Syscall.svelte';
+import PathResolve from '../components/PathResolve.svelte';
+import Journal from '../components/Journal.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
 import Quiz from '../components/Quiz.svelte';
@@ -18,7 +20,7 @@ const description = 'A deep dive into the operating system: processes, the sched
     <div class="kicker">A deep dive into layer 13</div>
     <h1 class="title">THE <em>OS</em><br />STACK</h1>
     <p class="lede">Your program thinks it owns the machine. It doesn't — the operating system does, and lends out a convincing illusion. Underneath: turns on the CPU, register save-and-restore, a guarded door into the kernel, and a hardware alarm clock that keeps the referee in control.</p>
-    <div class="hero-meta"><a class="back-link" href="/">← back to the full stack</a> · processes → scheduler → context switch → syscalls → interrupts</div>
+    <div class="hero-meta"><a class="back-link" href="/">← back to the full stack</a> · processes → scheduler → context switch → syscalls → interrupts → the filesystem → journaling</div>
   </div>
 
   <LayerSection {...L.O0}>
@@ -75,17 +77,43 @@ const description = 'A deep dive into the operating system: processes, the sched
       problem="A program stuck in a tight loop would hold the CPU forever, and waiting on devices by constantly polling them would waste it."
       idea="Let devices raise interrupts that force control into the kernel, and have a periodic timer interrupt guarantee the OS regains control."
       tradeoff="Handlers must be fast and careful — they run at awkward moments — and too many interrupts (interrupt storms) can swamp the system."
-      next="Put the timer, the switch, and the scheduler together and watch one tick of the whole loop."
+      next="Sharing the CPU is half the job. The other half is owning your data on disk."
     />
   </LayerSection>
 
   <LayerSection {...L.O5}>
-    <p class="prose">One tick, end to end: a process is running, the <b>timer interrupt</b> fires, control traps into the kernel, the kernel <b>context-switches</b> the running process out, the <b>scheduler</b> picks the next one, and a return-from-trap resumes it — over and over, thousands of times a second.</p>
-    <Takeaway>The OS stays in charge through one repeating loop: interrupt, save, choose, restore — the heartbeat under every running program.</Takeaway>
+    <p class="prose">The disk is just a flat array of fixed-size <b>blocks</b>; the OS turns that into <b>files with names</b>. A directory is a file that maps names to <span class="hl">inode</span> numbers, and an inode holds a file's metadata plus the list of blocks its bytes live in. Opening <code>/docs/notes.txt</code> is a chain of directory lookups — step it below.</p>
+    <PathResolve client:visible />
+    <Takeaway>A filesystem is a naming layer over raw blocks: directories map names to inodes, inodes point at scattered blocks — so you say a path and never touch a block number.</Takeaway>
+    <SeeAlso slug="memory" note="the allocator does the same blocks-and-fragmentation dance for the heap" />
     <Why
-      problem="The illusion that many programs run at once, safely and fairly, has to be maintained continuously without any program’s cooperation."
-      idea="Drive everything from the timer interrupt: each tick is a chance to switch contexts and reschedule, so control always comes back to the kernel."
-      tradeoff="The loop’s overhead is the price of the illusion — every tick spends cycles on switching and scheduling instead of the program’s own work."
+      problem="Storage hardware only offers numbered blocks, but humans and programs need named, growable files arranged in folders."
+      idea="Add a layer of indirection: inodes describe files and where their blocks are; directories are just files that map names to inode numbers, so a path resolves by walking them."
+      tradeoff="Every open is several disk reads (each directory in the path, then the inode, then the data), which is exactly why directory entries and inodes get cached aggressively."
+      next="But updating all that metadata is several writes — and a crash can land right in the middle."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.O6}>
+    <p class="prose">Creating or renaming a file touches several structures — a directory entry, an inode, allocation bitmaps. A crash <i>between</i> those writes leaves the disk inconsistent. A <b>journal</b> fixes it: write the whole intended change (plus a <span class="hl">commit</span> marker) to a log first, then apply it — so a crash either replays a committed change or discards an incomplete one.</p>
+    <Journal client:visible />
+    <Takeaway>Journaling makes multi-step disk updates atomic: write the intent ahead of the change, so after a crash the filesystem is always either fully updated or untouched — never half-written.</Takeaway>
+    <SeeAlso slug="database" note="the exact same write-ahead-log idea that makes database commits durable" />
+    <Why
+      problem="A single logical change (link a file) is several physical writes, and power can die between them, corrupting the filesystem."
+      idea="Write-ahead the change to a journal and mark it committed before touching the real structures; on restart, replay committed entries and drop incomplete ones."
+      tradeoff="Every metadata change is now written twice (journal then home), so it’s extra I/O — many filesystems journal only metadata, not file data, to limit the cost."
+      next="Sharing the CPU, owning the disk — put it together and the OS’s whole job is one repeating beat."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.O7}>
+    <p class="prose">One tick, end to end: a process is running, the <b>timer interrupt</b> fires, control traps into the kernel, the kernel <b>context-switches</b> the running process out, the <b>scheduler</b> picks the next one, and a return-from-trap resumes it — over and over, thousands of times a second, while the filesystem keeps everyone's data straight underneath.</p>
+    <Takeaway>The OS stays in charge through one repeating loop — interrupt, save, choose, restore — and owns the storage every program reads and writes: the referee and the record-keeper at once.</Takeaway>
+    <Why
+      problem="The illusion that many programs run at once, safely and fairly, with durable data, has to be maintained continuously without any program’s cooperation."
+      idea="Drive scheduling from the timer interrupt so control always returns to the kernel, and mediate every disk access through the filesystem so data stays named and consistent."
+      tradeoff="The loop’s overhead and the journaling I/O are the price of the illusion — cycles and writes spent on coordination instead of the program’s own work."
       next="Zoom back out: this is what the main stack’s OS layer is doing under every process on the machine."
     />
   </LayerSection>

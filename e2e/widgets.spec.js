@@ -431,10 +431,10 @@ test('Structures page: own nav, the array grows by doubling, a hash lookup finds
   await expect(gr.locator('.gr-node.seen')).toHaveCount(5);
 });
 
-test('OS page: own nav, the scheduler runs a process, a syscall traps into the kernel', async ({ page }) => {
+test('OS page: own nav, the scheduler runs a process, a syscall traps, a path resolves to blocks', async ({ page }) => {
   await page.goto('/os');
   await expect(page.locator('h1.title')).toContainText('OS');
-  await expect(page.locator('.spine .rung')).toHaveCount(6);
+  await expect(page.locator('.spine .rung')).toHaveCount(8);
   // scheduler: stepping puts a process on the core
   const sch = page.locator('#O1');
   await sch.scrollIntoViewIfNeeded();
@@ -454,6 +454,15 @@ test('OS page: own nav, the scheduler runs a process, a syscall traps into the k
   }
   await expect(sc.locator('.sc-lane.kern.active')).toBeVisible();
   await expect(sc.locator('.sc-marker.blocked')).toContainText('blocked');
+  // filesystem (section O5): stepping resolves /docs/notes.txt down to its data blocks
+  const fs = page.locator('#O5');
+  await fs.scrollIntoViewIfNeeded();
+  for (let i = 0; i < 6; i++) {
+    await fs.locator('.cpu-ctrl button').first().click();
+    if (await fs.locator('.pr-block').count()) break;
+    await page.waitForTimeout(40);
+  }
+  await expect(fs.locator('.pr-block').first()).toBeVisible();
 });
 
 test('Crypto page: own nav, hash avalanches, DH agrees on a shared secret', async ({ page }) => {

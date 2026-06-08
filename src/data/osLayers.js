@@ -6,5 +6,7 @@ export const osLayers = [
   { id: 'O2', num: '02', navLabel: 'Context switch', zone: 'system', title: 'Context switch: saving a process mid-thought', sub: 'os · registers · program counter · cost' },
   { id: 'O3', num: '03', navLabel: 'System calls', zone: 'system', title: 'System calls: asking the kernel nicely', sub: 'os · the user/kernel boundary · traps' },
   { id: 'O4', num: '04', navLabel: 'Interrupts', zone: 'system', title: 'Interrupts: the hardware interrupts you', sub: 'os · the timer · preemption' },
-  { id: 'O5', num: '05', navLabel: 'One tick', zone: 'all', title: 'One tick: how the referee stays in charge', sub: 'the whole loop · interrupt → switch → schedule' },
+  { id: 'O5', num: '05', navLabel: 'The filesystem', zone: 'system', title: 'The filesystem: names over raw blocks', sub: 'os · inodes · directories · path lookup' },
+  { id: 'O6', num: '06', navLabel: 'Journaling', zone: 'system', title: 'Journaling: surviving a crash mid-write', sub: 'os · write-ahead · consistency' },
+  { id: 'O7', num: '07', navLabel: 'One tick', zone: 'all', title: 'One tick: how the referee stays in charge', sub: 'the whole loop · interrupt → switch → schedule' },
 ];

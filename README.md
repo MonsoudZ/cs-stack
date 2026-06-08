@@ -72,7 +72,7 @@ src/
     crypto.astro          a /crypto deep-dive (hashing → keys → exchange → certs → TLS)
     database.astro        a /database deep-dive (tables → indexes → queries → txns → isolation → durability → replication)
     memory.astro          a /memory deep-dive (addresses → stack/heap → allocation → GC → cache → hierarchy → virtual memory → TLB)
-    os.astro              an /os deep-dive (processes → scheduler → context switch → syscalls → interrupts)
+    os.astro              an /os deep-dive (processes → scheduler → context switch → syscalls → interrupts → filesystem → journaling)
     structures.astro      a /structures deep-dive (arrays → linked lists → stacks/queues → hash maps → trees → graphs → big-O)
     numbers.astro         a /numbers deep-dive (place value → two's complement → IEEE-754 → precision → 0.1+0.2)
     cpu.astro             a /cpu deep-dive (registers → cycle → ALU → pipelining → hazards → the clock)
