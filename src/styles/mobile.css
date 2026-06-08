@@ -71,15 +71,3 @@
     .carry{width:36px}
     .adlabel .tag{width:44px;font-size:11px}
   }
-
-  /* respect users who ask the OS to reduce motion: kill the ambient
-     animations and collapse transitions to near-instant, but keep the
-     widgets fully usable (state still changes, just without the movement). */
-  @media (prefers-reduced-motion: reduce){
-    *,*::before,*::after{
-      animation-duration:.001ms !important;
-      animation-iteration-count:1 !important;
-      transition-duration:.001ms !important;
-      scroll-behavior:auto !important;
-    }
-  }

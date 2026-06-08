@@ -166,6 +166,25 @@ test('Cross-references: sibling deep-dives link to each other where concepts tou
   await expect(page).toHaveURL(/\/cpu\/?$/);
 });
 
+test('Reduced motion: the global reset neutralizes animations and transitions', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/silicon');
+  await expect(page).toHaveTitle(/SILICON|silicon/);
+  // a transition present on every page (footer deep-dive card) collapses to ~0
+  const td = await page.locator('.stacknav-link').first().evaluate((el) => getComputedStyle(el).transitionDuration);
+  expect(parseFloat(td)).toBeLessThan(0.01);
+  // an infinite-loop animation: drive the diode to forward bias so .di-flow renders
+  const di = page.locator('#SI2');
+  await di.scrollIntoViewIfNeeded();
+  for (let i = 0; i < 6; i++) {
+    await di.locator('.cpu-ctrl button').first().click();
+    if (await di.locator('.di-flow').count()) break;
+    await page.waitForTimeout(40);
+  }
+  const ad = await di.locator('.di-flow').first().evaluate((el) => getComputedStyle(el).animationDuration);
+  expect(parseFloat(ad)).toBeLessThan(0.01); // ambient pulse effectively off
+});
+
 test('Prev/next: deep dives chain through the curriculum order', async ({ page }) => {
   // a mid-stack page links back and forward to its neighbours
   await page.goto('/silicon');

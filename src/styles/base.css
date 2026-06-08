@@ -47,6 +47,18 @@
      to value/bit toggle buttons whose visible glyph is their accessible-name root
      (keeps WCAG 2.5.3 "Label in Name": visible text is part of the name). */
   .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+  /* Respect users who ask the OS to reduce motion: kill ambient/looping
+     animations and collapse transitions to near-instant, sitewide, while
+     keeping every widget fully usable (state still changes, just without the
+     movement). JS smooth-scroll and the stepper AUTO cadence guard separately. */
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{
+      animation-duration:.001ms !important;
+      animation-iteration-count:1 !important;
+      transition-duration:.001ms !important;
+      scroll-behavior:auto !important;
+    }
+  }
   html{scroll-behavior:smooth}
   body{
     margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
