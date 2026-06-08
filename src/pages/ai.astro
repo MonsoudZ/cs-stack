@@ -1,0 +1,107 @@
+---
+import Base from '../layouts/Base.astro';
+import LayerSection from '../components/LayerSection.astro';
+import { aiLayers } from '../data/aiLayers.js';
+import Neuron from '../components/Neuron.svelte';
+import GradientDescent from '../components/GradientDescent.svelte';
+import Embeddings from '../components/Embeddings.svelte';
+import Attention from '../components/Attention.svelte';
+import NextToken from '../components/NextToken.svelte';
+import Why from '../components/Why.astro';
+import Takeaway from '../components/Takeaway.astro';
+import SeeAlso from '../components/SeeAlso.astro';
+import Quiz from '../components/Quiz.svelte';
+import PrevNext from '../components/PrevNext.astro';
+const L = Object.fromEntries(aiLayers.map((l) => [l.id, l]));
+const title = 'THE STACK — AI';
+const description = 'A deep dive into how AI works, from the bottom up: the neuron (a weighted sum), learning by gradient descent, embeddings, attention, and the language model that predicts the next token.';
+---
+<Base {title} {description} layers={aiLayers}>
+  <div slot="hero">
+    <div class="kicker">A deep dive into the application on top</div>
+    <h1 class="title">THE <em>AI</em><br />STACK</h1>
+    <p class="lede">It can feel like magic, but it isn't: an AI model is a colossal stack of one simple operation — a weighted sum that fires — with its weights tuned by trial and error until the numbers do something useful. Climb from a single neuron to a chatbot, poking each layer on the way up.</p>
+    <div class="hero-meta"><a class="back-link" href="/">← back to the full stack</a> · neuron → learning → embeddings → attention → the LLM</div>
+  </div>
+
+  <LayerSection {...L.AI0}>
+    <p class="prose">The unit of every neural network is the <b>neuron</b>: take some inputs, multiply each by a <span class="hl">weight</span>, add them up with a <span class="hl">bias</span>, and pass the result through an <b>activation</b> that decides whether it fires. That's it — the rest is scale.</p>
+    <Neuron client:visible />
+    <Takeaway>A neuron is a weighted sum plus a threshold — literally a tunable logic gate. Its “knowledge” is nothing but its weights.</Takeaway>
+    <SeeAlso slug="logic" note="a fixed-weight version of this is exactly a logic gate — here the weights are learned" />
+    <Why
+      problem="We want a single, uniform building block that can represent any decision, yet be adjusted by a machine rather than wired by hand."
+      idea="Make the block a weighted sum + activation: changing the weights changes the decision, so a learning process can shape it."
+      tradeoff="One neuron can only draw a straight-line boundary; real power comes from stacking many into layers (and that costs compute and data)."
+      next="So who sets the weights? Not a human — a learning loop."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.AI1}>
+    <p class="prose">Nobody hand-sets billions of weights. Instead the model <b>learns</b>: measure how wrong it is (the <span class="hl">loss</span>), compute which way each weight should move to shrink that error (the <b>gradient</b>), and nudge every weight a little downhill. Repeat. That loop is all training is.</p>
+    <GradientDescent client:visible />
+    <Takeaway>Training is gradient descent: follow the slope of the loss downhill, one small step at a time, until the predictions fit — scaled to billions of weights over oceans of data.</Takeaway>
+    <Why
+      problem="A neuron is only useful with the right weights, and there are far too many to set by hand or guess."
+      idea="Define a loss that measures error, use calculus to find the downhill direction for each weight, and step that way repeatedly — gradient descent."
+      tradeoff="It needs lots of data and compute, can get stuck or overfit, and only works because the whole network is differentiable."
+      next="To learn about language, the model first needs to turn words into numbers."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.AI2}>
+    <p class="prose">A network only speaks numbers, so each word (or token) is mapped to a <b>vector</b> — an <span class="hl">embedding</span>. The trick: training arranges them so that <i>meaning becomes geometry</i>. Related words end up pointing the same way, and similarity is just the angle between them.</p>
+    <Embeddings client:visible />
+    <Takeaway>Embeddings turn symbols into vectors where closeness means relatedness — so the model can do arithmetic on meaning, not just match characters.</Takeaway>
+    <SeeAlso slug="numbers" note="it’s all floating-point vectors underneath — meaning, encoded as numbers" />
+    <Why
+      problem="Words are discrete symbols with no inherent notion of “similar,” but a model needs a smooth, numeric space to compute over."
+      idea="Learn a vector per token so that semantic relationships show up as geometric ones — distance and direction encode meaning."
+      tradeoff="The dimensions aren’t individually interpretable, embeddings inherit the biases of their training data, and they’re only as good as that data."
+      next="Vectors for single tokens aren’t enough — meaning depends on context."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.AI3}>
+    <p class="prose">A word's meaning depends on the words around it. <b>Attention</b> — the engine of the transformer — lets every token <span class="hl">look at</span> the others and pull in what's relevant: each token's new representation is a weighted blend of all of them, the weights set by how aligned their vectors are.</p>
+    <Attention client:visible />
+    <Takeaway>Attention lets each token gather context from the whole sequence — the mechanism that finally let models handle long-range meaning, and the heart of every transformer.</Takeaway>
+    <Why
+      problem="A fixed embedding can’t tell which “bank” you mean, or what “it” refers to — meaning is contextual, and earlier models lost track over distance."
+      idea="Let every token compute attention weights over all the others (softmax of vector alignments) and mix their values accordingly, so context flows in directly."
+      tradeoff="Comparing every token to every other is quadratic in sequence length — the reason context windows are bounded and so much research targets making it cheaper."
+      next="Stack attention and neurons deep enough, and you can predict the next word."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.AI4}>
+    <p class="prose">For all its scale, a large language model does one thing: <b>predict the next token</b>. Given the text so far, it outputs a score for every possible next token; <span class="hl">softmax</span> turns those into probabilities, <b>temperature</b> tunes the randomness, and it samples one — then feeds it back and repeats.</p>
+    <NextToken client:visible />
+    <Takeaway>An LLM is a next-token predictor in a loop: a probability over what comes next, sample, append, repeat. Everything else — the apparent reasoning — emerges from doing that at enormous scale.</Takeaway>
+    <Why
+      problem="“Understand language and respond” is far too vague to optimize; you need a concrete, measurable objective to train against."
+      idea="Reduce it to next-token prediction over mountains of text — a simple loss, yet learning it well demands grammar, facts, and reasoning-like structure."
+      tradeoff="It models likely text, not truth: fluent, plausible output that can be confidently wrong (hallucination), with no built-in notion of correctness."
+      next="Step back and the whole climb is visible — from one weighted sum to this."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.AI5}>
+    <p class="prose">Put it together: a <b>neuron</b> is a weighted sum; stack millions into layers and tune the weights by <b>gradient descent</b>; feed in tokens as <b>embeddings</b> so meaning is geometry; let <b>attention</b> mix in context; and train the whole thing to <b>predict the next token</b>. Run that loop and it writes. No magic — just the stack, all the way up.</p>
+    <Takeaway>AI isn’t a new kind of machine — it’s the same one. Floating-point math on a CPU/GPU, fed by memory, scaled across the cloud: a weighted sum, repeated until it speaks.</Takeaway>
+    <SeeAlso slug="cloud" note="training and serving these models is what fills the data centers the cloud stack describes" />
+    <Why
+      problem="AI is easy to mystify, which makes it hard to reason about — what it can do, where it fails, and why."
+      idea="See it as a stack of simple, inspectable parts: weighted sums, a learning loop, vectors, attention, and next-token sampling — each one pokeable here."
+      tradeoff="Simple parts at vast scale produce behavior no one fully predicts; understanding the mechanism is necessary but not sufficient for understanding the whole."
+      next="Zoom all the way out: this runs on every layer below — silicon, numbers, the CPU, memory, the cloud."
+    />
+  </LayerSection>
+
+  <Quiz slug="ai" client:visible />
+  <PrevNext slug="ai" />
+</Base>
+
+<style>
+  .back-link{color:var(--accent,var(--signal))}
+</style>

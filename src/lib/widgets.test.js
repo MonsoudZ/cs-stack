@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { quizzes } from '../data/quizzes.js';
 import { stacks } from '../data/stacks.js';
-import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum, DOPING, buildDiode, cmosInverter, nand, buildUniversal, mux2, ALU_OPS, computeAlu, PIPE_STAGES, buildPipeline, buildDeadlock, buildCas, buildLoadBalancer, buildReplication, buildLinkedList, buildStackQueue, GRAPH, buildGraphTraversal, buildStackHeap, buildAllocator, buildGc, ISOLATION_LEVELS, buildIsolation, buildTypeCheck, buildEventLoop, buildCrp, FS, buildPathResolve, buildJournal, buildSockets, buildHttp, buildJoin } from './widgets.js';
+import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum, DOPING, buildDiode, cmosInverter, nand, buildUniversal, mux2, ALU_OPS, computeAlu, PIPE_STAGES, buildPipeline, buildDeadlock, buildCas, buildLoadBalancer, buildReplication, buildLinkedList, buildStackQueue, GRAPH, buildGraphTraversal, buildStackHeap, buildAllocator, buildGc, ISOLATION_LEVELS, buildIsolation, buildTypeCheck, buildEventLoop, buildCrp, FS, buildPathResolve, buildJournal, buildSockets, buildHttp, buildJoin,
+  computeNeuron, buildGradientDescent, EMBEDDINGS, nearestWords, buildAttention, softmaxTemp, nextTokenDist } from './widgets.js';
 
 const popcount = (n) => { let c = 0; n >>>= 0; while (n) { c += n & 1; n >>>= 1; } return c; };
 
@@ -782,6 +783,67 @@ describe('buildCrp (critical rendering path)', () => {
     const steps = buildCrp({ defer: true });
     expect(steps.some((s) => s.scriptBlocking)).toBe(false);
     expect(firstIdx(steps, 'painted')).toBeLessThan(firstIdx(steps, 'scriptRan')); // paint before the deferred script
+  });
+});
+
+describe('computeNeuron (perceptron)', () => {
+  it('weights [1,1], bias −1.5 with a step activation is an AND gate', () => {
+    expect(computeNeuron([0, 0], [1, 1], -1.5).output).toBe(0);
+    expect(computeNeuron([1, 0], [1, 1], -1.5).output).toBe(0);
+    expect(computeNeuron([0, 1], [1, 1], -1.5).output).toBe(0);
+    expect(computeNeuron([1, 1], [1, 1], -1.5).output).toBe(1);
+  });
+});
+
+describe('buildGradientDescent (learning)', () => {
+  const steps = buildGradientDescent();
+  it('loss falls every step (monotonic descent)', () => {
+    const losses = steps.filter((s) => s.grad !== null || s === steps[0]).map((s) => s.loss);
+    for (let i = 1; i < losses.length; i++) expect(losses[i]).toBeLessThanOrEqual(losses[i - 1]);
+  });
+  it('the weight converges toward the ideal (y/x = 3) and loss ≈ 0', () => {
+    const last = steps[steps.length - 1];
+    expect(Math.abs(last.w - 3)).toBeLessThan(0.1);
+    expect(last.loss).toBeLessThan(0.1);
+  });
+});
+
+describe('nearestWords (embeddings)', () => {
+  it('a word’s nearest neighbours are semantically related (cat → animals, not vehicles)', () => {
+    const near = nearestWords('cat').map((n) => n.word);
+    expect(near).toContain('kitten');
+    expect(near).not.toContain('car');
+  });
+  it('excludes the word itself and lands in its own cluster (king → royalty/people)', () => {
+    const near = nearestWords('king');
+    expect(near.some((n) => n.word === 'king')).toBe(false);
+    expect(['queen', 'man', 'woman']).toContain(near[0].word); // not an animal or vehicle
+  });
+});
+
+describe('buildAttention (transformer attention)', () => {
+  it('the query "it" attends most strongly to "cat"', () => {
+    const { weights } = buildAttention({ query: 'it' });
+    const top = [...weights].sort((a, b) => b.weight - a.weight)[0];
+    expect(top.token).toBe('cat');
+  });
+  it('the weights are a distribution (sum ≈ 1)', () => {
+    const { weights } = buildAttention({ query: 'it' });
+    const sum = weights.reduce((s, w) => s + w.weight, 0);
+    expect(sum).toBeCloseTo(1, 2);
+  });
+});
+
+describe('nextTokenDist + temperature', () => {
+  it('low temperature sharpens toward the top token; high temperature flattens', () => {
+    const cold = nextTokenDist(0.2).find((t) => t.token === 'mat').prob;
+    const hot = nextTokenDist(2).find((t) => t.token === 'mat').prob;
+    expect(cold).toBeGreaterThan(0.9);
+    expect(hot).toBeLessThan(cold);
+  });
+  it('probabilities sum to 1', () => {
+    const sum = nextTokenDist(1).reduce((s, t) => s + t.prob, 0);
+    expect(sum).toBeCloseTo(1, 2);
   });
 });
 

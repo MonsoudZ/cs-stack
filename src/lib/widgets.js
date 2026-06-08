@@ -1135,3 +1135,100 @@ export function buildGc() {
   snap('idle', null, 'mark-and-sweep collects exactly the unreachable objects; the price is the collector must trace the graph, sometimes pausing the program');
   return out;
 }
+
+// --- AI STACK (/ai): the application that runs on top of the whole stack ---
+
+// A neuron (perceptron): weigh each input, sum, add a bias, then fire through an
+// activation. With a step activation it's a threshold gate — e.g. weights [1,1]
+// and bias −1.5 fire only when BOTH inputs are 1, an AND gate.
+export function computeNeuron(inputs, weights, bias) {
+  const sum = inputs.reduce((s, x, i) => s + x * weights[i], 0) + bias;
+  return { sum: +sum.toFixed(2), output: sum >= 0 ? 1 : 0 };
+}
+
+// Learning by gradient descent. A model predicts ŷ = w·x; we want it to match a
+// data point (x, y). The loss (ŷ − y)² is a parabola in w; its gradient points
+// uphill, so stepping w against the gradient walks downhill to the best weight
+// (here w → y/x = 3). Returns the trace; loss falls every step.
+export function buildGradientDescent({ x = 2, y = 6, w = 0, lr = 0.05, steps = 10 } = {}) {
+  const out = [];
+  const pred = (w) => w * x;
+  const loss = (w) => (pred(w) - y) ** 2;
+  const snap = (note, o = {}) => out.push({ w: +w.toFixed(3), pred: +pred(w).toFixed(2), loss: +loss(w).toFixed(2), grad: o.grad ?? null, note });
+  snap('a model with one weight w predicts ŷ = w·' + x + '; we want ŷ = ' + y + '. Right now w = ' + w + ', so it is badly wrong');
+  for (let i = 0; i < steps; i++) {
+    const grad = 2 * (pred(w) - y) * x; // dLoss/dw
+    w = w - lr * grad;
+    snap('step ' + (i + 1) + ': nudge w against the gradient → w = ' + (+w.toFixed(3)) + ', ŷ = ' + (+pred(w).toFixed(2)) + ', loss = ' + (+loss(w).toFixed(2)), { grad: +grad.toFixed(2) });
+  }
+  snap('after ' + steps + ' steps w ≈ ' + (+w.toFixed(2)) + ' and the loss is nearly zero — that downhill walk IS learning, scaled to billions of weights');
+  return out;
+}
+
+// Embeddings: meaning becomes geometry. Each word is a vector; similar words sit
+// at similar angles, so cosine similarity measures relatedness. Real models use
+// hundreds of learned dimensions — this is a hand-placed 2-D toy to see the idea.
+export const EMBEDDINGS = {
+  king: [0.80, 0.62], queen: [0.74, 0.68],
+  man: [0.55, 0.50], woman: [0.48, 0.57],
+  cat: [-0.80, 0.50], dog: [-0.70, 0.60], kitten: [-0.85, 0.44], puppy: [-0.74, 0.66],
+  car: [0.60, -0.72], truck: [0.66, -0.66],
+};
+export function cosineSim(a, b) {
+  const dot = a[0] * b[0] + a[1] * b[1];
+  const mag = Math.hypot(...a) * Math.hypot(...b);
+  return mag === 0 ? 0 : dot / mag;
+}
+export function nearestWords(word, k = 3) {
+  const v = EMBEDDINGS[word];
+  return Object.keys(EMBEDDINGS)
+    .filter((w) => w !== word)
+    .map((w) => ({ word: w, sim: +cosineSim(v, EMBEDDINGS[w]).toFixed(3) }))
+    .sort((a, b) => b.sim - a.sim)
+    .slice(0, k);
+}
+
+export function softmax(xs) {
+  const m = Math.max(...xs);
+  const exps = xs.map((x) => Math.exp(x - m));
+  const sum = exps.reduce((a, b) => a + b, 0);
+  return exps.map((e) => e / sum);
+}
+
+// Attention: a token gathers context from other tokens. Its attention weights
+// are softmax over the dot product of its vector with each token's — so it
+// "looks at" the tokens most aligned with it. Here the pronoun "it" attends to
+// "cat", which is how a transformer figures out what "it" refers to.
+export const ATTN_TOKENS = ['the', 'cat', 'drank', 'milk', 'because', 'it', 'was', 'thirsty'];
+// 'cat' has a slightly larger magnitude so the query 'it' lands on it (rather
+// than just on itself) — a toy arrangement that makes the pronoun-resolution
+// point clear. The mechanism is the real one: softmax over dot products.
+const ATTN_VECS = {
+  the: [0.1, 0.1], cat: [1.1, 0.12], drank: [0.2, 0.6], milk: [0.55, 0.25],
+  because: [0.0, 0.2], it: [1.0, 0.05], was: [0.05, 0.15], thirsty: [0.5, 0.4],
+};
+export function buildAttention({ query = 'it' } = {}) {
+  const q = ATTN_VECS[query];
+  const scores = ATTN_TOKENS.map((t) => q[0] * ATTN_VECS[t][0] + q[1] * ATTN_VECS[t][1]);
+  const w = softmax(scores);
+  return {
+    query,
+    weights: ATTN_TOKENS.map((t, i) => ({ token: t, weight: +w[i].toFixed(3) })),
+  };
+}
+
+// A language model is, underneath, a next-token predictor: given the text so
+// far, it outputs a score (logit) for every possible next token. Softmax turns
+// those into probabilities; temperature divides the logits first — low T sharpens
+// toward the top choice, high T flattens toward randomness.
+export const NEXT_TOKENS = [
+  { token: 'mat', logit: 3.0 }, { token: 'floor', logit: 1.5 }, { token: 'rug', logit: 1.2 },
+  { token: 'sofa', logit: 0.8 }, { token: 'roof', logit: 0.2 }, { token: 'moon', logit: -1.0 },
+];
+export function softmaxTemp(logits, T) {
+  return softmax(logits.map((l) => l / T));
+}
+export function nextTokenDist(T = 1) {
+  const probs = softmaxTemp(NEXT_TOKENS.map((t) => t.logit), T);
+  return NEXT_TOKENS.map((t, i) => ({ token: t.token, prob: +probs[i].toFixed(4) }));
+}

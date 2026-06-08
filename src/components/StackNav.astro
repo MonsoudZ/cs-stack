@@ -17,7 +17,7 @@ const onDeepDive = stacks.some((s) => s.slug === current);
     {others.map((s) => (
       <li class="stacknav-item">
         <a class="stacknav-link" href={`/${s.slug}`}>
-          <span class="stacknav-layer">layer {s.layer}</span>
+          <span class="stacknav-layer">{s.layer === 'app' ? 'the app on top' : `layer ${s.layer}`}</span>
           <span class="stacknav-name">the {s.name} {s.kind}</span>
           <span class="stacknav-blurb">{s.blurb}</span>
         </a>

@@ -120,6 +120,15 @@ export const quizzes = {
       { label: 'Committed data being lost', why: 'Isolation governs visibility between transactions, not durability of commits.' },
     ],
   },
+  ai: {
+    question: 'Underneath all the apparent intelligence, what does a large language model fundamentally do?',
+    options: [
+      { label: 'Predict the next token from the text so far, then repeat', correct: true, why: 'It outputs a probability over the next token, samples one, appends it, and runs again — everything else emerges from doing that at scale.' },
+      { label: 'Look the answer up in a database of stored responses', why: 'There’s no answer database; it generates token by token from learned weights, which is also why it can be confidently wrong.' },
+      { label: 'Run if/else rules engineers wrote for each case', why: 'No one writes per-case rules; the behavior comes from weights tuned by gradient descent, not hand-written logic.' },
+      { label: 'Search the web and summarize what it finds', why: 'A base model isn’t searching anything (tool use is bolted on separately) — it’s sampling from what its weights encode.' },
+    ],
+  },
   render: {
     question: 'Animating CSS `transform` is cheap. Why?',
     options: [

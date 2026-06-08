@@ -146,12 +146,12 @@ test('Cross-stack footer: lists every deep dive on home, omits the current one o
   // home: every deep dive is linked, no "back to full stack" (we're home)
   await page.goto('/');
   const homeNav = page.locator('.stacknav');
-  await expect(homeNav.locator('.stacknav-link')).toHaveCount(14);
+  await expect(homeNav.locator('.stacknav-link')).toHaveCount(15);
   await expect(homeNav.locator('.stacknav-home')).toHaveCount(0);
   // a deep dive: the current stack is omitted (the rest) and home link returns
   await page.goto('/memory');
   const sibNav = page.locator('.stacknav');
-  await expect(sibNav.locator('.stacknav-link')).toHaveCount(13);
+  await expect(sibNav.locator('.stacknav-link')).toHaveCount(14);
   await expect(sibNav.getByRole('link', { name: /the Memory stack/i })).toHaveCount(0);
   // the links actually navigate to a sibling explorable
   await sibNav.getByRole('link', { name: /the Crypto stack/i }).click();
@@ -217,16 +217,16 @@ test('Prev/next: deep dives chain through the curriculum order', async ({ page }
   await next.click();
   await expect(page).toHaveURL(/\/logic\/?$/);
   await expect(page.locator('h1.title')).toContainText('LOGIC');
-  // the last deep dive sends you to the guided path
-  await page.goto('/render');
+  // the last deep dive (AI, the app on top) sends you to the guided path
+  await page.goto('/ai');
   await expect(page.locator('.prevnext .pn-next')).toHaveAttribute('href', '/learn');
 });
 
 test('Guided path: /learn lists the curriculum, tracks progress, and resumes', async ({ page }) => {
   await page.goto('/learn');
   await expect(page.locator('h1.title')).toContainText('LEARN');
-  // 15 lessons: the full-stack overview + 14 deep dives
-  await expect(page.locator('.path-item')).toHaveCount(15);
+  // 16 lessons: the full-stack overview + 15 deep dives
+  await expect(page.locator('.path-item')).toHaveCount(16);
   // homepage CTA points here
   await page.goto('/');
   await expect(page.locator('.hero-path')).toHaveAttribute('href', '/learn');
@@ -237,12 +237,12 @@ test('Guided path: /learn lists the curriculum, tracks progress, and resumes', a
     await first.click();
     await expect(first).toHaveAttribute('aria-pressed', 'true', { timeout: 400 });
   }).toPass({ timeout: 8000 });
-  await expect(page.locator('#pathCount')).toContainText('1 of 15 done');
+  await expect(page.locator('#pathCount')).toContainText('1 of 16 done');
   await expect(page.locator('#pathResume')).toContainText('Resume');
   // survives a reload
   await page.reload();
   await expect(page.locator('.path-item').first().locator('.path-done')).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.locator('#pathCount')).toContainText('1 of 15 done');
+  await expect(page.locator('#pathCount')).toContainText('1 of 16 done');
 });
 
 test('Quiz: wrong answer gives feedback, correct answer marks the lesson done on the path', async ({ page }) => {
@@ -529,6 +529,25 @@ test('Render page: own nav, transform re-runs only composite, the event loop ren
     await page.waitForTimeout(40);
   }
   await expect(el.locator('.el-render.done')).toBeVisible();
+});
+
+test('AI page: own nav, the neuron acts as a gate, the LLM predicts the next token', async ({ page }) => {
+  await page.goto('/ai');
+  await expect(page.locator('h1.title')).toContainText('AI');
+  await expect(page.locator('.spine .rung')).toHaveCount(6);
+  // neuron (AI0): default [1,0] with weights [1,1] bias −1.5 → output 0; turn x2 on → 1
+  const nu = page.locator('#AI0');
+  await nu.scrollIntoViewIfNeeded();
+  await expect(nu.locator('.nu-oval')).toHaveText('0');
+  await expect(async () => {
+    await nu.getByRole('button', { name: /x2/ }).click();
+    await expect(nu.locator('.nu-oval')).toHaveText('1', { timeout: 400 });
+  }).toPass({ timeout: 8000 });
+  // language model (AI4): "mat" is the top next-token by default
+  const nt = page.locator('#AI4');
+  await nt.scrollIntoViewIfNeeded();
+  await expect(nt.locator('.nt-row').first().locator('.nt-tok')).toHaveText('mat');
+  await expect(nt.locator('.nt-fill.topp')).toBeVisible(); // the top token's bar is marked
 });
 
 test('Logic page: own nav, NAND builds AND, and the multiplexer selects an input', async ({ page }) => {

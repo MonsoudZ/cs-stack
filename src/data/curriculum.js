@@ -9,7 +9,7 @@ export const curriculum = [
     key: s.slug,
     href: `/${s.slug}`,
     name: `The ${s.name} ${s.kind}`,
-    layer: `layer ${s.layer}`,
+    layer: s.layer === 'app' ? 'the app on top' : `layer ${s.layer}`,
     blurb: s.blurb,
   })),
 ];

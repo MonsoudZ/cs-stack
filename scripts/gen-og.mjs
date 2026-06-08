@@ -53,6 +53,7 @@ render(home, join(root, 'public', 'og.png'));
 
 // --- one card per deep-dive, tinted with the stack's accent ---
 function stackCard({ name, kind, layer, accent, blurb }) {
+  const kicker = layer === 'app' ? 'AN APPLICATION ON THE STACK' : 'A DEEP DIVE INTO LAYER ' + esc(layer);
   // climbing motif, all in the accent at decreasing strength
   return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
   <defs>
@@ -71,7 +72,7 @@ function stackCard({ name, kind, layer, accent, blurb }) {
   <rect x="980" y="86" width="60" height="20" rx="10" fill="${hexA(accent, 0.35)}"/>
 
   <text x="90" y="150" font-family="${FONT}" font-size="26" font-weight="700"
-        letter-spacing="6" fill="${accent}">A DEEP DIVE INTO LAYER ${esc(layer)}</text>
+        letter-spacing="6" fill="${accent}">${kicker}</text>
 
   <text x="84" y="300" font-family="${FONT}" font-size="96" font-weight="800" fill="#ffffff">THE ${esc(name.toUpperCase())}</text>
   <text x="84" y="396" font-family="${FONT}" font-size="96" font-weight="800" fill="#ffffff">${kind.toUpperCase()}</text>
