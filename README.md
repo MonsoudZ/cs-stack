@@ -5,6 +5,9 @@ Restructured from a single large HTML file into a real component project: ~20
 layers you can poke, climbing from electrons to the cloud, capped by a tracer
 that runs a real algorithm through every layer at once.
 
+> **New here / adding a stack?** See [ARCHITECTURE.md](./ARCHITECTURE.md) for how
+> the data-driven engine works and a step-by-step recipe for adding a deep dive.
+
 ## Why this architecture
 - **Astro** ships the prose as static HTML with **zero JavaScript**. Only the
   interactive widgets become hydrated "islands" (`client:visible`), so they load
