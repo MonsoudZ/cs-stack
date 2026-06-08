@@ -189,6 +189,25 @@ test('Guided path: /learn lists the curriculum, tracks progress, and resumes', a
   await expect(page.locator('#pathCount')).toContainText('1 of 15 done');
 });
 
+test('Quiz: wrong answer gives feedback, correct answer marks the lesson done on the path', async ({ page }) => {
+  await page.goto('/numbers');
+  const quiz = page.locator('.quiz');
+  await quiz.scrollIntoViewIfNeeded();
+  // a wrong choice → "not quite" and the correct option is revealed
+  await expect(async () => {
+    await quiz.getByRole('button', { name: /Floating-point hardware has bugs/ }).click();
+    await expect(quiz.locator('.quiz-verdict')).toContainText('Not quite', { timeout: 400 });
+  }).toPass({ timeout: 8000 });
+  await expect(quiz.locator('.quiz-opt.correct')).toBeVisible();
+  // reset and answer correctly
+  await quiz.getByRole('button', { name: 'try again' }).click();
+  await quiz.getByRole('button', { name: /no exact binary form/ }).click();
+  await expect(quiz.locator('.quiz-verdict')).toContainText('Correct');
+  // the guided path now reflects the numbers lesson as done
+  await page.goto('/learn');
+  await expect(page.locator('.path-item[data-key="numbers"] .path-done')).toHaveAttribute('aria-pressed', 'true');
+});
+
 test('Social cards: each deep dive advertises its own per-stack OG image', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', /\/og\.png$/);

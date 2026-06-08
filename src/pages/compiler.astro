@@ -8,6 +8,7 @@ import TypeCheck from '../components/TypeCheck.svelte';
 import Why from '../components/Why.astro';
 import SeeAlso from '../components/SeeAlso.astro';
 import Takeaway from '../components/Takeaway.astro';
+import Quiz from '../components/Quiz.svelte';
 const L = Object.fromEntries(compilerLayers.map((l) => [l.id, l]));
 const title = 'THE STACK — the compiler';
 const description = 'A deep dive into how code stops being text: lexing into tokens, parsing into an AST, lowering to bytecode, optimizing, and running it — interpreted, compiled, or JIT.';
@@ -129,6 +130,8 @@ const description = 'A deep dive into how code stops being text: lexing into tok
       next="This is the bridge the main stack's Runtime layer points at — the rest of the climb is the machine that runs the result."
     />
   </LayerSection>
+
+  <Quiz slug="compiler" client:visible />
 </Base>
 
 <style>

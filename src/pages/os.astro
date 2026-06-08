@@ -6,6 +6,7 @@ import Scheduler from '../components/Scheduler.svelte';
 import Syscall from '../components/Syscall.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
+import Quiz from '../components/Quiz.svelte';
 import SeeAlso from '../components/SeeAlso.astro';
 const L = Object.fromEntries(osLayers.map((l) => [l.id, l]));
 const title = 'THE STACK — operating system';
@@ -87,6 +88,8 @@ const description = 'A deep dive into the operating system: processes, the sched
       next="Zoom back out: this is what the main stack’s OS layer is doing under every process on the machine."
     />
   </LayerSection>
+
+  <Quiz slug="os" client:visible />
 </Base>
 
 <style>

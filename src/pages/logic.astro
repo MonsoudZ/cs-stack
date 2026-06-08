@@ -8,6 +8,7 @@ import Mux from '../components/Mux.svelte';
 import Adder from '../components/Adder.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
+import Quiz from '../components/Quiz.svelte';
 import SeeAlso from '../components/SeeAlso.astro';
 const L = Object.fromEntries(logicLayers.map((l) => [l.id, l]));
 const title = 'THE STACK — logic';
@@ -93,6 +94,8 @@ const description = 'A deep dive into the logic between a transistor and a CPU: 
       next="Zoom back out: this is the leap the main stack makes from logic gates to the CPU."
     />
   </LayerSection>
+
+  <Quiz slug="logic" client:visible />
 </Base>
 
 <style>

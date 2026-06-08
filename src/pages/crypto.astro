@@ -6,6 +6,7 @@ import HashAvalanche from '../components/HashAvalanche.svelte';
 import DiffieHellman from '../components/DiffieHellman.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
+import Quiz from '../components/Quiz.svelte';
 import SeeAlso from '../components/SeeAlso.astro';
 const L = Object.fromEntries(cryptoLayers.map((l) => [l.id, l]));
 const title = 'THE STACK — cryptography';
@@ -87,6 +88,8 @@ const description = 'A deep dive into the crypto behind a secure connection: has
       next="Zoom back out: this is what the main stack's Security layer leans on to make sharing safe."
     />
   </LayerSection>
+
+  <Quiz slug="crypto" client:visible />
 </Base>
 
 <style>

@@ -7,6 +7,7 @@ import Cloud from '../components/Cloud.svelte';
 import Replication from '../components/Replication.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
+import Quiz from '../components/Quiz.svelte';
 import SeeAlso from '../components/SeeAlso.astro';
 const L = Object.fromEntries(cloudLayers.map((l) => [l.id, l]));
 const title = 'THE STACK — the cloud';
@@ -90,6 +91,8 @@ const description = 'A deep dive into the cloud: scaling out, the load balancer 
       next="Zoom back out: this whole architecture is what the main stack’s cloud layer stands for — the same machine, repeated and coordinated."
     />
   </LayerSection>
+
+  <Quiz slug="cloud" client:visible />
 </Base>
 
 <style>

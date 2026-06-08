@@ -7,6 +7,7 @@ import DbTransaction from '../components/DbTransaction.svelte';
 import Isolation from '../components/Isolation.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
+import Quiz from '../components/Quiz.svelte';
 import SeeAlso from '../components/SeeAlso.astro';
 const L = Object.fromEntries(dbLayers.map((l) => [l.id, l]));
 const title = 'THE STACK — the database';
@@ -101,6 +102,8 @@ const description = 'A deep dive into a database: rows in pages, B-tree indexes,
       next="Zoom back out: this is what the main stack's Database layer is doing under every cloud app."
     />
   </LayerSection>
+
+  <Quiz slug="database" client:visible />
 </Base>
 
 <style>

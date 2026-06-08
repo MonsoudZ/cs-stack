@@ -9,6 +9,7 @@ import FloatGrid from '../components/FloatGrid.svelte';
 import FloatSum from '../components/FloatSum.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
+import Quiz from '../components/Quiz.svelte';
 import SeeAlso from '../components/SeeAlso.astro';
 const L = Object.fromEntries(numLayers.map((l) => [l.id, l]));
 const title = 'THE STACK — numbers';
@@ -82,6 +83,8 @@ const description = 'A deep dive into how computers represent numbers: binary pl
       next="Zoom back out: this rounding lives under every float in the main stack’s floating-point layer."
     />
   </LayerSection>
+
+  <Quiz slug="numbers" client:visible />
 </Base>
 
 <style>

@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { quizzes } from '../data/quizzes.js';
+import { stacks } from '../data/stacks.js';
 import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum, DOPING, buildDiode, cmosInverter, nand, buildUniversal, mux2, ALU_OPS, computeAlu, PIPE_STAGES, buildPipeline, buildDeadlock, buildCas, buildLoadBalancer, buildReplication, buildLinkedList, buildStackQueue, GRAPH, buildGraphTraversal, buildStackHeap, buildAllocator, buildGc, ISOLATION_LEVELS, buildIsolation, buildTypeCheck, buildEventLoop } from './widgets.js';
 
 const popcount = (n) => { let c = 0; n >>>= 0; while (n) { c += n & 1; n >>>= 1; } return c; };
@@ -666,6 +668,28 @@ describe('mux2 (2-to-1 multiplexer)', () => {
     expect(mux2(1, 1, 0).out).toBe(0); // sel 1 → b
     expect(mux2(0, 0, 1).out).toBe(0);
     expect(mux2(1, 0, 1).out).toBe(1);
+  });
+});
+
+describe('quizzes (check-your-understanding integrity)', () => {
+  const slugs = Object.keys(quizzes);
+  it('every deep-dive stack has a quiz, keyed by its slug', () => {
+    for (const s of stacks) expect(quizzes[s.slug], `missing quiz for ${s.slug}`).toBeTruthy();
+    // and no quiz points at a non-existent stack
+    const stackSlugs = new Set(stacks.map((s) => s.slug));
+    for (const slug of slugs) expect(stackSlugs.has(slug), `quiz ${slug} has no stack`).toBe(true);
+  });
+  it('each quiz has a question and exactly one correct option, with feedback on every option', () => {
+    for (const slug of slugs) {
+      const q = quizzes[slug];
+      expect(typeof q.question, slug).toBe('string');
+      expect(q.options.length, slug).toBeGreaterThanOrEqual(2);
+      expect(q.options.filter((o) => o.correct).length, `${slug} must have exactly one correct`).toBe(1);
+      for (const o of q.options) {
+        expect(o.label, slug).toBeTruthy();
+        expect(o.why && o.why.length > 0, `${slug} option "${o.label}" needs a why`).toBe(true);
+      }
+    }
   });
 });
 

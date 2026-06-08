@@ -8,6 +8,7 @@ import BrowserUi from '../components/BrowserUi.astro';
 import Why from '../components/Why.astro';
 import SeeAlso from '../components/SeeAlso.astro';
 import Takeaway from '../components/Takeaway.astro';
+import Quiz from '../components/Quiz.svelte';
 const L = Object.fromEntries(renderLayers.map((l) => [l.id, l]));
 const title = 'THE STACK — the render pipeline';
 const description = 'A deep dive into how the browser turns code into pixels: the DOM tree, computed style, layout, paint, and composite — and why some changes are cheap and others force the whole pipeline.';
@@ -128,6 +129,8 @@ const description = 'A deep dive into how the browser turns code into pixels: th
       next="Zoom back out: this is what the main stack's Browser/UI layer is doing at the very top of the climb."
     />
   </LayerSection>
+
+  <Quiz slug="render" client:visible />
 </Base>
 
 <style>

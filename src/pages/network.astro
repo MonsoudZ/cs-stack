@@ -8,6 +8,7 @@ import Routing from '../components/Routing.svelte';
 import Dns from '../components/Dns.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
+import Quiz from '../components/Quiz.svelte';
 import SeeAlso from '../components/SeeAlso.astro';
 const L = Object.fromEntries(networkLayers.map((l) => [l.id, l]));
 const title = 'THE STACK — the network, deep';
@@ -91,6 +92,8 @@ const description = 'A deep dive into the network stack: signals on the wire, en
       next="Zoom back out: this whole stack is one rung of the bigger climb from electrons to the cloud."
     />
   </LayerSection>
+
+  <Quiz slug="network" client:visible />
 </Base>
 
 <style>

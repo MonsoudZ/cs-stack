@@ -7,6 +7,7 @@ import AluUnit from '../components/AluUnit.svelte';
 import Pipeline from '../components/Pipeline.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
+import Quiz from '../components/Quiz.svelte';
 import SeeAlso from '../components/SeeAlso.astro';
 const L = Object.fromEntries(cpuLayers.map((l) => [l.id, l]));
 const title = 'THE STACK — the CPU';
@@ -90,6 +91,8 @@ const description = 'A deep dive into the processor: registers, the fetch-decode
       next="Zoom back out: this loop, multiplied across cores, is what the OS schedules and what every program above ultimately runs on."
     />
   </LayerSection>
+
+  <Quiz slug="cpu" client:visible />
 </Base>
 
 <style>

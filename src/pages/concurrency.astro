@@ -7,6 +7,7 @@ import Deadlock from '../components/Deadlock.svelte';
 import Cas from '../components/Cas.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
+import Quiz from '../components/Quiz.svelte';
 import SeeAlso from '../components/SeeAlso.astro';
 const L = Object.fromEntries(ccLayers.map((l) => [l.id, l]));
 const title = 'THE STACK — concurrency';
@@ -79,6 +80,8 @@ const description = 'A deep dive into concurrency: threads sharing memory, race 
       next="Zoom back out: coordinating threads on one machine is hard enough — doing it across many machines is the network and the cloud."
     />
   </LayerSection>
+
+  <Quiz slug="concurrency" client:visible />
 </Base>
 
 <style>
