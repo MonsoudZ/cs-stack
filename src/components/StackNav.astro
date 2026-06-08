@@ -11,7 +11,7 @@ const onDeepDive = stacks.some((s) => s.slug === current);
 <nav class="stacknav" aria-label="Deep-dive explorables">
   <div class="stacknav-head">
     <h2 class="stacknav-h">{onDeepDive ? 'Other deep dives' : 'Go deeper'}</h2>
-    <p class="stacknav-sub">Each one zooms into a single layer of the stack — its own little explorable.</p>
+    <p class="stacknav-sub">Each one zooms into a single layer of the stack — its own little explorable. <a class="stacknav-path" href="/learn">Or follow the guided path →</a></p>
   </div>
   <ul class="stacknav-grid">
     {others.map((s) => (
@@ -32,6 +32,8 @@ const onDeepDive = stacks.some((s) => s.slug === current);
   .stacknav-head{margin-bottom:24px}
   .stacknav-h{font-family:var(--display,var(--mono));font-size:clamp(22px,4vw,30px);margin:0 0 6px;color:var(--ink)}
   .stacknav-sub{margin:0;color:var(--dim);font-size:14px}
+  .stacknav-path{color:var(--accent,var(--signal));text-decoration:none;font-weight:500;white-space:nowrap}
+  .stacknav-path:hover,.stacknav-path:focus-visible{text-decoration:underline}
   .stacknav-grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(248px,1fr));gap:12px}
   .stacknav-link{display:flex;flex-direction:column;gap:5px;height:100%;padding:16px 18px;border:1px solid var(--border);border-radius:14px;background:var(--surface);text-decoration:none;transition:border-color .15s,transform .15s,box-shadow .15s}
   .stacknav-link:hover,.stacknav-link:focus-visible{border-color:var(--signal);transform:translateY(-2px);box-shadow:0 6px 22px rgba(0,0,0,.18)}

@@ -1,0 +1,127 @@
+---
+import Base from '../layouts/Base.astro';
+import { curriculum } from '../data/curriculum.js';
+const title = 'THE STACK — the guided path';
+const description = 'Climb the whole computing stack in order, bottom to top: a full-stack overview, then every deep dive from silicon to the cloud. Track what you’ve finished.';
+const total = curriculum.length;
+---
+<Base {title} {description} chrome={false} layers={[]}>
+  <div slot="hero">
+    <div class="kicker">The guided path</div>
+    <h1 class="title">LEARN THE <em>STACK</em></h1>
+    <p class="lede">The whole site, in the order it’s meant to be climbed: start with the full stack for the shape of it, then go down each deep dive from silicon to the cloud. Mark a lesson done as you finish it — your progress is saved in this browser.</p>
+    <div class="hero-meta"><a class="back-link" href="/">← back to the full stack</a></div>
+  </div>
+
+  <section class="path" aria-label="Guided learning path">
+    <div class="path-progress">
+      <div class="path-bar" role="presentation"><span class="path-bar-fill" id="pathFill"></span></div>
+      <p class="path-count" id="pathCount" aria-live="polite">{total} lessons — start anywhere, but the climb reads best in order</p>
+      <a class="path-resume" id="pathResume" href="/">▶ Start the climb</a>
+    </div>
+
+    <ol class="path-list">
+      {curriculum.map((l, i) => (
+        <li class="path-item" data-key={l.key}>
+          <a class="path-link" href={l.href}>
+            <span class="path-num" aria-hidden="true">{String(i).padStart(2, '0')}</span>
+            <span class="path-body">
+              <span class="path-name">{l.name}</span>
+              <span class="path-layer">{l.layer}</span>
+              <span class="path-blurb">{l.blurb}</span>
+            </span>
+          </a>
+          <button type="button" class="path-done" data-key={l.key} aria-pressed="false">mark done</button>
+        </li>
+      ))}
+    </ol>
+    <p class="path-reset"><button type="button" id="pathReset" hidden>reset progress</button></p>
+  </section>
+
+  <script is:inline>
+    (() => {
+      const KEY = 'stack:progress';
+      const read = () => { try { return new Set(JSON.parse(localStorage.getItem(KEY)) || []); } catch (e) { return new Set(); } };
+      const write = (set) => { try { localStorage.setItem(KEY, JSON.stringify([...set])); } catch (e) {} };
+      const items = [...document.querySelectorAll('.path-item')];
+      const fill = document.getElementById('pathFill');
+      const count = document.getElementById('pathCount');
+      const resume = document.getElementById('pathResume');
+      const reset = document.getElementById('pathReset');
+      const total = items.length;
+      if (!items.length) return;
+
+      function render() {
+        const done = read();
+        let n = 0;
+        items.forEach((li) => {
+          const on = done.has(li.dataset.key);
+          li.classList.toggle('is-done', on);
+          const btn = li.querySelector('.path-done');
+          btn.setAttribute('aria-pressed', String(on));
+          btn.textContent = on ? '✓ done' : 'mark done';
+          if (on) n += 1;
+        });
+        fill.style.width = (total ? (n / total) * 100 : 0) + '%';
+        const next = items.find((li) => !done.has(li.dataset.key));
+        if (n === 0) {
+          count.textContent = total + ' lessons — start anywhere, but the climb reads best in order';
+        } else if (next) {
+          count.textContent = n + ' of ' + total + ' done';
+        } else {
+          count.textContent = 'all ' + total + ' done — nicely climbed';
+        }
+        if (next) {
+          resume.setAttribute('href', next.querySelector('.path-link').getAttribute('href'));
+          resume.textContent = (n === 0 ? '▶ Start the climb' : '▶ Resume') + ' · ' + next.querySelector('.path-name').textContent;
+        } else {
+          resume.setAttribute('href', '/');
+          resume.textContent = '✓ revisit the full stack';
+        }
+        reset.hidden = n === 0;
+      }
+
+      items.forEach((li) => {
+        li.querySelector('.path-done').addEventListener('click', () => {
+          const done = read();
+          const k = li.dataset.key;
+          if (done.has(k)) done.delete(k); else done.add(k);
+          write(done);
+          render();
+        });
+      });
+      reset.addEventListener('click', () => { write(new Set()); render(); });
+      render();
+    })();
+  </script>
+</Base>
+
+<style>
+  .back-link{color:var(--accent,var(--signal))}
+  .path{max-width:var(--measure,1080px);margin:0 auto;padding:8px 24px 24px}
+  .path-progress{position:sticky;top:0;z-index:5;background:var(--bg);padding:18px 0 14px;margin-bottom:8px;border-bottom:1px solid var(--border)}
+  .path-bar{height:6px;border-radius:4px;background:var(--fill);overflow:hidden}
+  .path-bar-fill{display:block;height:100%;width:0;background:var(--signal);border-radius:4px;transition:width .35s ease}
+  .path-count{margin:10px 0 0;font-family:var(--mono);font-size:13px;color:var(--dim)}
+  .path-resume{display:inline-block;margin-top:12px;font-family:var(--mono);font-size:13px;font-weight:700;color:var(--bg);background:var(--signal);border-radius:999px;padding:9px 18px;text-decoration:none;box-shadow:0 0 22px var(--signal-d)}
+  .path-resume:hover{filter:brightness(1.08)}
+  .path-list{list-style:none;margin:18px 0 0;padding:0;counter-reset:none}
+  .path-item{display:flex;align-items:stretch;gap:12px;border:1px solid var(--border);border-radius:14px;background:var(--surface);margin-bottom:10px;transition:border-color .15s,opacity .15s}
+  .path-item.is-done{border-color:var(--signal)}
+  .path-item.is-done .path-num{color:var(--signal)}
+  .path-link{flex:1;display:flex;gap:16px;align-items:baseline;padding:16px 18px;text-decoration:none}
+  .path-num{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--faint);min-width:24px}
+  .path-body{display:flex;flex-direction:column;gap:4px}
+  .path-name{font-family:var(--display,var(--mono));font-weight:700;font-size:17px;color:var(--ink)}
+  .path-layer{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+  .path-blurb{font-size:13px;color:var(--dim);line-height:1.45}
+  .path-link:hover .path-name,.path-link:focus-visible .path-name{color:var(--accent,var(--signal))}
+  .path-done{align-self:center;margin-right:14px;font-family:var(--mono);font-size:12px;white-space:nowrap;padding:7px 12px;border:1px solid var(--border);border-radius:999px;background:var(--bg);color:var(--dim);cursor:pointer;transition:.15s}
+  .path-done[aria-pressed="true"]{border-color:var(--signal);color:var(--signal);background:var(--signal-d)}
+  .path-reset{margin-top:14px;text-align:center}
+  #pathReset{font-family:var(--mono);font-size:12px;color:var(--faint);background:none;border:none;cursor:pointer;text-decoration:underline}
+  @media(max-width:520px){
+    .path-link{flex-direction:column;gap:6px}
+    .path-done{align-self:flex-start;margin:0 0 14px 18px}
+  }
+</style>

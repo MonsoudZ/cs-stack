@@ -166,6 +166,29 @@ test('Cross-references: sibling deep-dives link to each other where concepts tou
   await expect(page).toHaveURL(/\/cpu\/?$/);
 });
 
+test('Guided path: /learn lists the curriculum, tracks progress, and resumes', async ({ page }) => {
+  await page.goto('/learn');
+  await expect(page.locator('h1.title')).toContainText('LEARN');
+  // 15 lessons: the full-stack overview + 14 deep dives
+  await expect(page.locator('.path-item')).toHaveCount(15);
+  // homepage CTA points here
+  await page.goto('/');
+  await expect(page.locator('.hero-path')).toHaveAttribute('href', '/learn');
+  // marking a lesson done updates the count and the resume target (persisted in localStorage)
+  await page.goto('/learn');
+  const first = page.locator('.path-item').first().locator('.path-done');
+  await expect(async () => {
+    await first.click();
+    await expect(first).toHaveAttribute('aria-pressed', 'true', { timeout: 400 });
+  }).toPass({ timeout: 8000 });
+  await expect(page.locator('#pathCount')).toContainText('1 of 15 done');
+  await expect(page.locator('#pathResume')).toContainText('Resume');
+  // survives a reload
+  await page.reload();
+  await expect(page.locator('.path-item').first().locator('.path-done')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#pathCount')).toContainText('1 of 15 done');
+});
+
 test('Social cards: each deep dive advertises its own per-stack OG image', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', /\/og\.png$/);

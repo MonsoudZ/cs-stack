@@ -61,6 +61,8 @@ src/
   layouts/Base.astro      hero, SEO + JSON-LD, spine nav, guided tour, scroll script
   pages/
     index.astro           the main stack — composes the layer sections, hydrates each island
+    learn.astro           the guided path: ordered curriculum + localStorage progress (data/curriculum.js)
+    404.astro             on-brand not-found page (Base chrome={false})
     network.astro         a /network deep-dive reusing the same engine (Base takes a `layers` prop)
     compiler.astro        a /compiler deep-dive (lex → parse → type check → bytecode → optimize → run)
     render.astro          a /render deep-dive (DOM → style → layout → paint → composite → the event loop)
