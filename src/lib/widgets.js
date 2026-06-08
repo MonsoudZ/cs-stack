@@ -1232,3 +1232,73 @@ export function nextTokenDist(T = 1) {
   const probs = softmaxTemp(NEXT_TOKENS.map((t) => t.logit), T);
   return NEXT_TOKENS.map((t, i) => ({ token: t.token, prob: +probs[i].toFixed(4) }));
 }
+
+// --- AI STACK (/ai), part 2: tokenization, training, grounding ---
+
+// Tokenization: models don't see words, they see tokens — subword chunks from a
+// fixed vocabulary. Common words are one token; rarer ones split into pieces.
+// A toy greedy longest-match over a small vocab; real tokenizers (BPE) learn the
+// merges, but the idea — and why a model can miscount the letters in a word it
+// only sees as "straw"+"berry" — is the same.
+export const TOK_VOCAB = ['The', 'the', 'cat', 'sat', 'on', 'mat', 'token', 'iz', 'ation', 'un', 'happiness', 'straw', 'berry', 'learn', 'ing', 'model', 's', 'is', 'a', 'word'];
+function tokenizeWord(w) {
+  const out = [];
+  let i = 0;
+  while (i < w.length) {
+    let best = null;
+    for (const piece of TOK_VOCAB) if (piece.length > (best ? best.length : 0) && w.startsWith(piece, i)) best = piece;
+    if (best) { out.push(best); i += best.length; } else { out.push(w[i]); i += 1; }
+  }
+  return out;
+}
+export const TOK_EXAMPLES = ['The cat sat on the mat', 'tokenization', 'unhappiness', 'strawberry', 'learning models'];
+export function tokenize(phrase) {
+  const tokens = [];
+  phrase.split(' ').forEach((w, wi) => {
+    tokenizeWord(w).forEach((t, ti) => tokens.push({ text: t, id: TOK_VOCAB.indexOf(t), firstInWord: ti === 0, wi }));
+  });
+  return tokens;
+}
+
+// Pretraining vs fine-tuning: the same model, the same prompt, three training
+// phases. Pretraining on the open internet teaches language but only autocompletes;
+// supervised fine-tuning on curated instruction→response pairs teaches it to
+// answer; preference tuning (RLHF) teaches it what people find helpful. Returns
+// the phases with how the model behaves after each.
+export function buildTraining() {
+  const prompt = 'Explain photosynthesis simply.';
+  const out = [];
+  const snap = (phase, data, behavior, reply, note) => out.push({ prompt, phase, data, behavior, reply, note });
+  snap('—', 'none yet', 'untrained', '(random gibberish)', 'the same prompt — "' + prompt + '" — run through a model at three stages of training');
+  snap('Pretraining', 'trillions of words of internet text', 'autocompletes', 'Explain respiration simply. Explain osmosis simply. Explain…', 'next-token prediction on raw text: it soaks up grammar and facts, but it only continues the pattern — it doesn’t answer');
+  snap('Supervised fine-tuning', 'curated instruction → response pairs', 'follows instructions', 'Plants turn sunlight, water, and air into food (sugar) and give off oxygen.', 'now shown examples of good answers, it learns to respond to the instruction instead of continuing it');
+  snap('Preference tuning (RLHF)', 'humans ranking which answer is better', 'helpful & aligned', 'Great question! Plants are like tiny chefs ☀️ — they mix sunlight, water, and air to make their own food, and breathe out the oxygen we need.', 'rewarded for answers people prefer, it becomes clear, friendly, and safe — the “assistant” feel');
+  snap('done', '—', 'an assistant', '', 'the base model already knew language; alignment is what made it useful');
+  return out;
+}
+
+// RAG and tools: a model's knowledge is frozen at training time and it will
+// confidently make things up. Retrieval-augmented generation embeds the query,
+// finds the most similar real documents, and pastes them into the context so the
+// answer is grounded. Reuses the same cosine similarity as embeddings.
+export const RAG_DOCS = [
+  { text: 'Refunds are accepted within 14 days of purchase.', vec: [0.9, 0.3] },
+  { text: 'Our support line is open 9am–5pm on weekdays.', vec: [-0.6, 0.7] },
+  { text: 'Standard shipping takes 3–5 business days.', vec: [0.1, -0.9] },
+];
+export function buildRag() {
+  const query = 'How long do I have to return something?';
+  const qvec = [0.85, 0.4]; // closest to the refund doc
+  const ranked = RAG_DOCS.map((d) => ({ text: d.text, sim: +cosineSim(qvec, d.vec).toFixed(3) }))
+    .sort((a, b) => b.sim - a.sim);
+  const top = ranked[0];
+  const out = [];
+  const snap = (note, o = {}) => out.push({ query, ranked: o.ranked ?? null, retrieved: o.retrieved ?? null, answer: o.answer ?? null, grounded: !!o.grounded, note });
+  snap('the model’s knowledge is frozen at training time, so for current or private facts it tends to guess');
+  snap('without retrieval, asked "' + query + '" it makes up a plausible-sounding answer', { answer: '“Usually 30 days.” — plausible, but invented, and wrong', grounded: false });
+  snap('RAG instead embeds the query and searches a document store for the most similar chunks', { ranked });
+  snap('the top match is retrieved and pasted into the prompt as context', { ranked, retrieved: top.text });
+  snap('now the model answers FROM that context, grounded in a real source', { retrieved: top.text, answer: '“14 days from purchase,” citing the refund policy', grounded: true });
+  snap('that’s RAG: retrieve relevant text, put it in the context, answer from it. Tools go further — the model can call search, a calculator, or an API and use the result', { grounded: true });
+  return out;
+}

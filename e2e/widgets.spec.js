@@ -534,7 +534,7 @@ test('Render page: own nav, transform re-runs only composite, the event loop ren
 test('AI page: own nav, the neuron acts as a gate, the LLM predicts the next token', async ({ page }) => {
   await page.goto('/ai');
   await expect(page.locator('h1.title')).toContainText('AI');
-  await expect(page.locator('.spine .rung')).toHaveCount(6);
+  await expect(page.locator('.spine .rung')).toHaveCount(9);
   // neuron (AI0): default [1,0] with weights [1,1] bias −1.5 → output 0; turn x2 on → 1
   const nu = page.locator('#AI0');
   await nu.scrollIntoViewIfNeeded();
@@ -543,8 +543,8 @@ test('AI page: own nav, the neuron acts as a gate, the LLM predicts the next tok
     await nu.getByRole('button', { name: /x2/ }).click();
     await expect(nu.locator('.nu-oval')).toHaveText('1', { timeout: 400 });
   }).toPass({ timeout: 8000 });
-  // language model (AI4): "mat" is the top next-token by default
-  const nt = page.locator('#AI4');
+  // language model (now AI5): "mat" is the top next-token by default
+  const nt = page.locator('#AI5');
   await nt.scrollIntoViewIfNeeded();
   await expect(nt.locator('.nt-row').first().locator('.nt-tok')).toHaveText('mat');
   await expect(nt.locator('.nt-fill.topp')).toBeVisible(); // the top token's bar is marked

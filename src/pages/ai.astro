@@ -4,9 +4,12 @@ import LayerSection from '../components/LayerSection.astro';
 import { aiLayers } from '../data/aiLayers.js';
 import Neuron from '../components/Neuron.svelte';
 import GradientDescent from '../components/GradientDescent.svelte';
+import Tokenize from '../components/Tokenize.svelte';
 import Embeddings from '../components/Embeddings.svelte';
 import Attention from '../components/Attention.svelte';
 import NextToken from '../components/NextToken.svelte';
+import Training from '../components/Training.svelte';
+import Rag from '../components/Rag.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
 import SeeAlso from '../components/SeeAlso.astro';
@@ -21,7 +24,7 @@ const description = 'A deep dive into how AI works, from the bottom up: the neur
     <div class="kicker">A deep dive into the application on top</div>
     <h1 class="title">THE <em>AI</em><br />STACK</h1>
     <p class="lede">It can feel like magic, but it isn't: an AI model is a colossal stack of one simple operation — a weighted sum that fires — with its weights tuned by trial and error until the numbers do something useful. Climb from a single neuron to a chatbot, poking each layer on the way up.</p>
-    <div class="hero-meta"><a class="back-link" href="/">← back to the full stack</a> · neuron → learning → embeddings → attention → the LLM</div>
+    <div class="hero-meta"><a class="back-link" href="/">← back to the full stack</a> · neuron → learning → tokens → embeddings → attention → the LLM → training → RAG</div>
   </div>
 
   <LayerSection {...L.AI0}>
@@ -45,12 +48,24 @@ const description = 'A deep dive into how AI works, from the bottom up: the neur
       problem="A neuron is only useful with the right weights, and there are far too many to set by hand or guess."
       idea="Define a loss that measures error, use calculus to find the downhill direction for each weight, and step that way repeatedly — gradient descent."
       tradeoff="It needs lots of data and compute, can get stuck or overfit, and only works because the whole network is differentiable."
-      next="To learn about language, the model first needs to turn words into numbers."
+      next="To work with language at all, the model first has to chop text into pieces it can handle."
     />
   </LayerSection>
 
   <LayerSection {...L.AI2}>
-    <p class="prose">A network only speaks numbers, so each word (or token) is mapped to a <b>vector</b> — an <span class="hl">embedding</span>. The trick: training arranges them so that <i>meaning becomes geometry</i>. Related words end up pointing the same way, and similarity is just the angle between them.</p>
+    <p class="prose">A model doesn't read words — it reads <b>tokens</b>: chunks from a fixed vocabulary, where common words are one token and rarer ones split into <span class="hl">subwords</span>. Each token is just an id. It's also why a model that only sees “straw”+“berry” can fumble the letters in “strawberry”.</p>
+    <Tokenize client:visible />
+    <Takeaway>Text is broken into subword tokens — ids from a fixed vocabulary — before anything else happens. The model never sees letters or words, only token ids.</Takeaway>
+    <Why
+      problem="A neural net needs a fixed, finite set of input symbols, but language has unlimited words, typos, and names."
+      idea="Learn a vocabulary of subword pieces so any text splits into known tokens — frequent words stay whole, rare ones break into parts, nothing is unrepresentable."
+      tradeoff="Token boundaries are arbitrary-ish and language-biased, and they blur character-level detail (spelling, digits) the model then struggles with."
+      next="Each token id now needs to become something the network can compute with — a vector."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.AI3}>
+    <p class="prose">A network only speaks numbers, so each <b>token</b> is mapped to a <b>vector</b> — an <span class="hl">embedding</span>. The trick: training arranges them so that <i>meaning becomes geometry</i>. Related words end up pointing the same way, and similarity is just the angle between them.</p>
     <Embeddings client:visible />
     <Takeaway>Embeddings turn symbols into vectors where closeness means relatedness — so the model can do arithmetic on meaning, not just match characters.</Takeaway>
     <SeeAlso slug="numbers" note="it’s all floating-point vectors underneath — meaning, encoded as numbers" />
@@ -62,7 +77,7 @@ const description = 'A deep dive into how AI works, from the bottom up: the neur
     />
   </LayerSection>
 
-  <LayerSection {...L.AI3}>
+  <LayerSection {...L.AI4}>
     <p class="prose">A word's meaning depends on the words around it. <b>Attention</b> — the engine of the transformer — lets every token <span class="hl">look at</span> the others and pull in what's relevant: each token's new representation is a weighted blend of all of them, the weights set by how aligned their vectors are.</p>
     <Attention client:visible />
     <Takeaway>Attention lets each token gather context from the whole sequence — the mechanism that finally let models handle long-range meaning, and the heart of every transformer.</Takeaway>
@@ -74,7 +89,7 @@ const description = 'A deep dive into how AI works, from the bottom up: the neur
     />
   </LayerSection>
 
-  <LayerSection {...L.AI4}>
+  <LayerSection {...L.AI5}>
     <p class="prose">For all its scale, a large language model does one thing: <b>predict the next token</b>. Given the text so far, it outputs a score for every possible next token; <span class="hl">softmax</span> turns those into probabilities, <b>temperature</b> tunes the randomness, and it samples one — then feeds it back and repeats.</p>
     <NextToken client:visible />
     <Takeaway>An LLM is a next-token predictor in a loop: a probability over what comes next, sample, append, repeat. Everything else — the apparent reasoning — emerges from doing that at enormous scale.</Takeaway>
@@ -82,12 +97,37 @@ const description = 'A deep dive into how AI works, from the bottom up: the neur
       problem="“Understand language and respond” is far too vague to optimize; you need a concrete, measurable objective to train against."
       idea="Reduce it to next-token prediction over mountains of text — a simple loss, yet learning it well demands grammar, facts, and reasoning-like structure."
       tradeoff="It models likely text, not truth: fluent, plausible output that can be confidently wrong (hallucination), with no built-in notion of correctness."
+      next="A raw next-token predictor just autocompletes — so how does it become a helpful assistant?"
+    />
+  </LayerSection>
+
+  <LayerSection {...L.AI6}>
+    <p class="prose">A freshly pretrained model is a brilliant <b>autocompleter</b>, not an assistant — ask it a question and it might just continue with more questions. Two more phases fix that: <b>supervised fine-tuning</b> on curated instruction→answer pairs teaches it to respond, and <b>preference tuning</b> (RLHF) — learning from humans ranking its outputs — makes it helpful and safe.</p>
+    <Training client:visible />
+    <Takeaway>Pretraining gives the model language and knowledge; fine-tuning and RLHF align it into something that follows instructions and feels like an assistant.</Takeaway>
+    <Why
+      problem="Predicting likely internet text isn’t the same as being helpful — a pretrained model will happily ramble, refuse nothing, and mimic any style."
+      idea="Keep the pretrained knowledge, then fine-tune on examples of good responses and on human preferences, steering behavior without retraining from scratch."
+      tradeoff="Alignment reflects its labelers’ judgments and can be undone or jailbroken; “helpful and safe” is a moving, contested target, not a solved one."
+      next="Even aligned, its knowledge is frozen at training time — so how does it answer about today, or your data?"
+    />
+  </LayerSection>
+
+  <LayerSection {...L.AI7}>
+    <p class="prose">The model's weights are frozen at training time, so for fresh or private facts it guesses — and guesses confidently. <b>Retrieval-augmented generation</b> fixes this: embed the question, <span class="hl">retrieve</span> the most similar real documents, and paste them into the context so the model answers from a source. <b>Tools</b> go further — it can call search, a calculator, or an API and use the result.</p>
+    <Rag client:visible />
+    <Takeaway>RAG grounds the model by retrieving relevant text into its context; tools let it act. Both work around a frozen, sometimes-hallucinating model by feeding it real, current information.</Takeaway>
+    <SeeAlso slug="structures" note="retrieval is nearest-neighbour search over embedding vectors — the similarity from earlier, at scale" />
+    <Why
+      problem="A model can’t know what happened after training or what’s in your private documents, yet it will answer anyway — fluently and wrongly."
+      idea="Retrieve relevant text at query time and put it in the context (RAG), and let the model call tools for live data or exact computation, then condition its answer on what came back."
+      tradeoff="It’s only as good as what’s retrieved (bad context → bad answer), and stuffing the context costs tokens, latency, and new failure modes (prompt injection)."
       next="Step back and the whole climb is visible — from one weighted sum to this."
     />
   </LayerSection>
 
-  <LayerSection {...L.AI5}>
-    <p class="prose">Put it together: a <b>neuron</b> is a weighted sum; stack millions into layers and tune the weights by <b>gradient descent</b>; feed in tokens as <b>embeddings</b> so meaning is geometry; let <b>attention</b> mix in context; and train the whole thing to <b>predict the next token</b>. Run that loop and it writes. No magic — just the stack, all the way up.</p>
+  <LayerSection {...L.AI8}>
+    <p class="prose">Put it together: a <b>neuron</b> is a weighted sum; stack millions and tune them by <b>gradient descent</b>; chop text into <b>tokens</b> and turn each into an <b>embedding</b> so meaning is geometry; let <b>attention</b> mix in context; train the whole thing to <b>predict the next token</b>, then <b>fine-tune</b> it into an assistant and <b>ground</b> it with retrieval. Run that loop and it writes. No magic — just the stack, all the way up.</p>
     <Takeaway>AI isn’t a new kind of machine — it’s the same one. Floating-point math on a CPU/GPU, fed by memory, scaled across the cloud: a weighted sum, repeated until it speaks.</Takeaway>
     <SeeAlso slug="cloud" note="training and serving these models is what fills the data centers the cloud stack describes" />
     <Why

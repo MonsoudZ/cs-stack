@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { quizzes } from '../data/quizzes.js';
 import { stacks } from '../data/stacks.js';
 import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum, DOPING, buildDiode, cmosInverter, nand, buildUniversal, mux2, ALU_OPS, computeAlu, PIPE_STAGES, buildPipeline, buildDeadlock, buildCas, buildLoadBalancer, buildReplication, buildLinkedList, buildStackQueue, GRAPH, buildGraphTraversal, buildStackHeap, buildAllocator, buildGc, ISOLATION_LEVELS, buildIsolation, buildTypeCheck, buildEventLoop, buildCrp, FS, buildPathResolve, buildJournal, buildSockets, buildHttp, buildJoin,
-  computeNeuron, buildGradientDescent, EMBEDDINGS, nearestWords, buildAttention, softmaxTemp, nextTokenDist } from './widgets.js';
+  computeNeuron, buildGradientDescent, EMBEDDINGS, nearestWords, buildAttention, softmaxTemp, nextTokenDist,
+  tokenize, TOK_VOCAB, buildTraining, buildRag, RAG_DOCS } from './widgets.js';
 
 const popcount = (n) => { let c = 0; n >>>= 0; while (n) { c += n & 1; n >>>= 1; } return c; };
 
@@ -783,6 +784,54 @@ describe('buildCrp (critical rendering path)', () => {
     const steps = buildCrp({ defer: true });
     expect(steps.some((s) => s.scriptBlocking)).toBe(false);
     expect(firstIdx(steps, 'painted')).toBeLessThan(firstIdx(steps, 'scriptRan')); // paint before the deferred script
+  });
+});
+
+describe('tokenize (subword tokenization)', () => {
+  it('common words are one token each', () => {
+    const toks = tokenize('The cat sat on the mat');
+    expect(toks).toHaveLength(6);
+    expect(toks.every((t) => t.firstInWord)).toBe(true);
+  });
+  it('a rarer word splits into subword pieces', () => {
+    expect(tokenize('tokenization').map((t) => t.text)).toEqual(['token', 'iz', 'ation']);
+    expect(tokenize('strawberry').map((t) => t.text)).toEqual(['straw', 'berry']);
+  });
+  it('every emitted token carries a vocab id', () => {
+    for (const t of tokenize('learning models')) expect(TOK_VOCAB[t.id]).toBe(t.text);
+  });
+});
+
+describe('buildTraining (pretraining → fine-tuning)', () => {
+  const steps = buildTraining();
+  it('runs the three phases in order', () => {
+    const phases = steps.map((s) => s.phase);
+    expect(phases.indexOf('Pretraining')).toBeLessThan(phases.indexOf('Supervised fine-tuning'));
+    expect(phases.indexOf('Supervised fine-tuning')).toBeLessThan(phases.indexOf('Preference tuning (RLHF)'));
+  });
+  it('pretraining only autocompletes; later phases answer the instruction', () => {
+    const pre = steps.find((s) => s.phase === 'Pretraining');
+    expect(pre.behavior).toMatch(/autocomplete/);
+    expect(steps.find((s) => s.phase === 'Supervised fine-tuning').behavior).toMatch(/instruction/);
+  });
+});
+
+describe('buildRag (retrieval-augmented generation)', () => {
+  const steps = buildRag();
+  it('retrieves the most relevant document (the refund policy)', () => {
+    const ret = steps.find((s) => s.retrieved);
+    expect(ret.retrieved).toMatch(/14 days/);
+  });
+  it('the ungrounded answer is wrong; the grounded one cites the source', () => {
+    const ungrounded = steps.find((s) => s.answer && !s.grounded);
+    const grounded = steps.find((s) => s.answer && s.grounded);
+    expect(ungrounded.answer).toMatch(/30 days|invented|wrong/);
+    expect(grounded.answer).toMatch(/14 days/);
+  });
+  it('ranks the refund doc above the others by similarity', () => {
+    const r = steps.find((s) => s.ranked).ranked;
+    expect(r[0].text).toMatch(/Refunds/);
+    expect(r[0].sim).toBeGreaterThan(r[1].sim);
   });
 });
 

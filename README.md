@@ -79,7 +79,7 @@ src/
     concurrency.astro     a /concurrency deep-dive (threads → races → deadlock → atomics → why it's hard)
     cloud.astro           a /cloud deep-dive (scale out → load balancer → stateless → request → replication → CAP)
     silicon.astro         a /silicon deep-dive (crystal → doping → PN junction → MOSFET → CMOS inverter)
-    ai.astro              an /ai deep-dive — the app on top (neuron → learning → embeddings → attention → the LLM)
+    ai.astro              an /ai deep-dive — the app on top (neuron → learning → tokens → embeddings → attention → LLM → training → RAG)
     logic.astro           a /logic deep-dive (boolean → gates → NAND → multiplexer → the adder → ALU)
     robots.txt.js         robots.txt generated from `site`
 scripts/
