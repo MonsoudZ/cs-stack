@@ -6,6 +6,7 @@
 // its per-stack social-share card in scripts/gen-og.mjs.
 export const stacks = [
   { slug: 'silicon', name: 'Silicon', kind: 'stack', layer: '−01', accent: '#2ee6c0', blurb: 'doping, the diode, the MOSFET, and the CMOS logic gate' },
+  { slug: 'logic', name: 'Logic', kind: 'stack', layer: '02', accent: '#a78bfa', blurb: 'boolean algebra, gates, NAND universality, the mux, and the adder' },
   { slug: 'numbers', name: 'Numbers', kind: 'stack', layer: '06', accent: '#ffb454', blurb: 'two’s complement, IEEE-754, and why 0.1 + 0.2 ≠ 0.3' },
   { slug: 'compiler', name: 'Compiler', kind: 'stack', layer: '08', accent: '#a78bfa', blurb: 'lexing, parsing, type checking, bytecode, and a tiny VM' },
   { slug: 'cpu', name: 'CPU', kind: 'stack', layer: '09', accent: '#5b9dff', blurb: 'registers, fetch-decode-execute, the ALU, pipelining, and the clock' },

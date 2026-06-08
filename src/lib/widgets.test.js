@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum, DOPING, buildDiode, cmosInverter, ALU_OPS, computeAlu, PIPE_STAGES, buildPipeline, buildDeadlock, buildCas, buildLoadBalancer, buildReplication, buildLinkedList, buildStackQueue, GRAPH, buildGraphTraversal, buildStackHeap, buildAllocator, buildGc, ISOLATION_LEVELS, buildIsolation, buildTypeCheck, buildEventLoop } from './widgets.js';
+import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum, DOPING, buildDiode, cmosInverter, nand, buildUniversal, mux2, ALU_OPS, computeAlu, PIPE_STAGES, buildPipeline, buildDeadlock, buildCas, buildLoadBalancer, buildReplication, buildLinkedList, buildStackQueue, GRAPH, buildGraphTraversal, buildStackHeap, buildAllocator, buildGc, ISOLATION_LEVELS, buildIsolation, buildTypeCheck, buildEventLoop } from './widgets.js';
 
 const popcount = (n) => { let c = 0; n >>>= 0; while (n) { c += n & 1; n >>>= 1; } return c; };
 
@@ -643,6 +643,29 @@ describe('buildEventLoop (task → microtasks → render)', () => {
   });
   it('defers the setTimeout task to a later turn (still queued at the end)', () => {
     expect(steps[steps.length - 1].tasks).toContain('setTimeout cb');
+  });
+});
+
+describe('nand + buildUniversal (NAND is universal)', () => {
+  it('NAND truth table', () => {
+    expect([nand(0, 0), nand(0, 1), nand(1, 0), nand(1, 1)]).toEqual([1, 1, 1, 0]);
+  });
+  it('NOT, AND, OR built from NAND alone match the real gates for every input', () => {
+    const built = buildUniversal();
+    expect(built.map((g) => g.gate)).toEqual(['NOT', 'AND', 'OR']);
+    for (const g of built) {
+      expect(g.allMatch).toBe(true);
+      for (const r of g.rows) expect(r.built).toBe(r.real);
+    }
+  });
+});
+
+describe('mux2 (2-to-1 multiplexer)', () => {
+  it('routes input a when sel=0, input b when sel=1', () => {
+    expect(mux2(0, 1, 0).out).toBe(1); // sel 0 → a
+    expect(mux2(1, 1, 0).out).toBe(0); // sel 1 → b
+    expect(mux2(0, 0, 1).out).toBe(0);
+    expect(mux2(1, 0, 1).out).toBe(1);
   });
 });
 

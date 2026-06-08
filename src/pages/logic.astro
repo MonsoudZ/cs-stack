@@ -1,0 +1,100 @@
+---
+import Base from '../layouts/Base.astro';
+import LayerSection from '../components/LayerSection.astro';
+import { logicLayers } from '../data/logicLayers.js';
+import LogicGate from '../components/LogicGate.svelte';
+import Universal from '../components/Universal.svelte';
+import Mux from '../components/Mux.svelte';
+import Adder from '../components/Adder.svelte';
+import Why from '../components/Why.astro';
+import Takeaway from '../components/Takeaway.astro';
+import SeeAlso from '../components/SeeAlso.astro';
+const L = Object.fromEntries(logicLayers.map((l) => [l.id, l]));
+const title = 'THE STACK — logic';
+const description = 'A deep dive into the logic between a transistor and a CPU: boolean algebra, logic gates, why NAND alone is universal, the multiplexer that chooses, and the adder that turns logic into arithmetic.';
+---
+<Base {title} {description} layers={logicLayers}>
+  <div slot="hero">
+    <div class="kicker">A deep dive into layer 02</div>
+    <h1 class="title">THE <em>LOGIC</em><br />STACK</h1>
+    <p class="lede">A transistor is just a switch. A CPU does arithmetic. The bridge between them is logic: a handful of true/false rules, wired into gates, combined into circuits that choose and add. There's no new physics here — only patterns of switches, stacked until they compute.</p>
+    <div class="hero-meta"><a class="back-link" href="/">← back to the full stack</a> · boolean → gates → NAND → multiplexer → the adder</div>
+  </div>
+
+  <LayerSection {...L.LG0}>
+    <p class="prose">Strip arithmetic down to two values — <b>true</b> and <b>false</b>, 1 and 0 — and you get <span class="hl">boolean algebra</span>: a tiny system with just three core operators. <code>AND</code> is true only if both inputs are; <code>OR</code> if either is; <code>NOT</code> flips a value. Every decision a computer makes is built from these.</p>
+    <Takeaway>Boolean algebra is the whole vocabulary of computation: two values and three operators, from which every logical decision is composed.</Takeaway>
+    <Why
+      problem="A transistor can only be on or off, so whatever we build on it must reduce to two-valued, yes/no reasoning."
+      idea="Use boolean algebra: treat on/off as true/false and combine them with AND, OR, and NOT, which together can express any logical rule."
+      tradeoff="Everything must be encoded into bits and boolean operations first — expressive, but nothing is ‘obvious’ to the machine until it’s reduced this far."
+      next="These operators aren’t abstract — each is a small arrangement of transistors: a gate."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.LG1}>
+    <p class="prose">A <b>logic gate</b> is a boolean operator made of transistors — a physical circuit whose output is a fixed function of its inputs. Flip the inputs and read the <span class="hl">truth table</span> straight off the hardware.</p>
+    <LogicGate client:visible />
+    <Takeaway>A gate is a truth table you can hold: the same AND/OR/NOT from boolean algebra, now a circuit that computes its output from its inputs in a fixed time.</Takeaway>
+    <SeeAlso slug="silicon" note="how a pair of transistors becomes one gate (the CMOS inverter)" />
+    <Why
+      problem="Boolean operators are just rules on paper; computation needs them realized as something physical that runs."
+      idea="Wire transistors so the output voltage follows a boolean function of the input voltages — one gate per operator (AND, OR, NOT, XOR…)."
+      tradeoff="Each gate costs transistors, area, power, and a little delay, so real designs care deeply about how many gates a function takes."
+      next="Do we really need a different gate for every operator? No — one is enough."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.LG2}>
+    <p class="prose">Remarkably, a single gate is <span class="hl">universal</span>: <b>NAND</b> (NOT-AND) alone can build every other gate, and therefore any circuit at all. Pick a gate below and watch it reconstructed from NANDs — and proven, row by row, to behave identically.</p>
+    <Universal client:visible />
+    <Takeaway>NAND is functionally complete: with enough of one gate you can build NOT, AND, OR — and from those, any logic a computer needs. Manufacturing one gate well is enough.</Takeaway>
+    <Why
+      problem="Designing and fabricating many distinct gate types is costly, and we’d like a minimal, uniform building block."
+      idea="Lean on functional completeness: NAND (or NOR) alone can express every boolean function, so a chip can be a sea of one repeated gate."
+      tradeoff="Building everything from one gate can take more gates than a direct design, trading transistor count for manufacturing and design simplicity."
+      next="With gates in hand, the first interesting circuit is one that chooses."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.LG3}>
+    <p class="prose">Gates don't just compute — wired together they <b>choose</b>. A <span class="hl">multiplexer</span> takes two data inputs and a <i>select</i> line, and routes one of them through: <code>out = (a AND NOT s) OR (b AND s)</code>. This is how hardware picks a register, a path, a branch.</p>
+    <Mux client:visible />
+    <Takeaway>A multiplexer is selection built from pure logic — the gate-level root of every “choose between options” a processor makes, including which way a branch goes.</Takeaway>
+    <Why
+      problem="Computation isn’t only arithmetic — constantly the machine must pick one value or path over another, driven by some control bit."
+      idea="Combine AND/OR/NOT into a multiplexer: a select line gates one input through and blocks the other, choosing purely with logic."
+      tradeoff="Selection logic grows with the number of options (wider muxes, more select bits), adding gates and delay on the path."
+      next="Choosing is half of it. The other half is arithmetic — and it, too, is just gates."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.LG4}>
+    <p class="prose">Addition is not a special hardware feature — it <i>falls out</i> of logic. A <b>full adder</b> sums two bits plus a carry using a handful of XOR/AND/OR gates; chain them and the <span class="hl">carry ripples</span> from the low bit to the high, exactly like adding by hand.</p>
+    <Adder client:visible />
+    <Takeaway>An adder is just gates: XOR makes the sum bit, AND/OR make the carry, and chaining them turns boolean logic into binary arithmetic.</Takeaway>
+    <SeeAlso slug="numbers" note="what those bit patterns mean as numbers — and how negatives ride the same adder" />
+    <Why
+      problem="The machine must do arithmetic, but all it has are switches and boolean gates — no built-in notion of ‘plus’."
+      idea="Express addition in boolean terms: sum = a XOR b XOR carry, carry-out from the ANDs/ORs — a full adder, replicated per bit."
+      tradeoff="A simple ripple-carry adder waits for the carry to travel bit by bit; faster adders spend extra gates to predict carries and cut that delay."
+      next="Choosing plus arithmetic, all from gates — assemble them and you have the heart of a CPU."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.LG5}>
+    <p class="prose">Put it together: gates make choices (the multiplexer) and arithmetic (the adder). Bundle several arithmetic and logic operations behind a multiplexer that an <i>opcode</i> selects, and you've built the <b>ALU</b> — the calculator at the core of every processor. From two-valued logic, a machine that computes.</p>
+    <Takeaway>A CPU’s arithmetic-logic unit is nothing but adders and gates behind a multiplexer — the whole climb from a single switch to “a machine that computes” is just logic, stacked.</Takeaway>
+    <SeeAlso slug="cpu" note="the ALU these gates build, and the fetch-decode-execute loop around it" />
+    <Why
+      problem="Individual gates, muxes, and adders are useful, but a processor needs one block that can perform whichever operation an instruction asks for."
+      idea="Wire the arithmetic and logic circuits in parallel and use a multiplexer, driven by the opcode, to select which result comes out — that’s an ALU."
+      tradeoff="Generality costs gates and delay: every operation’s hardware is always present, even when a given instruction uses only one."
+      next="Zoom back out: this is the leap the main stack makes from logic gates to the CPU."
+    />
+  </LayerSection>
+</Base>
+
+<style>
+  .back-link{color:var(--accent,var(--signal))}
+</style>

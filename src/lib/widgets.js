@@ -667,6 +667,36 @@ export function cmosInverter(input) {
   return { input, pmos, nmos, output: pmos && !nmos ? 1 : 0, path: pmos ? 'pull-up to HIGH' : 'pull-down to LOW' };
 }
 
+// --- LOGIC STACK (/logic) ---
+
+// NAND is a universal gate: every other gate can be built from it alone.
+// NOT(a) = a NAND a; AND(a,b) = NOT(a NAND b); OR(a,b) = (NOT a) NAND (NOT b).
+export const nand = (a, b) => (a && b ? 0 : 1);
+// For each target gate, return its NAND construction and a truth table proving
+// the NAND-built version equals the real gate for every input combination.
+export function buildUniversal() {
+  const defs = {
+    NOT: { formula: 'a NAND a', unary: true, real: (a) => (a ? 0 : 1), built: (a) => nand(a, a) },
+    AND: { formula: '(a NAND b) NAND (a NAND b)', real: (a, b) => (a && b ? 1 : 0), built: (a, b) => { const t = nand(a, b); return nand(t, t); } },
+    OR: { formula: '(a NAND a) NAND (b NAND b)', real: (a, b) => (a || b ? 1 : 0), built: (a, b) => nand(nand(a, a), nand(b, b)) },
+  };
+  return Object.entries(defs).map(([gate, g]) => {
+    const inputs = g.unary ? [[0], [1]] : [[0, 0], [0, 1], [1, 0], [1, 1]];
+    const rows = inputs.map((inp) => {
+      const real = g.real(...inp), built = g.built(...inp);
+      return { inputs: inp, real, built, match: real === built };
+    });
+    return { gate, formula: g.formula, unary: !!g.unary, rows, allMatch: rows.every((r) => r.match) };
+  });
+}
+
+// A 2-to-1 multiplexer: a select line picks which of two inputs reaches the
+// output — out = sel ? b : a, i.e. (a AND NOT sel) OR (b AND sel). "Choosing"
+// in hardware, from picking a register to steering control flow.
+export function mux2(sel, a, b) {
+  return { sel, a, b, out: sel ? b : a, formula: '(a · s̄) + (b · s)' };
+}
+
 // --- CPU STACK (/cpu) ---
 
 // The ALU: the CPU's calculator. An opcode selects one operation over two 8-bit

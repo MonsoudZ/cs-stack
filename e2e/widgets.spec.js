@@ -137,12 +137,12 @@ test('Cross-stack footer: lists every deep dive on home, omits the current one o
   // home: every deep dive is linked, no "back to full stack" (we're home)
   await page.goto('/');
   const homeNav = page.locator('.stacknav');
-  await expect(homeNav.locator('.stacknav-link')).toHaveCount(13);
+  await expect(homeNav.locator('.stacknav-link')).toHaveCount(14);
   await expect(homeNav.locator('.stacknav-home')).toHaveCount(0);
   // a deep dive: the current stack is omitted (the rest) and home link returns
   await page.goto('/memory');
   const sibNav = page.locator('.stacknav');
-  await expect(sibNav.locator('.stacknav-link')).toHaveCount(12);
+  await expect(sibNav.locator('.stacknav-link')).toHaveCount(13);
   await expect(sibNav.getByRole('link', { name: /the Memory stack/i })).toHaveCount(0);
   // the links actually navigate to a sibling explorable
   await sibNav.getByRole('link', { name: /the Crypto stack/i }).click();
@@ -412,6 +412,27 @@ test('Render page: own nav, transform re-runs only composite, the event loop ren
     await page.waitForTimeout(40);
   }
   await expect(el.locator('.el-render.done')).toBeVisible();
+});
+
+test('Logic page: own nav, NAND builds AND, and the multiplexer selects an input', async ({ page }) => {
+  await page.goto('/logic');
+  await expect(page.locator('h1.title')).toContainText('LOGIC');
+  await expect(page.locator('.spine .rung')).toHaveCount(6);
+  // NAND universality (section LG2): the AND built from NAND matches the real AND
+  const uni = page.locator('#LG2');
+  await uni.scrollIntoViewIfNeeded();
+  await expect(uni.getByRole('button', { name: 'AND' })).toBeVisible();
+  await expect(uni.locator('.uni-ok')).toHaveCount(4);       // 4-row truth table
+  await expect(uni.locator('.uni-ok', { hasText: '✗' })).toHaveCount(0); // every row matches
+  // multiplexer (section LG3): select picks which input reaches the output
+  const mux = page.locator('#LG3');
+  await mux.scrollIntoViewIfNeeded();
+  // default a=0, b=1, sel=0 → out follows a = 0
+  await expect(mux.locator('.mux-out .mux-bit')).toHaveText('0');
+  await expect(async () => {
+    await mux.locator('.mux-selbtn').click();                // sel → 1, route b
+    await expect(mux.locator('.mux-out .mux-bit')).toHaveText('1', { timeout: 400 });
+  }).toPass({ timeout: 8000 });
 });
 
 test('Compiler page: own nav, tokenizer emits tokens, type checking rejects a bug, the VM evaluates to 11', async ({ page }) => {
