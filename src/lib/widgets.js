@@ -267,6 +267,34 @@ export function invalidatedStages(kind) {
   return RENDER_STAGES.map((name, i) => ({ name, rerun: i >= startAt }));
 }
 
+// The event loop: one turn. Run a task to completion, then drain ALL microtasks
+// (Promises), then — if a frame is due — run requestAnimationFrame callbacks and
+// render (style → layout → paint). A setTimeout queued during the task waits for
+// a later turn. Returns the phase-by-phase trace, with each queue's contents.
+export function buildEventLoop() {
+  const out = [];
+  let stack = [], micro = [], tasks = ['click handler'], raf = [], rendered = false;
+  const snap = (phase, note) => out.push({ phase, stack: stack.slice(), micro: micro.slice(), tasks: tasks.slice(), raf: raf.slice(), rendered, note });
+  snap('idle', 'one turn of the loop: run a task, drain microtasks, then (if a frame is due) run rAF callbacks and render');
+  stack = ['click handler']; tasks = [];
+  snap('task', 'take the next task — the click handler — and run it to completion on the call stack');
+  micro = ['Promise .then']; tasks = ['setTimeout cb']; raf = ['rAF cb'];
+  snap('task', 'while running it schedules a microtask (Promise), a macrotask (setTimeout), and a frame callback (requestAnimationFrame)');
+  stack = [];
+  snap('task-done', 'the handler returns; the call stack is empty');
+  stack = ['Promise .then'];
+  snap('micro', 'before anything else, ALL microtasks drain — the Promise callback runs now, this same turn, not next');
+  micro = []; stack = [];
+  snap('micro', 'the microtask queue is empty; a frame is due (~16ms have passed), so the loop heads into rendering');
+  stack = ['rAF cb']; raf = [];
+  snap('raf', 'requestAnimationFrame callbacks run first — the right place to make visual changes, just before layout');
+  stack = [];
+  snap('render', 'now the browser renders the frame: style → layout → paint → composite, once for everything that changed');
+  rendered = true;
+  snap('render', 'the frame is on screen. The setTimeout task still waits in the queue — it runs on a later turn (and if any step ran long, the frame would have janked)');
+  return out;
+}
+
 // --- CRYPTO STACK (/crypto) ---
 
 // A toy 32-bit hash (FNV-1a + an xorshift-multiply finalizer for good diffusion)

@@ -3,6 +3,7 @@ import Base from '../layouts/Base.astro';
 import LayerSection from '../components/LayerSection.astro';
 import { renderLayers } from '../data/renderLayers.js';
 import RenderInvalidation from '../components/RenderInvalidation.svelte';
+import EventLoop from '../components/EventLoop.svelte';
 import BrowserUi from '../components/BrowserUi.astro';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
@@ -15,7 +16,7 @@ const description = 'A deep dive into how the browser turns code into pixels: th
     <div class="kicker">A deep dive into layer 19</div>
     <h1 class="title">THE <em>RENDER</em><br />PIPELINE</h1>
     <p class="lede">The browser does this dance up to 60 times a second: turn your HTML and CSS into a tree, compute styles, lay out boxes, paint pixels, and composite layers onto the screen. Touch the wrong property and the whole thing re-runs.</p>
-    <div class="hero-meta"><a class="back-link" href="/">← back to the full stack</a> · DOM → style → layout → paint → composite</div>
+    <div class="hero-meta"><a class="back-link" href="/">← back to the full stack</a> · DOM → style → layout → paint → composite → the event loop</div>
   </div>
 
   <LayerSection {...L.R0}>
@@ -98,11 +99,23 @@ const description = 'A deep dive into how the browser turns code into pixels: th
       problem="Janky pages usually come from doing too much per frame — recomputing layout and repainting when it wasn't necessary."
       idea="Know which stage each property invalidates: geometry → layout, appearance → paint, transform/opacity → composite only."
       tradeoff="The cheap path needs its own layer (and the memory that costs), and over-promoting layers can backfire."
-      next="Put it together and it's one frame, sixty times a second."
+      next="But what decides when a frame runs at all? The event loop."
     />
   </LayerSection>
 
   <LayerSection {...L.R5}>
+    <p class="prose">All that work is driven by one <b>event loop</b>. Each turn: run a <span class="hl">task</span> (a click, a timer) to completion, drain every <span class="hl">microtask</span> (Promises) — then, if a frame is due, run <code>requestAnimationFrame</code> callbacks and render. Rendering and your JavaScript share one thread, so a slow task blocks the frame: that's <b>jank</b>.</p>
+    <EventLoop client:visible />
+    <Takeaway>The event loop interleaves your JS with rendering on a single thread — microtasks before the next frame, rAF just before paint, and any long task stalls the whole thing.</Takeaway>
+    <Why
+      problem="JavaScript and rendering run on one thread, so they must take turns — and the order (and what blocks what) decides whether the UI stays smooth."
+      idea="Run one task fully, drain all microtasks, then render at most once per frame; schedule visual work in requestAnimationFrame and defer heavy work off the critical path."
+      tradeoff="The single thread keeps the model simple but unforgiving: one long task (or a flood of microtasks) freezes input and animation until it finishes."
+      next="Put the pipeline and the loop together and it's one frame, sixty times a second."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.R6}>
     <p class="prose">End to end, every frame: HTML becomes the <b>DOM</b>, CSS computes <b>style</b>, the tree is laid out into boxes, the boxes are <b>painted</b>, and the layers are <b>composited</b> to the screen — then any change kicks off just the stages it touched, again and again.</p>
     <BrowserUi />
     <Takeaway>What you see is the last step of a pipeline the browser re-runs continuously — and the art is making each pass do as little as possible.</Takeaway>

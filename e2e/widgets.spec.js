@@ -375,10 +375,10 @@ test('Crypto page: own nav, hash avalanches, DH agrees on a shared secret', asyn
   await expect(dh.locator('.dh-shared.on').first()).toHaveText('2');
 });
 
-test('Render page: own nav, transform re-runs only the composite stage', async ({ page }) => {
+test('Render page: own nav, transform re-runs only composite, the event loop renders once', async ({ page }) => {
   await page.goto('/render');
   await expect(page.locator('h1.title')).toContainText('RENDER');
-  await expect(page.locator('.spine .rung')).toHaveCount(6);
+  await expect(page.locator('.spine .rung')).toHaveCount(7);
   const ri = page.locator('#R4');
   await ri.scrollIntoViewIfNeeded();
   await expect(ri.locator('.ri-stage.rerun')).toHaveCount(3); // default (width) re-runs all three
@@ -387,6 +387,15 @@ test('Render page: own nav, transform re-runs only the composite stage', async (
     await expect(ri.locator('.ri-stage.rerun')).toHaveCount(1, { timeout: 400 });
   }).toPass({ timeout: 8000 });
   await expect(ri.locator('.ri-stage.rerun .ri-name')).toHaveText('Composite'); // the cheap path
+  // event loop (section R5): stepping a turn ends in a painted frame
+  const el = page.locator('#R5');
+  await el.scrollIntoViewIfNeeded();
+  for (let i = 0; i < 9; i++) {
+    await el.locator('.cpu-ctrl button').first().click();
+    if (await el.locator('.el-render.done').count()) break;
+    await page.waitForTimeout(40);
+  }
+  await expect(el.locator('.el-render.done')).toBeVisible();
 });
 
 test('Compiler page: own nav, tokenizer emits tokens, type checking rejects a bug, the VM evaluates to 11', async ({ page }) => {

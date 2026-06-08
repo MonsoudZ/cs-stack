@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum, DOPING, buildDiode, cmosInverter, ALU_OPS, computeAlu, PIPE_STAGES, buildPipeline, buildDeadlock, buildCas, buildLoadBalancer, buildReplication, buildLinkedList, buildStackQueue, GRAPH, buildGraphTraversal, buildStackHeap, buildAllocator, buildGc, ISOLATION_LEVELS, buildIsolation, buildTypeCheck } from './widgets.js';
+import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum, DOPING, buildDiode, cmosInverter, ALU_OPS, computeAlu, PIPE_STAGES, buildPipeline, buildDeadlock, buildCas, buildLoadBalancer, buildReplication, buildLinkedList, buildStackQueue, GRAPH, buildGraphTraversal, buildStackHeap, buildAllocator, buildGc, ISOLATION_LEVELS, buildIsolation, buildTypeCheck, buildEventLoop } from './widgets.js';
 
 const popcount = (n) => { let c = 0; n >>>= 0; while (n) { c += n & 1; n >>>= 1; } return c; };
 
@@ -624,6 +624,25 @@ describe('buildTypeCheck (semantic analysis)', () => {
     const bad = last.checked.find((c) => c.error);
     expect(bad.expr).toBe('"hi" * 3');
     expect(bad.error).toMatch(/string/);
+  });
+});
+
+describe('buildEventLoop (task → microtasks → render)', () => {
+  const steps = buildEventLoop();
+  const phaseIdx = (p) => steps.findIndex((s) => s.phase === p);
+  it('drains microtasks after the task and before rendering', () => {
+    expect(phaseIdx('task')).toBeLessThan(phaseIdx('micro'));
+    expect(phaseIdx('micro')).toBeLessThan(phaseIdx('render'));
+    expect(phaseIdx('raf')).toBeLessThan(phaseIdx('render')); // rAF runs just before paint
+  });
+  it('renders exactly once, at the end of the turn', () => {
+    const last = steps[steps.length - 1];
+    expect(last.rendered).toBe(true);
+    // nothing is marked rendered before the render phase begins
+    expect(steps.slice(0, phaseIdx('render')).some((s) => s.rendered)).toBe(false);
+  });
+  it('defers the setTimeout task to a later turn (still queued at the end)', () => {
+    expect(steps[steps.length - 1].tasks).toContain('setTimeout cb');
   });
 });
 
