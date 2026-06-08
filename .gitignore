@@ -7,3 +7,10 @@ npm-debug.log*
 playwright-report/
 test-results/
 .playwright/
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+.env*
+!.env.example
