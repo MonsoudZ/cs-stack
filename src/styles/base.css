@@ -32,7 +32,7 @@
     --bg:#ffffff;--bg2:#f7f9fb;--panel:#ffffff;--panel2:#f3f5f7;
     --border:rgba(0,0,0,.16);--border-hot:rgba(10,125,104,.5);--grid:rgba(0,0,0,.04);
     --ink:#0d1116;--dim:#33414e;--faint:#5a6975;
-    --signal:#0a7d68;--signal-d:rgba(10,125,104,.12);
+    --signal:#0a6f5b;--signal-d:rgba(10,125,104,.12);
     --amber:#8a5a00;--amber-d:rgba(138,90,0,.12);
     --violet:#5733c4;--violet-d:rgba(87,51,196,.12);
     --blue:#1f5fd0;--blue-d:rgba(31,95,208,.12);
@@ -43,6 +43,10 @@
   html[data-theme="light"] .scan{display:none}              /* dark scanlines read as grey noise on white */
   html[data-theme="light"] .gcell.idle{background:#dfe4ea}  /* CPU-idle Gantt cell */
   *{box-sizing:border-box}
+  /* Visually-hidden text that screen readers still announce. Used to add context
+     to value/bit toggle buttons whose visible glyph is their accessible-name root
+     (keeps WCAG 2.5.3 "Label in Name": visible text is part of the name). */
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
   html{scroll-behavior:smooth}
   body{
     margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
@@ -145,6 +149,8 @@
 
   /* small prose utilities */
   .prose-follow{margin-top:14px}
+  .prose-follow a{color:var(--accent,var(--signal));text-decoration:none;font-weight:500}
+  .prose-follow a:hover,.prose-follow a:focus-visible{text-decoration:underline}
   .spacer{flex:1}
   .muted{color:var(--faint)}
   .mono-small{font-family:var(--mono)}

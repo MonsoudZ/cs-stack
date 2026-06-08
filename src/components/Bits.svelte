@@ -7,10 +7,10 @@
   <div class="w-label">flip bits — the number reads itself</div>
   <div class="bits">
     {#each bits as b, i}
-      <button type="button" class="bit" class:set={b} aria-pressed={!!b} aria-label={`bit ${i + 1}, place value ${128 >> i}, ${b ? 'on' : 'off'}`}
+      <button type="button" class="bit" class:set={b} aria-pressed={!!b}
            onclick={() => bits[i] = b ? 0 : 1}
       >
-        <div class="cell">{b}</div><div class="pv">{128 >> i}</div>
+        <div class="cell">{b}</div><div class="pv">{128 >> i}</div><span class="sr-only">place value {128 >> i}, {b ? 'on' : 'off'}</span>
       </button>
     {/each}
   </div>

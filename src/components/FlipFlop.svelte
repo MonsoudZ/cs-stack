@@ -9,8 +9,8 @@
   <div class="w-label">change D, then pulse the clock — Q only updates on the tick</div>
   <div class="flipflop">
     <div class="ff-port">
-      <button type="button" class="toggle ff-d" class:hi={d} aria-pressed={!!d} aria-label="data input D"
-              onclick={() => d = d ? 0 : 1}><div class="st">D</div><div class="v">{d}</div></button>
+      <button type="button" class="toggle ff-d" class:hi={d} aria-pressed={!!d}
+              onclick={() => d = d ? 0 : 1}><div class="st">D</div><div class="v">{d}</div><span class="sr-only">data input D, {d ? 'on' : 'off'}</span></button>
       <small>data in</small>
     </div>
     <div class="ff-clkwrap">

@@ -40,9 +40,8 @@
         <div class="frow">
           {#each field.idx as i}
             <button type="button" class="fbit" class:set={bits[i]} aria-pressed={!!bits[i]}
-                    aria-label={`${field.name.split(' ')[0]} bit, place ${PLACE[i]}, ${bits[i] ? 'on' : 'off'}`}
                     onclick={() => bits[i] = bits[i] ? 0 : 1}>
-              <span class="fb">{bits[i]}</span><span class="fp">{PLACE[i]}</span>
+              <span class="fb">{bits[i]}</span><span class="fp">{PLACE[i]}</span><span class="sr-only">{field.name.split(' ')[0]} bit, place {PLACE[i]}, {bits[i] ? 'on' : 'off'}</span>
             </button>
           {/each}
         </div>

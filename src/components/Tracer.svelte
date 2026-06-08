@@ -118,7 +118,7 @@
     <span class="idxbtns">
       {#each METHOD_ORDER as k}<button type="button" class="btn" class:sel={cur === k} onclick={() => pick(k)}>{METHODS[k].name}</button>{/each}
     </span>
-    <button type="button" class="btn trace-share" onclick={copyTraceLink} aria-label="Copy link to current trace step">
+    <button type="button" class="btn trace-share" onclick={copyTraceLink}>
       {copied ? 'copied ✓' : 'copy current trace link'}
     </button>
   </div>
