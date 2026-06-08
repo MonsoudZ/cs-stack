@@ -6,6 +6,8 @@ import Encapsulation from '../components/Encapsulation.svelte';
 import Packets from '../components/Packets.svelte';
 import Routing from '../components/Routing.svelte';
 import Dns from '../components/Dns.svelte';
+import Sockets from '../components/Sockets.svelte';
+import Http from '../components/Http.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
 import Quiz from '../components/Quiz.svelte';
@@ -20,7 +22,7 @@ const description = 'A deep dive into the network stack: signals on the wire, en
     <div class="kicker">A deep dive into layer 16</div>
     <h1 class="title">THE <em>NETWORK</em><br />STACK</h1>
     <p class="lede">In the main stack, "the network" is one rung. Pull it apart and it's a whole ladder of its own — each layer wrapping the one above, just to get a few bytes across the world and back.</p>
-    <div class="hero-meta"><a class="back-link" href="/">← back to the full stack</a> · signals → encapsulation → routing → reliability → DNS</div>
+    <div class="hero-meta"><a class="back-link" href="/">← back to the full stack</a> · signals → encapsulation → routing → reliability → DNS → sockets → HTTP</div>
   </div>
 
   <LayerSection {...L.N0}>
@@ -78,11 +80,36 @@ const description = 'A deep dive into the network stack: signals on the wire, en
       problem="People remember names, but every layer below this one only routes to numeric IP addresses."
       idea="Run a distributed, hierarchical directory: ask a root server who handles the suffix, follow referrals down to the authoritative server, and cache the result."
       tradeoff="Caching makes it fast but means changes take time to propagate, and the whole system is a high-value target for spoofing and outages."
-      next="With an address in hand, the request makes the full trip — wrapped, routed, made reliable, and (usually) encrypted."
+      next="Now you have the server's IP. But the server runs many things — which one gets your bytes?"
     />
   </LayerSection>
 
   <LayerSection {...L.N5}>
+    <p class="prose">An IP gets you to the machine; a <b>port</b> gets you to the program on it. A <span class="hl">socket</span> is that endpoint — an IP plus a port. A web server listens on one port (443), yet serves thousands of clients at once: the OS tells the connections apart by the full <b>4-tuple</b> (your ip:port ↔ the server's ip:port) and demuxes each arriving packet to the right one.</p>
+    <Sockets client:visible />
+    <Takeaway>A socket is an ip:port endpoint; a connection is identified by all four (both ends), so one listening port can hold thousands of simultaneous connections apart.</Takeaway>
+    <SeeAlso slug="os" note="the OS owns these sockets and the table that demultiplexes them" />
+    <Why
+      problem="One server machine runs many services and serves many clients, but a packet only carries addresses — something has to route it to the right program and the right conversation."
+      idea="Address endpoints by ip:port (a socket) and identify each connection by the 4-tuple of both ends, so the OS can demultiplex every packet to its conversation."
+      tradeoff="Ports are a finite 16-bit space and connection tables consume memory, so a busy server (or an attacker) can exhaust them."
+      next="With a connection in place, the two ends finally speak — in HTTP."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.N6}>
+    <p class="prose">Over that connection, the client and server speak <b>HTTP</b> — and it's just text. The client sends a <span class="hl">request</span> (a method like <code>GET</code>, a path, and headers); the server sends back a <span class="hl">response</span> (a <b>status code</b> like 200 or 404, headers, and a body). Each exchange stands alone — HTTP is <i>stateless</i>.</p>
+    <Http client:visible />
+    <Takeaway>HTTP is a stateless text protocol: method + path + headers up, status + headers + body down — the simple conversation the entire web is built on.</Takeaway>
+    <Why
+      problem="A reliable byte stream is just bytes; applications need an agreed grammar for asking and answering — what do you want, and how did it go?"
+      idea="Define a simple text protocol: a request with a method, path, and headers; a response with a status code, headers, and body — each request self-contained."
+      tradeoff="Statelessness keeps it simple and scalable but pushes state elsewhere (cookies, tokens, sessions), and plain-text framing is why HTTP/2 and HTTP/3 added binary efficiency."
+      next="Put DNS, the connection, encryption, and HTTP together and watch one click make the whole trip."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.N7}>
     <p class="prose">Type a URL and it all fires in order: <b>DNS</b> turns the name into an IP, <b>TCP</b> opens a connection (the SYN / SYN-ACK / ACK handshake), <b>TLS</b> negotiates keys and checks a certificate so the bytes are private, and finally <b>HTTP</b> carries your request — which descends every layer here, crosses the world, and climbs back up as a response.</p>
     <Takeaway>One click is this entire ladder, run twice — once down on the way out, once up on the way back.</Takeaway>
     <SeeAlso slug="crypto" note="how that connection is encrypted before any data flows (TLS)" />

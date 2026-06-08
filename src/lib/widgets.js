@@ -184,6 +184,46 @@ export function buildDns({ name = 'thestack.dev', ip = '93.184.216.34' } = {}) {
   return out;
 }
 
+// Sockets: a connection endpoint is an IP + a port. A server listens on one
+// port (443), yet serves thousands of clients at once — the OS tells the
+// connections apart by the full 4-tuple (client ip:port ↔ server ip:port) and
+// demultiplexes each arriving packet to the right socket. Returns the trace.
+export function buildSockets() {
+  const SERVER = '203.0.113.5:443';
+  const conns = [
+    { id: 'A', client: '198.51.100.7:51000' },
+    { id: 'B', client: '198.51.100.9:48210' },
+    { id: 'C', client: '203.0.113.8:55343' },
+  ];
+  const out = [];
+  const snap = (note, o = {}) => out.push({ server: SERVER, conns, packet: o.packet ?? null, routedTo: o.routedTo ?? null, note });
+  snap('a socket is one endpoint: an IP and a port. The server listens on ' + SERVER + ' — but every client gets its own connection');
+  snap('the OS keeps a table of open connections, each identified by the full 4-tuple (client ip:port ↔ server ip:port)');
+  for (const [from, id] of [['198.51.100.7:51000', 'A'], ['198.51.100.9:48210', 'B'], ['198.51.100.7:51000', 'A'], ['203.0.113.8:55343', 'C']]) {
+    snap('a packet arrives for :443 from ' + from + ' → match the 4-tuple → deliver to connection ' + id, { packet: from, routedTo: id });
+  }
+  snap('same server port for all of them — the port doesn’t identify the connection, the 4-tuple does. That’s how one :443 handles thousands at once');
+  return out;
+}
+
+// HTTP: the application protocol the two ends speak once connected — plain text,
+// request then response. The client sends a method + path + headers; the server
+// replies with a status code + headers + body. Stateless: one exchange stands
+// alone. Returns the line-by-line trace of a GET that returns 200.
+export function buildHttp() {
+  const out = [];
+  const snap = (side, line, note, o = {}) => out.push({ side, line, note, status: o.status ?? null, done: !!o.done });
+  snap(null, null, 'connected, the two ends speak HTTP: the client sends a request, the server sends a response — just text over the socket');
+  snap('client', 'GET /cases/42 HTTP/1.1', 'the request line: a method (GET), a path, and the protocol version');
+  snap('client', 'Host: api.thestack.dev', 'headers describe the request — Host says which site (one IP can serve many)');
+  snap('client', 'Accept: application/json', 'and what the client wants back. A blank line ends the request');
+  snap('server', '200 OK', 'the server processes it and replies with a status code — 200 means success (404 not found, 500 server error)', { status: 200 });
+  snap('server', 'Content-Type: application/json', 'response headers describe the body that follows');
+  snap('server', '{ "id": 42, "title": "…" }', 'then the body — the actual data the client asked for', { done: true });
+  snap(null, null, 'method + path + headers in, status + headers + body out — one stateless exchange, the protocol the whole web runs on');
+  return out;
+}
+
 // --- COMPILER STACK (/compiler) ---
 
 // Lexing: scan source text left to right, grouping characters into tokens.

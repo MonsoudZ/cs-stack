@@ -570,10 +570,10 @@ test('Compiler page: own nav, tokenizer emits tokens, type checking rejects a bu
   await expect(vm.locator('.vm-result')).toContainText('11');
 });
 
-test('Network page: own nav, routing TTL counts down, DNS resolves to an IP', async ({ page }) => {
+test('Network page: own nav, routing TTL counts down, DNS resolves, HTTP returns 200', async ({ page }) => {
   await page.goto('/network');
   await expect(page.locator('h1.title')).toContainText('NETWORK');
-  await expect(page.locator('.spine .rung')).toHaveCount(6); // its own layer set
+  await expect(page.locator('.spine .rung')).toHaveCount(8); // its own layer set
   // routing: stepping drops the TTL
   const routing = page.locator('#N2');
   await routing.scrollIntoViewIfNeeded();
@@ -593,6 +593,15 @@ test('Network page: own nav, routing TTL counts down, DNS resolves to an IP', as
     await page.waitForTimeout(40);
   }
   await expect(dns.locator('.dns-ans').first()).toContainText('93.184');
+  // http (section N6): stepping the exchange surfaces the 200 status line
+  const http = page.locator('#N6');
+  await http.scrollIntoViewIfNeeded();
+  for (let i = 0; i < 8; i++) {
+    await http.locator('.cpu-ctrl button').first().click();
+    if (await http.locator('.http-line.status').count()) break;
+    await page.waitForTimeout(40);
+  }
+  await expect(http.locator('.http-line.status')).toContainText('200');
 });
 
 test('RaceCondition island: no lock loses an update; a lock prevents it', async ({ page }) => {

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { quizzes } from '../data/quizzes.js';
 import { stacks } from '../data/stacks.js';
-import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum, DOPING, buildDiode, cmosInverter, nand, buildUniversal, mux2, ALU_OPS, computeAlu, PIPE_STAGES, buildPipeline, buildDeadlock, buildCas, buildLoadBalancer, buildReplication, buildLinkedList, buildStackQueue, GRAPH, buildGraphTraversal, buildStackHeap, buildAllocator, buildGc, ISOLATION_LEVELS, buildIsolation, buildTypeCheck, buildEventLoop, FS, buildPathResolve, buildJournal } from './widgets.js';
+import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum, DOPING, buildDiode, cmosInverter, nand, buildUniversal, mux2, ALU_OPS, computeAlu, PIPE_STAGES, buildPipeline, buildDeadlock, buildCas, buildLoadBalancer, buildReplication, buildLinkedList, buildStackQueue, GRAPH, buildGraphTraversal, buildStackHeap, buildAllocator, buildGc, ISOLATION_LEVELS, buildIsolation, buildTypeCheck, buildEventLoop, FS, buildPathResolve, buildJournal, buildSockets, buildHttp } from './widgets.js';
 
 const popcount = (n) => { let c = 0; n >>>= 0; while (n) { c += n & 1; n >>>= 1; } return c; };
 
@@ -718,6 +718,35 @@ describe('buildJournal (crash consistency)', () => {
     const last = steps[steps.length - 1];
     expect(last.consistent).toBe(true);
     expect(steps.some((s) => s.journal.includes('COMMIT'))).toBe(true);
+  });
+});
+
+describe('buildSockets (4-tuple demultiplexing)', () => {
+  const steps = buildSockets();
+  it('routes each arriving packet to the connection matching its client endpoint', () => {
+    const byClient = Object.fromEntries(steps[0].conns.map((c) => [c.client, c.id]));
+    const routed = steps.filter((s) => s.packet);
+    expect(routed.length).toBeGreaterThan(0);
+    for (const s of routed) expect(s.routedTo).toBe(byClient[s.packet]);
+  });
+  it('two packets from the same client land on the same socket', () => {
+    const aPkts = steps.filter((s) => s.packet === '198.51.100.7:51000');
+    expect(aPkts.length).toBe(2);
+    expect(new Set(aPkts.map((s) => s.routedTo))).toEqual(new Set(['A']));
+  });
+});
+
+describe('buildHttp (request/response)', () => {
+  const steps = buildHttp();
+  it('sends a GET request then receives a 200 response with a body', () => {
+    expect(steps.some((s) => s.side === 'client' && /^GET /.test(s.line || ''))).toBe(true);
+    expect(steps.some((s) => s.status === 200)).toBe(true);
+    expect(steps.some((s) => s.side === 'server' && s.done)).toBe(true);
+  });
+  it('the status line precedes the body', () => {
+    const statusIdx = steps.findIndex((s) => s.status === 200);
+    const bodyIdx = steps.findIndex((s) => s.done);
+    expect(statusIdx).toBeLessThan(bodyIdx);
   });
 });
 
