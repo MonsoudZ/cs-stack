@@ -9,6 +9,7 @@ import Adder from '../components/Adder.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
 import Quiz from '../components/Quiz.svelte';
+import PrevNext from '../components/PrevNext.astro';
 import SeeAlso from '../components/SeeAlso.astro';
 const L = Object.fromEntries(logicLayers.map((l) => [l.id, l]));
 const title = 'THE STACK — logic';
@@ -96,6 +97,7 @@ const description = 'A deep dive into the logic between a transistor and a CPU: 
   </LayerSection>
 
   <Quiz slug="logic" client:visible />
+  <PrevNext slug="logic" />
 </Base>
 
 <style>

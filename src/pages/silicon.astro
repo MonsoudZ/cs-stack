@@ -9,6 +9,7 @@ import CmosInverter from '../components/CmosInverter.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
 import Quiz from '../components/Quiz.svelte';
+import PrevNext from '../components/PrevNext.astro';
 const L = Object.fromEntries(siliconLayers.map((l) => [l.id, l]));
 const title = 'THE STACK — silicon';
 const description = 'A deep dive into the physics under the stack: doping, the PN-junction diode, the MOSFET as a voltage-controlled switch, and how two switches make a CMOS gate.';
@@ -81,6 +82,7 @@ const description = 'A deep dive into the physics under the stack: doping, the P
   </LayerSection>
 
   <Quiz slug="silicon" client:visible />
+  <PrevNext slug="silicon" />
 </Base>
 
 <style>

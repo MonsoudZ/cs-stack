@@ -8,6 +8,7 @@ import Cas from '../components/Cas.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
 import Quiz from '../components/Quiz.svelte';
+import PrevNext from '../components/PrevNext.astro';
 import SeeAlso from '../components/SeeAlso.astro';
 const L = Object.fromEntries(ccLayers.map((l) => [l.id, l]));
 const title = 'THE STACK — concurrency';
@@ -82,6 +83,7 @@ const description = 'A deep dive into concurrency: threads sharing memory, race 
   </LayerSection>
 
   <Quiz slug="concurrency" client:visible />
+  <PrevNext slug="concurrency" />
 </Base>
 
 <style>

@@ -11,6 +11,7 @@ import Graph from '../components/Graph.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
 import Quiz from '../components/Quiz.svelte';
+import PrevNext from '../components/PrevNext.astro';
 import SeeAlso from '../components/SeeAlso.astro';
 const L = Object.fromEntries(structLayers.map((l) => [l.id, l]));
 const title = 'THE STACK — data structures';
@@ -145,6 +146,7 @@ const bigo = [
   </LayerSection>
 
   <Quiz slug="structures" client:visible />
+  <PrevNext slug="structures" />
 </Base>
 
 <style>

@@ -10,6 +10,7 @@ import FloatSum from '../components/FloatSum.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
 import Quiz from '../components/Quiz.svelte';
+import PrevNext from '../components/PrevNext.astro';
 import SeeAlso from '../components/SeeAlso.astro';
 const L = Object.fromEntries(numLayers.map((l) => [l.id, l]));
 const title = 'THE STACK — numbers';
@@ -85,6 +86,7 @@ const description = 'A deep dive into how computers represent numbers: binary pl
   </LayerSection>
 
   <Quiz slug="numbers" client:visible />
+  <PrevNext slug="numbers" />
 </Base>
 
 <style>

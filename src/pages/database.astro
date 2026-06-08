@@ -8,6 +8,7 @@ import Isolation from '../components/Isolation.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
 import Quiz from '../components/Quiz.svelte';
+import PrevNext from '../components/PrevNext.astro';
 import SeeAlso from '../components/SeeAlso.astro';
 const L = Object.fromEntries(dbLayers.map((l) => [l.id, l]));
 const title = 'THE STACK — the database';
@@ -104,6 +105,7 @@ const description = 'A deep dive into a database: rows in pages, B-tree indexes,
   </LayerSection>
 
   <Quiz slug="database" client:visible />
+  <PrevNext slug="database" />
 </Base>
 
 <style>

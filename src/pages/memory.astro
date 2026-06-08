@@ -11,6 +11,7 @@ import GarbageCollector from '../components/GarbageCollector.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
 import Quiz from '../components/Quiz.svelte';
+import PrevNext from '../components/PrevNext.astro';
 import SeeAlso from '../components/SeeAlso.astro';
 const L = Object.fromEntries(memLayers.map((l) => [l.id, l]));
 const title = 'THE STACK — memory';
@@ -131,6 +132,7 @@ const description = 'A deep dive into memory: the stack and heap, allocation and
   </LayerSection>
 
   <Quiz slug="memory" client:visible />
+  <PrevNext slug="memory" />
 </Base>
 
 <style>

@@ -166,6 +166,21 @@ test('Cross-references: sibling deep-dives link to each other where concepts tou
   await expect(page).toHaveURL(/\/cpu\/?$/);
 });
 
+test('Prev/next: deep dives chain through the curriculum order', async ({ page }) => {
+  // a mid-stack page links back and forward to its neighbours
+  await page.goto('/silicon');
+  const pn = page.locator('.prevnext');
+  await expect(pn.locator('.pn-prev')).toHaveAttribute('href', '/');
+  const next = pn.locator('.pn-next');
+  await expect(next).toHaveAttribute('href', '/logic');
+  await next.click();
+  await expect(page).toHaveURL(/\/logic\/?$/);
+  await expect(page.locator('h1.title')).toContainText('LOGIC');
+  // the last deep dive sends you to the guided path
+  await page.goto('/render');
+  await expect(page.locator('.prevnext .pn-next')).toHaveAttribute('href', '/learn');
+});
+
 test('Guided path: /learn lists the curriculum, tracks progress, and resumes', async ({ page }) => {
   await page.goto('/learn');
   await expect(page.locator('h1.title')).toContainText('LEARN');

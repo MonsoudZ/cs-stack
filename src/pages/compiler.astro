@@ -9,6 +9,7 @@ import Why from '../components/Why.astro';
 import SeeAlso from '../components/SeeAlso.astro';
 import Takeaway from '../components/Takeaway.astro';
 import Quiz from '../components/Quiz.svelte';
+import PrevNext from '../components/PrevNext.astro';
 const L = Object.fromEntries(compilerLayers.map((l) => [l.id, l]));
 const title = 'THE STACK — the compiler';
 const description = 'A deep dive into how code stops being text: lexing into tokens, parsing into an AST, lowering to bytecode, optimizing, and running it — interpreted, compiled, or JIT.';
@@ -132,6 +133,7 @@ const description = 'A deep dive into how code stops being text: lexing into tok
   </LayerSection>
 
   <Quiz slug="compiler" client:visible />
+  <PrevNext slug="compiler" />
 </Base>
 
 <style>

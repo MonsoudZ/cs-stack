@@ -7,6 +7,7 @@ import Syscall from '../components/Syscall.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
 import Quiz from '../components/Quiz.svelte';
+import PrevNext from '../components/PrevNext.astro';
 import SeeAlso from '../components/SeeAlso.astro';
 const L = Object.fromEntries(osLayers.map((l) => [l.id, l]));
 const title = 'THE STACK — operating system';
@@ -90,6 +91,7 @@ const description = 'A deep dive into the operating system: processes, the sched
   </LayerSection>
 
   <Quiz slug="os" client:visible />
+  <PrevNext slug="os" />
 </Base>
 
 <style>

@@ -1,0 +1,32 @@
+---
+// Sequential "← previous · next →" navigation through the curriculum order
+// (the same order the guided path climbs). Lets a deep dive be read straight
+// through without returning to /learn. Driven by curriculum.js so it can't drift.
+import { curriculum } from '../data/curriculum.js';
+const { slug } = Astro.props;
+const i = curriculum.findIndex((l) => l.key === slug);
+const prev = i > 0 ? curriculum[i - 1] : null;
+const next = i >= 0 && i < curriculum.length - 1 ? curriculum[i + 1] : null;
+---
+{i >= 0 && (
+  <nav class="prevnext" aria-label="Move through the stack">
+    {prev
+      ? <a class="pn pn-prev" href={prev.href}><span class="pn-dir">← previous</span><span class="pn-name">{prev.name}</span></a>
+      : <span class="pn pn-empty" aria-hidden="true"></span>}
+    {next
+      ? <a class="pn pn-next" href={next.href}><span class="pn-dir">next →</span><span class="pn-name">{next.name}</span></a>
+      : <a class="pn pn-next" href="/learn"><span class="pn-dir">top of the stack →</span><span class="pn-name">the guided path</span></a>}
+  </nav>
+)}
+
+<style>
+  .prevnext{max-width:var(--measure,1080px);margin:40px auto 0;display:flex;gap:14px}
+  .pn{flex:1;display:flex;flex-direction:column;gap:5px;border:1px solid var(--border);border-radius:14px;padding:14px 18px;background:var(--surface);text-decoration:none;transition:border-color .15s,transform .15s}
+  .pn:hover,.pn:focus-visible{border-color:var(--signal);transform:translateY(-2px)}
+  .pn-next{text-align:right;align-items:flex-end}
+  .pn-empty{visibility:hidden;border:0;background:none}
+  .pn-dir{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+  .pn-name{font-family:var(--display,var(--mono));font-weight:700;font-size:16px;color:var(--ink)}
+  .pn:hover .pn-name,.pn:focus-visible .pn-name{color:var(--accent,var(--signal))}
+  @media(max-width:520px){.prevnext{flex-direction:column}.pn-next{text-align:left;align-items:flex-start}.pn-empty{display:none}}
+</style>
