@@ -3,6 +3,7 @@ import Base from '../layouts/Base.astro';
 import LayerSection from '../components/LayerSection.astro';
 import { renderLayers } from '../data/renderLayers.js';
 import RenderInvalidation from '../components/RenderInvalidation.svelte';
+import Crp from '../components/Crp.svelte';
 import EventLoop from '../components/EventLoop.svelte';
 import BrowserUi from '../components/BrowserUi.astro';
 import Why from '../components/Why.astro';
@@ -19,7 +20,7 @@ const description = 'A deep dive into how the browser turns code into pixels: th
     <div class="kicker">A deep dive into layer 19</div>
     <h1 class="title">THE <em>RENDER</em><br />PIPELINE</h1>
     <p class="lede">The browser does this dance up to 60 times a second: turn your HTML and CSS into a tree, compute styles, lay out boxes, paint pixels, and composite layers onto the screen. Touch the wrong property and the whole thing re-runs.</p>
-    <div class="hero-meta"><a class="back-link" href="/">← back to the full stack</a> · DOM → style → layout → paint → composite → the event loop</div>
+    <div class="hero-meta"><a class="back-link" href="/">← back to the full stack</a> · DOM → style → layout → paint → composite → first paint → the event loop</div>
   </div>
 
   <LayerSection {...L.R0}>
@@ -90,11 +91,23 @@ const description = 'A deep dive into how the browser turns code into pixels: th
       problem="A positioned box is still abstract — the screen needs concrete coloured pixels, assembled fast enough for smooth motion."
       idea="Rasterize content into layers, then let the compositor (often the GPU) transform and stack those layers into a frame."
       tradeoff="Layers cost memory, and too many or badly chosen ones hurt instead of help; compositing is fast only because layout and paint already did the hard part."
-      next="Not every change needs all of these stages — which is the whole performance game."
+      next="That’s the pipeline. The first time it runs, on page load, something has to gate it."
     />
   </LayerSection>
 
   <LayerSection {...L.R4}>
+    <p class="prose">To paint the <i>first</i> frame, the browser needs both the <b>DOM</b> (from HTML) and the <b>CSSOM</b> (from CSS) — so <span class="hl">CSS is render-blocking</span>: nothing paints until it's parsed. Worse, a plain <code>&lt;script&gt;</code> <b>blocks the HTML parser</b> until it downloads and runs. Mark it <code>defer</code> and parsing continues — so first paint lands sooner.</p>
+    <Crp client:visible />
+    <Takeaway>The critical rendering path is the shortest route to first paint: HTML + render-blocking CSS, plus any parser-blocking script. Defer/async keep scripts off it.</Takeaway>
+    <Why
+      problem="A blank screen until everything loads feels broken; what matters is how fast something meaningful paints, and several resources can stall that."
+      idea="Identify the critical path — the HTML, the render-blocking CSS, and any synchronous script — and shrink it: inline critical CSS, defer or async scripts, cut bytes."
+      tradeoff="Deferring changes execution order (a script may run after the user sees content), and aggressive inlining trades cacheability for a faster first paint."
+      next="That’s the first paint. After it, only the parts that change re-run."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.R5}>
     <p class="prose">A style change doesn't always re-run everything. Changing geometry (<code>width</code>) forces layout, paint, and composite. A color change skips layout. But <code>transform</code> and <code>opacity</code> only re-composite — the compositor just moves an existing layer.</p>
     <RenderInvalidation client:visible />
     <Takeaway>Animate transform and opacity, not width and top: the cheap properties skip layout and paint entirely.</Takeaway>
@@ -106,7 +119,7 @@ const description = 'A deep dive into how the browser turns code into pixels: th
     />
   </LayerSection>
 
-  <LayerSection {...L.R5}>
+  <LayerSection {...L.R6}>
     <p class="prose">All that work is driven by one <b>event loop</b>. Each turn: run a <span class="hl">task</span> (a click, a timer) to completion, drain every <span class="hl">microtask</span> (Promises) — then, if a frame is due, run <code>requestAnimationFrame</code> callbacks and render. Rendering and your JavaScript share one thread, so a slow task blocks the frame: that's <b>jank</b>.</p>
     <EventLoop client:visible />
     <Takeaway>The event loop interleaves your JS with rendering on a single thread — microtasks before the next frame, rAF just before paint, and any long task stalls the whole thing.</Takeaway>
@@ -119,7 +132,7 @@ const description = 'A deep dive into how the browser turns code into pixels: th
     />
   </LayerSection>
 
-  <LayerSection {...L.R6}>
+  <LayerSection {...L.R7}>
     <p class="prose">End to end, every frame: HTML becomes the <b>DOM</b>, CSS computes <b>style</b>, the tree is laid out into boxes, the boxes are <b>painted</b>, and the layers are <b>composited</b> to the screen — then any change kicks off just the stages it touched, again and again.</p>
     <BrowserUi />
     <Takeaway>What you see is the last step of a pipeline the browser re-runs continuously — and the art is making each pass do as little as possible.</Takeaway>

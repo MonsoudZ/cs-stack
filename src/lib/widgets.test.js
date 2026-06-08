@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { quizzes } from '../data/quizzes.js';
 import { stacks } from '../data/stacks.js';
-import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum, DOPING, buildDiode, cmosInverter, nand, buildUniversal, mux2, ALU_OPS, computeAlu, PIPE_STAGES, buildPipeline, buildDeadlock, buildCas, buildLoadBalancer, buildReplication, buildLinkedList, buildStackQueue, GRAPH, buildGraphTraversal, buildStackHeap, buildAllocator, buildGc, ISOLATION_LEVELS, buildIsolation, buildTypeCheck, buildEventLoop, FS, buildPathResolve, buildJournal, buildSockets, buildHttp, buildJoin } from './widgets.js';
+import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum, DOPING, buildDiode, cmosInverter, nand, buildUniversal, mux2, ALU_OPS, computeAlu, PIPE_STAGES, buildPipeline, buildDeadlock, buildCas, buildLoadBalancer, buildReplication, buildLinkedList, buildStackQueue, GRAPH, buildGraphTraversal, buildStackHeap, buildAllocator, buildGc, ISOLATION_LEVELS, buildIsolation, buildTypeCheck, buildEventLoop, buildCrp, FS, buildPathResolve, buildJournal, buildSockets, buildHttp, buildJoin } from './widgets.js';
 
 const popcount = (n) => { let c = 0; n >>>= 0; while (n) { c += n & 1; n >>>= 1; } return c; };
 
@@ -764,6 +764,24 @@ describe('buildJoin (inner join, nested loop)', () => {
   });
   it('does n×m comparisons (3 users × 3 orders = 9)', () => {
     expect(last.comparisons).toBe(9);
+  });
+});
+
+describe('buildCrp (critical rendering path)', () => {
+  const firstIdx = (steps, key) => steps.findIndex((s) => s[key]);
+  it('CSS is render-blocking in both cases', () => {
+    expect(buildCrp({ defer: false }).some((s) => s.cssBlocking)).toBe(true);
+    expect(buildCrp({ defer: true }).some((s) => s.cssBlocking)).toBe(true);
+  });
+  it('a plain script blocks the parser, and first paint waits for it', () => {
+    const steps = buildCrp({ defer: false });
+    expect(steps.some((s) => s.scriptBlocking)).toBe(true);
+    expect(firstIdx(steps, 'scriptRan')).toBeLessThan(firstIdx(steps, 'painted')); // paint after the blocking script
+  });
+  it('a deferred script never blocks the parser, so first paint lands before it runs', () => {
+    const steps = buildCrp({ defer: true });
+    expect(steps.some((s) => s.scriptBlocking)).toBe(false);
+    expect(firstIdx(steps, 'painted')).toBeLessThan(firstIdx(steps, 'scriptRan')); // paint before the deferred script
   });
 });
 

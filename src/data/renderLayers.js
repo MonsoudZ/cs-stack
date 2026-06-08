@@ -5,7 +5,8 @@ export const renderLayers = [
   { id: 'R1', num: '01', navLabel: 'Style', zone: 'meaning', title: 'Style: the cascade computes', sub: 'render · CSS · specificity · the CSSOM' },
   { id: 'R2', num: '02', navLabel: 'Layout', zone: 'number', title: 'Layout: every box gets a place', sub: 'render · the box model · reflow' },
   { id: 'R3', num: '03', navLabel: 'Paint', zone: 'number', title: 'Paint & composite: boxes become pixels', sub: 'render · rasterize · layers · the GPU' },
-  { id: 'R4', num: '04', navLabel: 'What re-runs', zone: 'system', title: 'What re-runs: why transform is cheap', sub: 'render · invalidation · layout vs paint vs composite' },
-  { id: 'R5', num: '05', navLabel: 'The event loop', zone: 'system', title: 'The event loop: what drives a frame', sub: 'render · tasks · microtasks · rAF · jank' },
-  { id: 'R6', num: '06', navLabel: 'The frame', zone: 'all', title: 'One frame, the DOM to pixels', sub: 'the whole trip · ~60 times a second' },
+  { id: 'R4', num: '04', navLabel: 'First paint', zone: 'system', title: 'The critical rendering path: getting to first paint', sub: 'render · render-blocking CSS · blocking scripts' },
+  { id: 'R5', num: '05', navLabel: 'What re-runs', zone: 'system', title: 'What re-runs: why transform is cheap', sub: 'render · invalidation · layout vs paint vs composite' },
+  { id: 'R6', num: '06', navLabel: 'The event loop', zone: 'system', title: 'The event loop: what drives a frame', sub: 'render · tasks · microtasks · rAF · jank' },
+  { id: 'R7', num: '07', navLabel: 'The frame', zone: 'all', title: 'One frame, the DOM to pixels', sub: 'the whole trip · ~60 times a second' },
 ];

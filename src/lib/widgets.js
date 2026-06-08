@@ -307,6 +307,31 @@ export function invalidatedStages(kind) {
   return RENDER_STAGES.map((name, i) => ({ name, rerun: i >= startAt }));
 }
 
+// The critical rendering path: what gates the FIRST paint on page load. The
+// browser needs both the DOM (from HTML) and the CSSOM (from CSS) before it can
+// render — so CSS is render-blocking. A plain <script> also blocks the HTML
+// parser; a deferred one doesn't, so first paint can land earlier. `defer`
+// toggles the two and shows first paint move.
+export function buildCrp({ defer = false } = {}) {
+  const out = [];
+  const snap = (note, o = {}) => out.push({ defer, note, parsing: !!o.parsing, cssBlocking: !!o.cssBlocking, scriptBlocking: !!o.scriptBlocking, scriptRan: !!o.scriptRan, painted: !!o.painted });
+  snap('to paint, the browser needs the DOM (from HTML) and the CSSOM (from CSS). Watch what gates that first pixel');
+  snap('parse the HTML top to bottom, building the DOM node by node', { parsing: true });
+  snap('hit a <link rel="stylesheet"> → CSS is RENDER-BLOCKING: no paint until the CSSOM is built', { parsing: true, cssBlocking: true });
+  if (!defer) {
+    snap('hit a plain <script src> → parsing STOPS: it must download and run first (and it even waits for the CSS above)', { cssBlocking: true, scriptBlocking: true });
+    snap('CSS arrives → CSSOM built; the blocking script runs; only now does parsing resume', { parsing: true, scriptRan: true });
+    snap('DOM done + CSSOM ready → render tree → 🎨 first paint — but late: the blocking script held everything up', { painted: true, scriptRan: true });
+  } else {
+    snap('hit <script defer> → it downloads in parallel and runs after parsing; it does NOT block the parser', { parsing: true, cssBlocking: true });
+    snap('the HTML finishes parsing → DOM complete, with the script kept out of the way', { parsing: true });
+    snap('CSS arrives → CSSOM ready → render tree → 🎨 first paint, as soon as both are ready — much earlier', { painted: true });
+    snap('the deferred script runs now, after first paint', { painted: true, scriptRan: true });
+  }
+  snap('CSS blocks the first paint either way; a plain script also blocks the parser — defer/async keep scripts off the critical path', { painted: true, scriptRan: true });
+  return out;
+}
+
 // The event loop: one turn. Run a task to completion, then drain ALL microtasks
 // (Promises), then — if a frame is due — run requestAnimationFrame callbacks and
 // render (style → layout → paint). A setTimeout queued during the task waits for

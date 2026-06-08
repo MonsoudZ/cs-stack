@@ -501,8 +501,18 @@ test('Crypto page: own nav, hash avalanches, DH agrees on a shared secret', asyn
 test('Render page: own nav, transform re-runs only composite, the event loop renders once', async ({ page }) => {
   await page.goto('/render');
   await expect(page.locator('h1.title')).toContainText('RENDER');
-  await expect(page.locator('.spine .rung')).toHaveCount(7);
-  const ri = page.locator('#R4');
+  await expect(page.locator('.spine .rung')).toHaveCount(8);
+  // critical rendering path (section R4): stepping a load reaches first paint
+  const crp = page.locator('#R4');
+  await crp.scrollIntoViewIfNeeded();
+  for (let i = 0; i < 8; i++) {
+    await crp.locator('.cpu-ctrl button').first().click();
+    if (await crp.locator('.crp-paint.on').count()) break;
+    await page.waitForTimeout(40);
+  }
+  await expect(crp.locator('.crp-paint.on')).toContainText('first paint');
+  // what re-runs (now section R5): transform only re-composites
+  const ri = page.locator('#R5');
   await ri.scrollIntoViewIfNeeded();
   await expect(ri.locator('.ri-stage.rerun')).toHaveCount(3); // default (width) re-runs all three
   await expect(async () => {
@@ -510,8 +520,8 @@ test('Render page: own nav, transform re-runs only composite, the event loop ren
     await expect(ri.locator('.ri-stage.rerun')).toHaveCount(1, { timeout: 400 });
   }).toPass({ timeout: 8000 });
   await expect(ri.locator('.ri-stage.rerun .ri-name')).toHaveText('Composite'); // the cheap path
-  // event loop (section R5): stepping a turn ends in a painted frame
-  const el = page.locator('#R5');
+  // event loop (now section R6): stepping a turn ends in a painted frame
+  const el = page.locator('#R6');
   await el.scrollIntoViewIfNeeded();
   for (let i = 0; i < 9; i++) {
     await el.locator('.cpu-ctrl button').first().click();
