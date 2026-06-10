@@ -7,6 +7,7 @@ import BytecodeVm from '../components/BytecodeVm.svelte';
 import Optimize from '../components/Optimize.svelte';
 import AstTree from '../components/AstTree.svelte';
 import Runtimes from '../components/Runtimes.svelte';
+import Registers from '../components/Registers.svelte';
 import TypeCheck from '../components/TypeCheck.svelte';
 import Why from '../components/Why.astro';
 import SeeAlso from '../components/SeeAlso.astro';
@@ -15,14 +16,14 @@ import Quiz from '../components/Quiz.svelte';
 import PrevNext from '../components/PrevNext.astro';
 const L = Object.fromEntries(compilerLayers.map((l) => [l.id, l]));
 const title = 'THE STACK — the compiler';
-const description = 'A deep dive into how code stops being text: lexing into tokens, parsing into an AST, lowering to bytecode, optimizing, and running it — interpreted, compiled, or JIT.';
+const description = 'A deep dive into how code stops being text: lexing into tokens, parsing into an AST, lowering to bytecode, optimizing, allocating registers, and running it — interpreted, compiled, or JIT.';
 ---
 <Base {title} {description} layers={compilerLayers}>
   <div slot="hero">
     <div class="kicker">A deep dive into layer 08</div>
     <h1 class="title">THE <em>COMPILER</em><br />STACK</h1>
     <p class="lede">You write <code>3 + 4 * 2</code>; the CPU runs numbered operations. Between them is a pipeline that scans, parses, lowers, optimizes, and finally executes — turning text into something a machine can obey.</p>
-    <div class="hero-meta"><a class="back-link" href="/">← back to the full stack</a> · source → tokens → tree → type check → bytecode → run</div>
+    <div class="hero-meta"><a class="back-link" href="/">← back to the full stack</a> · source → tokens → tree → type check → bytecode → optimize → registers → run</div>
   </div>
 
   <LayerSection {...L.K0}>
@@ -97,6 +98,19 @@ const description = 'A deep dive into how code stops being text: lexing into tok
     />
   </LayerSection>
 
+  <LayerSection {...L.KR}>
+    <p class="prose">Optimized bytecode still has to land on real hardware, where arithmetic runs only in a few fast <b>registers</b>. First the compiler rewrites into <span class="hl">SSA</span> — every assignment makes a new, single-definition value — so each value's <b>live range</b> is clear. Then it <b>allocates</b>: values alive at the same moment need different registers, and when more are live than the machine has, one is <span class="hl">spilled</span> to memory. Step it and watch four values fight over two registers.</p>
+    <Registers client:visible />
+    <Takeaway>Register allocation maps a program's unlimited values onto a fixed, tiny set of registers — and when they don't fit, spills the overflow to the stack. Scarcer registers mean more spills and slower code.</Takeaway>
+    <SeeAlso slug="cpu" note="the registers being fought over here — the CPU's fastest, scarcest storage" />
+    <Why
+      problem="A program names as many values as it likes, but the CPU has only a handful of registers, and memory is an order of magnitude slower to touch."
+      idea="Compute each value's live range (easy once in SSA), then assign registers so values live at the same time never share one — spilling the rare overflow to a stack slot."
+      tradeoff="Optimal allocation is NP-hard (graph colouring), so compilers use fast heuristics; every spill it can't avoid is extra load/store traffic at runtime."
+      next="Allocated or spilled, the instructions are finally ready to execute — interpreted, compiled, or JIT-compiled."
+    />
+  </LayerSection>
+
   <LayerSection {...L.K6}>
     <p class="prose">Three ways to actually run it: an <b>interpreter</b> walks the bytecode op by op (simple, portable, slower); an <b>ahead-of-time compiler</b> emits machine code once (fast start, less portable); a <b>JIT</b> interprets first, then compiles the <span class="hl">hot paths</span> to native code while running. Run the loop and watch which is cheapest flip as the iteration count climbs.</p>
     <Runtimes client:visible />
@@ -110,7 +124,7 @@ const description = 'A deep dive into how code stops being text: lexing into tok
   </LayerSection>
 
   <LayerSection {...L.K7}>
-    <p class="prose">End to end: <b>source</b> text is <b>scanned</b> into tokens, <b>parsed</b> into a tree that fixes precedence, <b>type-checked</b> for meaning, <b>lowered</b> into linear bytecode, <b>optimized</b> to do less, and finally <b>run</b> — interpreted or compiled down to the numbered instructions the CPU obeys.</p>
+    <p class="prose">End to end: <b>source</b> text is <b>scanned</b> into tokens, <b>parsed</b> into a tree that fixes precedence, <b>type-checked</b> for meaning, <b>lowered</b> into linear bytecode, <b>optimized</b> to do less, <b>allocated</b> into the CPU's registers, and finally <b>run</b> — interpreted or compiled down to the numbered instructions the CPU obeys.</p>
     <Takeaway>"Running a program" is this entire pipeline — most of it usually finished before your code ever executes a line.</Takeaway>
     <Why
       problem="It's easy to think of code as something the computer just reads and does; the gap between text and execution is invisible until it breaks."

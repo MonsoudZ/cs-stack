@@ -574,7 +574,7 @@ test('Logic page: own nav, NAND builds AND, and the multiplexer selects an input
 test('Compiler page: own nav, tokenizer emits tokens, type checking rejects a bug, the VM evaluates to 11, the optimizer folds to return 16', async ({ page }) => {
   await page.goto('/compiler');
   await expect(page.locator('h1.title')).toContainText('COMPILER');
-  await expect(page.locator('.spine .rung')).toHaveCount(8);
+  await expect(page.locator('.spine .rung')).toHaveCount(9);
   // lexer: stepping emits tokens
   const lex = page.locator('#K1');
   await lex.scrollIntoViewIfNeeded();
@@ -639,6 +639,16 @@ test('Compiler page: own nav, tokenizer emits tokens, type checking rejects a bu
   }
   await expect(rt.locator('.rt-iters')).toContainText('100');
   await expect(rt.locator('.rt-lead')).toContainText('AOT');
+  // registers (section KR): stepping allocates 2 registers and spills c to the stack
+  const reg = page.locator('#KR');
+  await reg.scrollIntoViewIfNeeded();
+  for (let i = 0; i < 8; i++) {
+    await reg.locator('.cpu-ctrl button').first().click();
+    if (await reg.locator('.reg-badge.b-spill', { hasText: 'stack' }).count()) break;
+    await page.waitForTimeout(40);
+  }
+  await expect(reg.locator('.reg-badge.b-spill')).toContainText('stack');
+  await expect(reg.locator('.reg-row .reg-badge', { hasText: 'R0' }).first()).toBeVisible();
 });
 
 test('Network page: own nav, routing TTL counts down, DNS resolves, HTTP returns 200', async ({ page }) => {

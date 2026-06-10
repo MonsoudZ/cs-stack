@@ -419,6 +419,59 @@ export function buildOptimize() {
   return out;
 }
 
+// SSA & register allocation (the compiler back end). A program's values must
+// live in the CPU's handful of registers. First the compiler rewrites into SSA:
+// every assignment creates a new, single-definition value, so each value's live
+// range (definition → last use) is unambiguous. Then it allocates — values live
+// at the same time need different registers, and when more are live at once than
+// the machine has registers, one is "spilled" to a stack slot (stored, then
+// reloaded: correct but slower). Here 4 SSA values contend for 2 registers, so
+// one spills. Pure: one snapshot per step. Each value carries its live interval
+// [from,to], its assigned `reg`, a `spilled` flag, and a transient `nofit` flag
+// for the value that just failed to get a register.
+export const REG_COUNT = 2;
+export function buildRegisters() {
+  const cols = 5;
+  const V = (name, from, to, o = {}) => ({ name, from, to, reg: o.reg ?? null, spilled: !!o.spilled, nofit: !!o.nofit });
+  const original = ['a = 1', 'a = a + 4', 'b = 2', 'c = 3', 'return a + b + c'].map((t) => ({ text: t, hl: false }));
+  const ssa = [
+    { text: 'a₁ = 1', hl: true }, { text: 'a₂ = a₁ + 4', hl: true },
+    { text: 'b = 2', hl: false }, { text: 'c = 3', hl: false }, { text: 'return a₂ + b + c', hl: true },
+  ];
+  const live = () => [V('a₁', 1, 2), V('a₂', 2, 5), V('b', 3, 5), V('c', 4, 5)];
+  const allocated = (cReg) => [
+    V('a₁', 1, 2, { reg: 'R0' }), V('a₂', 2, 5, { reg: 'R0' }), V('b', 3, 5, { reg: 'R1' }),
+    V('c', 4, 5, cReg),
+  ];
+  const out = [];
+  const snap = (o) => out.push({ cols, regCount: REG_COUNT, showPressure: false, program: ssa, ...o });
+  snap({
+    program: original, values: [],
+    note: 'a CPU has only a handful of registers — the fast slots arithmetic actually runs on. before handing them out, the compiler rewrites into SSA: the name a is assigned twice, so split it into two single-definition values.',
+  });
+  snap({
+    values: live(),
+    note: 'in SSA every value is defined exactly once, so its live range — definition to last use — is unambiguous: a₁ lives lines 1–2, a₂ lines 2–5, b lines 3–5, c lines 4–5.',
+  });
+  snap({
+    values: live(), showPressure: true,
+    note: 'count the values live at each line. at the return, a₂, b and c are all live at once — pressure 3 — but the machine has only 2 registers. something has to give.',
+  });
+  snap({
+    values: allocated({ nofit: true }), showPressure: true,
+    note: 'allocate in definition order: a₁ takes R0; a₁ dies on line 2, so a₂ reuses R0; b takes R1. now c is defined — but R0 and R1 are both held by values still in use, so c can’t get a register.',
+  });
+  snap({
+    values: allocated({ spilled: true }), showPressure: true,
+    note: 'so c is spilled to a stack slot: stored after it’s computed, then loaded back for the add. register pressure drops to 2 and the code is correct — it just pays extra memory traffic for that one value.',
+  });
+  snap({
+    values: allocated({ spilled: true }), showPressure: true,
+    note: 'two registers served four values over time (R0 held a₁, then a₂), and only the value that couldn’t fit lives in memory. fewer registers ⇒ more spills ⇒ slower code — which is why register allocation is one of the last and trickiest compiler passes.',
+  });
+  return out;
+}
+
 // --- RENDER PIPELINE (/render) ---
 
 // Which pipeline stages a style change forces to re-run. A geometry change

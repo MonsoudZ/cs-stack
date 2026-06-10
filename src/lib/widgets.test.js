@@ -3,7 +3,7 @@ import { quizzes } from '../data/quizzes.js';
 import { stacks } from '../data/stacks.js';
 import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum, DOPING, buildDiode, cmosInverter, nand, buildUniversal, mux2, ALU_OPS, computeAlu, PIPE_STAGES, buildPipeline, buildDeadlock, buildCas, buildLoadBalancer, buildReplication, buildLinkedList, buildStackQueue, GRAPH, buildGraphTraversal, buildStackHeap, buildAllocator, buildGc, ISOLATION_LEVELS, buildIsolation, buildTypeCheck, buildEventLoop, buildCrp, FS, buildPathResolve, buildJournal, buildSockets, buildHttp, buildJoin,
   computeNeuron, buildGradientDescent, EMBEDDINGS, nearestWords, buildAttention, softmaxTemp, nextTokenDist,
-  tokenize, TOK_VOCAB, buildTraining, buildRag, RAG_DOCS, buildOptimize, buildAst, buildRuntimes } from './widgets.js';
+  tokenize, TOK_VOCAB, buildTraining, buildRag, RAG_DOCS, buildOptimize, buildAst, buildRuntimes, buildRegisters, REG_COUNT } from './widgets.js';
 
 const popcount = (n) => { let c = 0; n >>>= 0; while (n) { c += n & 1; n >>>= 1; } return c; };
 
@@ -215,6 +215,40 @@ describe('buildAst (parsing → tree reduction)', () => {
     const countActive = (n) => (n.active ? 1 : 0) + (n.kind === 'op' ? countActive(n.l) + countActive(n.r) : 0);
     expect(countActive(steps[0].tree)).toBe(0);
     for (let i = 1; i < steps.length; i++) expect(countActive(steps[i].tree)).toBe(1);
+  });
+});
+
+describe('buildRegisters (SSA & register allocation)', () => {
+  const steps = buildRegisters();
+  const final = steps.at(-1);
+  const byName = (s, n) => s.values.find((v) => v.name === n);
+  // register pressure at a column = live, non-spilled values covering it
+  const pressureAt = (s, col) => s.values.filter((v) => !v.spilled && col >= v.from && col <= v.to).length;
+  it('starts from the non-SSA program (a assigned twice) with no values yet', () => {
+    expect(steps[0].values).toHaveLength(0);
+    expect(steps[0].program.map((l) => l.text)).toContain('a = a + 4');
+  });
+  it('renames into SSA: a₁ and a₂ are distinct, single-definition values', () => {
+    const ssaStep = steps[1];
+    expect(ssaStep.values.map((v) => v.name)).toEqual(['a₁', 'a₂', 'b', 'c']);
+  });
+  it('register pressure peaks at 3 (a₂, b, c live at the return) before any spill', () => {
+    const pressureStep = steps.find((s) => s.showPressure && s.values.every((v) => !v.spilled));
+    expect(Math.max(...[1, 2, 3, 4, 5].map((c) => pressureAt(pressureStep, c)))).toBe(3);
+    expect(3).toBeGreaterThan(REG_COUNT);
+  });
+  it('finally uses exactly 2 registers and spills exactly one value (c)', () => {
+    const regs = new Set(final.values.filter((v) => v.reg).map((v) => v.reg));
+    expect(regs).toEqual(new Set(['R0', 'R1']));
+    const spilled = final.values.filter((v) => v.spilled);
+    expect(spilled.map((v) => v.name)).toEqual(['c']);
+  });
+  it('a₁ and a₂ reuse the same register (R0) since a₁ dies before a₂ outlives it', () => {
+    expect(byName(final, 'a₁').reg).toBe('R0');
+    expect(byName(final, 'a₂').reg).toBe('R0');
+  });
+  it('after the spill, no column exceeds the register count', () => {
+    for (const c of [1, 2, 3, 4, 5]) expect(pressureAt(final, c)).toBeLessThanOrEqual(REG_COUNT);
   });
 });
 
