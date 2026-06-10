@@ -379,6 +379,50 @@ export function buildTypeCheck({ buggy = false } = {}) {
   return out;
 }
 
+// Scope resolution (the other half of semantic analysis). A name like `x`
+// doesn't carry its meaning — the resolver binds each reference to a declaration
+// by looking in the current scope, then walking outward through enclosing scopes
+// (lexical scoping) until it finds one. Inner declarations shadow outer ones;
+// a name found nowhere is an "undefined name" error caught at compile time.
+// Scopes here nest linearly: global ⊃ function f ⊃ inner block. Each snapshot
+// resolves one reference and records the `path` walked, the `foundIn` scope (or
+// null), and how many `hops` outward it took. Pure.
+export function buildScopes() {
+  const scopes = [
+    { id: 'global', label: 'global', symbols: ['x', 'f'] },
+    { id: 'f', label: 'function f(y)', symbols: ['y', 'z'] },
+    { id: 'block', label: 'inner { }', symbols: ['x'] },
+  ];
+  const order = scopes.map((s) => s.id); // outermost → innermost
+  // resolve `name` starting in `from`, walking outward (innermost → outermost)
+  const resolve = (name, from) => {
+    const path = [];
+    let i = order.indexOf(from);
+    for (; i >= 0; i--) {
+      const sc = scopes[i];
+      path.push(sc.id);
+      if (sc.symbols.includes(name)) return { path, foundIn: sc.id };
+    }
+    return { path, foundIn: null };
+  };
+  const lookups = [
+    { name: 'x', from: 'f', code: 'z = x + y', note: 'resolving x inside f: it isn’t declared here, so walk outward to global — found. (1 hop)' },
+    { name: 'y', from: 'f', code: 'z = x + y', note: 'y is f’s parameter, declared right here — found in the current scope, no walk needed.' },
+    { name: 'x', from: 'block', code: 'print(x + z)', note: 'the inner block declares its own x, so x binds to that one — it shadows the global x. the nearest declaration wins.' },
+    { name: 'z', from: 'block', code: 'print(x + z)', note: 'z isn’t in the block; walk out to f, where it’s declared. inner scopes can see outer names, but not the reverse.' },
+    { name: 'w', from: 'f', code: 'print(w)', note: 'w is declared nowhere on the chain — walk f → global, hit the top, and fail. that’s an “undefined name”, caught now instead of at runtime.' },
+  ];
+  const out = [{
+    scopes, name: null, from: null, code: null, path: [], foundIn: null, hops: null,
+    note: 'a name doesn’t carry its meaning — the resolver binds each reference to a declaration, searching the current scope first, then each enclosing scope outward.',
+  }];
+  for (const lk of lookups) {
+    const { path, foundIn } = resolve(lk.name, lk.from);
+    out.push({ scopes, name: lk.name, from: lk.from, code: lk.code, path, foundIn, hops: foundIn ? path.length - 1 : null, note: lk.note });
+  }
+  return out;
+}
+
 // Optimization: meaning-preserving rewrites that make a program do less work
 // for the identical result. Walk a tiny program through the classic passes —
 // constant folding, algebraic simplification, common-subexpression elimination,

@@ -9,6 +9,7 @@ import AstTree from '../components/AstTree.svelte';
 import Runtimes from '../components/Runtimes.svelte';
 import Registers from '../components/Registers.svelte';
 import TypeCheck from '../components/TypeCheck.svelte';
+import Scopes from '../components/Scopes.svelte';
 import Why from '../components/Why.astro';
 import SeeAlso from '../components/SeeAlso.astro';
 import Takeaway from '../components/Takeaway.astro';
@@ -64,7 +65,9 @@ const description = 'A deep dive into how code stops being text: lexing into tok
   <LayerSection {...L.K3}>
     <p class="prose">A tree can parse perfectly and still be meaningless — like multiplying a string by a number. <b>Type checking</b> (semantic analysis) walks the AST <span class="hl">bottom-up</span>, infers a type for each node, and verifies every operator's operands. Catch the error here and it never reaches the user. Toggle in a bug below.</p>
     <TypeCheck client:visible />
-    <Takeaway>Type checking is the compiler reading for <i>meaning</i>, not just grammar — rejecting programs that would misbehave, before a single instruction is generated.</Takeaway>
+    <p class="prose">Before it can check types, semantic analysis has to <b>resolve names</b>: when you write <code>x</code>, <i>which</i> declaration is that? The resolver keeps a <span class="hl">symbol table</span> per scope and walks <b>outward</b> through enclosing scopes until one matches — so an inner name <span class="hl">shadows</span> an outer one, and a name found nowhere is an error. Step through a few references below.</p>
+    <Scopes client:visible />
+    <Takeaway>Type checking is the compiler reading for <i>meaning</i>, not just grammar — resolving every name to its declaration and rejecting programs that would misbehave, before a single instruction is generated.</Takeaway>
     <Why
       problem="A grammatically valid program can still be nonsense — adding a number to a function, calling an undefined name — and running it would crash or corrupt data."
       idea="Walk the AST inferring and checking types (and scopes), so whole classes of bugs are caught at compile time instead of at runtime."

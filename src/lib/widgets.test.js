@@ -3,7 +3,7 @@ import { quizzes } from '../data/quizzes.js';
 import { stacks } from '../data/stacks.js';
 import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum, DOPING, buildDiode, cmosInverter, nand, buildUniversal, mux2, ALU_OPS, computeAlu, PIPE_STAGES, buildPipeline, buildDeadlock, buildCas, buildLoadBalancer, buildReplication, buildLinkedList, buildStackQueue, GRAPH, buildGraphTraversal, buildStackHeap, buildAllocator, buildGc, ISOLATION_LEVELS, buildIsolation, buildTypeCheck, buildEventLoop, buildCrp, FS, buildPathResolve, buildJournal, buildSockets, buildHttp, buildJoin,
   computeNeuron, buildGradientDescent, EMBEDDINGS, nearestWords, buildAttention, softmaxTemp, nextTokenDist,
-  tokenize, TOK_VOCAB, buildTraining, buildRag, RAG_DOCS, buildOptimize, buildAst, buildRuntimes, buildRegisters, REG_COUNT } from './widgets.js';
+  tokenize, TOK_VOCAB, buildTraining, buildRag, RAG_DOCS, buildOptimize, buildAst, buildRuntimes, buildRegisters, REG_COUNT, buildScopes } from './widgets.js';
 
 const popcount = (n) => { let c = 0; n >>>= 0; while (n) { c += n & 1; n >>>= 1; } return c; };
 
@@ -215,6 +215,38 @@ describe('buildAst (parsing → tree reduction)', () => {
     const countActive = (n) => (n.active ? 1 : 0) + (n.kind === 'op' ? countActive(n.l) + countActive(n.r) : 0);
     expect(countActive(steps[0].tree)).toBe(0);
     for (let i = 1; i < steps.length; i++) expect(countActive(steps[i].tree)).toBe(1);
+  });
+});
+
+describe('buildScopes (name resolution)', () => {
+  const steps = buildScopes();
+  const find = (name, from) => steps.find((s) => s.name === name && s.from === from);
+  it('walks outward: x from f isn’t local, so it binds to global (1 hop)', () => {
+    const r = find('x', 'f');
+    expect(r.foundIn).toBe('global');
+    expect(r.hops).toBe(1);
+    expect(r.path).toEqual(['f', 'global']);
+  });
+  it('a parameter resolves locally with no walk (0 hops)', () => {
+    const r = find('y', 'f');
+    expect(r.foundIn).toBe('f');
+    expect(r.hops).toBe(0);
+  });
+  it('an inner declaration shadows the outer one — x in the block binds to the block', () => {
+    const r = find('x', 'block');
+    expect(r.foundIn).toBe('block');
+    expect(r.hops).toBe(0);
+  });
+  it('inner scopes see outer names: z from the block binds to f', () => {
+    const r = find('z', 'block');
+    expect(r.foundIn).toBe('f');
+    expect(r.path).toEqual(['block', 'f']);
+  });
+  it('a name on no scope is undefined — walks the whole chain and fails', () => {
+    const r = find('w', 'f');
+    expect(r.foundIn).toBe(null);
+    expect(r.hops).toBe(null);
+    expect(r.path).toEqual(['f', 'global']); // searched everything, found nothing
   });
 });
 

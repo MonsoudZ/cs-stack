@@ -597,6 +597,16 @@ test('Compiler page: own nav, tokenizer emits tokens, type checking rejects a bu
     await page.waitForTimeout(40);
   }
   await expect(tc.locator('.tc-verdict.bad')).toContainText('type error');
+  // scope resolution (also section K3, the second widget): stepping resolves
+  // references and ends on an undefined name
+  const scope = page.locator('#K3 .widget').nth(1);
+  await scope.scrollIntoViewIfNeeded();
+  for (let i = 0; i < 8; i++) {
+    await scope.locator('.cpu-ctrl button').first().click();
+    if (await scope.locator('.sc-result.bad').count()) break;
+    await page.waitForTimeout(40);
+  }
+  await expect(scope.locator('.sc-result.bad')).toContainText('undefined');
   // VM (now section K4): stepping runs the bytecode to a result of 11
   const vm = page.locator('#K4');
   await vm.scrollIntoViewIfNeeded();
