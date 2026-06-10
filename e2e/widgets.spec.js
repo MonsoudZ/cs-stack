@@ -571,7 +571,7 @@ test('Logic page: own nav, NAND builds AND, and the multiplexer selects an input
   }).toPass({ timeout: 8000 });
 });
 
-test('Compiler page: own nav, tokenizer emits tokens, type checking rejects a bug, the VM evaluates to 11', async ({ page }) => {
+test('Compiler page: own nav, tokenizer emits tokens, type checking rejects a bug, the VM evaluates to 11, the optimizer folds to return 16', async ({ page }) => {
   await page.goto('/compiler');
   await expect(page.locator('h1.title')).toContainText('COMPILER');
   await expect(page.locator('.spine .rung')).toHaveCount(8);
@@ -606,6 +606,17 @@ test('Compiler page: own nav, tokenizer emits tokens, type checking rejects a bu
     await page.waitForTimeout(40);
   }
   await expect(vm.locator('.vm-result')).toContainText('11');
+  // optimizer (section K5): stepping the passes collapses the program to a single `return 16`
+  const opt = page.locator('#K5');
+  await opt.scrollIntoViewIfNeeded();
+  await expect(opt.locator('.opt-line')).toHaveCount(5); // starts at the 5-line program
+  for (let i = 0; i < 10; i++) {
+    await opt.locator('.cpu-ctrl button').first().click();
+    if ((await opt.locator('.opt-line').count()) === 1) break;
+    await page.waitForTimeout(40);
+  }
+  await expect(opt.locator('.opt-line')).toHaveCount(1);
+  await expect(opt.locator('.opt-prog')).toContainText('return 16');
 });
 
 test('Network page: own nav, routing TTL counts down, DNS resolves, HTTP returns 200', async ({ page }) => {

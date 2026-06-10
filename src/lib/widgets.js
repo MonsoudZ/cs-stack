@@ -295,6 +295,46 @@ export function buildTypeCheck({ buggy = false } = {}) {
   return out;
 }
 
+// Optimization: meaning-preserving rewrites that make a program do less work
+// for the identical result. Walk a tiny program through the classic passes —
+// constant folding, algebraic simplification, common-subexpression elimination,
+// dead-code elimination, and copy/constant propagation — until five lines and a
+// dead branch collapse to `return 16` (the same answer the original computed).
+// Each line carries a `mark`: 'change' (rewritten this pass) or 'cut' (about to
+// be removed, shown struck through, gone next pass). Two costs shrink alongside:
+// `lines` (instructions left) and `ops` (arithmetic done at runtime).
+export function buildOptimize() {
+  const out = [];
+  const L = (text, mark = '') => ({ text, mark });
+  const snap = (pass, lines, note) => {
+    const live = lines.filter((l) => l.mark !== 'cut');
+    const ops = live.reduce((n, l) => n + (l.text.match(/[+*]/g) || []).length, 0);
+    out.push({ pass, note, lines: lines.map((l) => ({ ...l })), linesLeft: live.length, ops });
+  };
+  snap(null,
+    [L('t = 4 * 2'), L('a = t + 0'), L('b = t + 0'), L('if (false): log(99)'), L('return a + b')],
+    'straightforward code generation is correct but wasteful: constants recomputed at runtime, identities left in, a branch that can never run. each pass rewrites the program to do less while computing the identical result.');
+  snap('constant folding',
+    [L('t = 8', 'change'), L('a = t + 0'), L('b = t + 0'), L('if (false): log(99)'), L('return a + b')],
+    '4 * 2 has only constant operands, so evaluate it now, at compile time: t = 8. that multiply never has to happen while the program runs.');
+  snap('algebraic simplification',
+    [L('t = 8'), L('a = t', 'change'), L('b = t', 'change'), L('if (false): log(99)'), L('return a + b')],
+    'x + 0 is always just x, so the two additions are pure overhead — drop them. a and b are now plain copies of t.');
+  snap('common-subexpression elimination',
+    [L('t = 8'), L('a = t'), L('b = t', 'cut'), L('if (false): log(99)'), L('return a + a', 'change')],
+    'a and b compute the exact same value — no point doing it twice. keep a, rewrite every use of b as a, and the b = t line is now dead.');
+  snap('dead-code elimination',
+    [L('t = 8'), L('a = t'), L('if (false): log(99)', 'cut'), L('return a + a')],
+    'the branch is guarded by a constant false, so it can never execute — the whole block is unreachable and is removed.');
+  snap('copy & constant propagation',
+    [L('t = 8', 'cut'), L('a = t', 'cut'), L('return 16', 'change')],
+    'a = t and t = 8, so a is simply 8 everywhere — substitute it in to get return 8 + 8, then fold once more to return 16. t and a are now unused, so they go too.');
+  snap('done',
+    [L('return 16')],
+    'five lines and a dead branch collapsed to a single constant. it prints the same answer the original did — the optimizer only ever removes work, never changes meaning.');
+  return out;
+}
+
 // --- RENDER PIPELINE (/render) ---
 
 // Which pipeline stages a style change forces to re-run. A geometry change

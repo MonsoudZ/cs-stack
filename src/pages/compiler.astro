@@ -4,6 +4,7 @@ import LayerSection from '../components/LayerSection.astro';
 import { compilerLayers } from '../data/compilerLayers.js';
 import Tokenizer from '../components/Tokenizer.svelte';
 import BytecodeVm from '../components/BytecodeVm.svelte';
+import Optimize from '../components/Optimize.svelte';
 import TypeCheck from '../components/TypeCheck.svelte';
 import Why from '../components/Why.astro';
 import SeeAlso from '../components/SeeAlso.astro';
@@ -100,7 +101,8 @@ const description = 'A deep dive into how code stops being text: lexing into tok
   </LayerSection>
 
   <LayerSection {...L.K5}>
-    <p class="prose">Before running, the compiler rewrites the program to do <b>less work for the same result</b>. <code>4 * 2</code> is constant, so <span class="hl">fold</span> it to <code>8</code> at compile time; unreachable branches are dropped as dead code.</p>
+    <p class="prose">Before running, the compiler rewrites the program to do <b>less work for the same result</b>. <code>4 * 2</code> is constant, so <span class="hl">fold</span> it to <code>8</code> at compile time; <code>+ 0</code> simplifies away; a value computed twice is reused; unreachable branches are dropped as dead code. Step the passes and watch a small program collapse to a single constant.</p>
+    <Optimize client:visible />
     <Takeaway>Optimization is a search for a cheaper program that computes the identical answer — the user never sees the difference, except in speed.</Takeaway>
     <Why
       problem="Straightforward code generation is correct but wasteful: redundant computation, values recomputed, branches that can never run."

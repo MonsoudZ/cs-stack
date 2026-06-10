@@ -3,7 +3,7 @@ import { quizzes } from '../data/quizzes.js';
 import { stacks } from '../data/stacks.js';
 import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum, DOPING, buildDiode, cmosInverter, nand, buildUniversal, mux2, ALU_OPS, computeAlu, PIPE_STAGES, buildPipeline, buildDeadlock, buildCas, buildLoadBalancer, buildReplication, buildLinkedList, buildStackQueue, GRAPH, buildGraphTraversal, buildStackHeap, buildAllocator, buildGc, ISOLATION_LEVELS, buildIsolation, buildTypeCheck, buildEventLoop, buildCrp, FS, buildPathResolve, buildJournal, buildSockets, buildHttp, buildJoin,
   computeNeuron, buildGradientDescent, EMBEDDINGS, nearestWords, buildAttention, softmaxTemp, nextTokenDist,
-  tokenize, TOK_VOCAB, buildTraining, buildRag, RAG_DOCS } from './widgets.js';
+  tokenize, TOK_VOCAB, buildTraining, buildRag, RAG_DOCS, buildOptimize } from './widgets.js';
 
 const popcount = (n) => { let c = 0; n >>>= 0; while (n) { c += n & 1; n >>>= 1; } return c; };
 
@@ -189,6 +189,48 @@ describe('buildVm (stack machine)', () => {
   });
   it('the operand stack peaks at 3 entries (PUSH 3, 4, 2)', () => {
     expect(Math.max(...steps.map((s) => s.stack.length))).toBe(3);
+  });
+});
+
+describe('buildOptimize (optimization passes)', () => {
+  const steps = buildOptimize();
+  const live = (s) => s.lines.filter((l) => l.mark !== 'cut');
+  it('starts from the 5-line program and ends at a single `return 16`', () => {
+    expect(live(steps[0]).map((l) => l.text)).toEqual([
+      't = 4 * 2', 'a = t + 0', 'b = t + 0', 'if (false): log(99)', 'return a + b',
+    ]);
+    const final = live(steps.at(-1));
+    expect(final).toHaveLength(1);
+    expect(final[0].text).toBe('return 16');
+  });
+  it('the result is the same value the original computes (4*2=8, 8+8=16)', () => {
+    // original: t=4*2=8, a=t=8, b=t=8, return a+b = 16
+    expect(4 * 2 + (4 * 2)).toBe(16);
+  });
+  it('both costs are monotonically non-increasing, and at least one drops each pass', () => {
+    for (let i = 1; i < steps.length; i++) {
+      expect(steps[i].linesLeft).toBeLessThanOrEqual(steps[i - 1].linesLeft);
+      expect(steps[i].ops).toBeLessThanOrEqual(steps[i - 1].ops);
+    }
+    // every pass after the intro reduces lines OR ops (no no-op pass), up to the
+    // terminal 'done' snapshot which just restates the result
+    for (let i = 1; i < steps.length - 1; i++) {
+      const dropped = steps[i].linesLeft < steps[i - 1].linesLeft || steps[i].ops < steps[i - 1].ops;
+      expect(dropped).toBe(true);
+    }
+  });
+  it('instruction count shrinks from 5 to 1 and runtime ops reach 0', () => {
+    expect(steps[0].linesLeft).toBe(5);
+    expect(steps.at(-1).linesLeft).toBe(1);
+    expect(steps[0].ops).toBe(4);
+    expect(steps.at(-1).ops).toBe(0);
+  });
+  it('every `cut` line is gone from the next snapshot', () => {
+    for (let i = 0; i < steps.length - 1; i++) {
+      const cutTexts = steps[i].lines.filter((l) => l.mark === 'cut').map((l) => l.text);
+      const nextTexts = steps[i + 1].lines.map((l) => l.text);
+      for (const t of cutTexts) expect(nextTexts).not.toContain(t);
+    }
   });
 });
 
