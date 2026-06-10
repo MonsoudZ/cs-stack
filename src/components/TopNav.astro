@@ -24,7 +24,7 @@ const onHome = current === '';
             href={`/${s.slug}`}
             aria-current={s.slug === current ? 'page' : undefined}
           >
-            <span class:list={['topnav-dot', TONE[s.accent] ?? '']} aria-hidden="true"></span>{s.name}
+            <span class:list={['topnav-dot', TONE[s.accent] ?? '']} aria-hidden="true"></span><span class="topnav-num">{s.layer === 'app' ? 'app' : s.layer}</span>{s.name}
           </a>
         </li>
       ))}
@@ -47,6 +47,8 @@ const onHome = current === '';
     border:1px solid transparent;border-radius:999px;padding:5px 12px;white-space:nowrap;transition:color .15s,border-color .15s,background .15s}
   .topnav-pill:hover,.topnav-pill:focus-visible{color:var(--ink);border-color:var(--border)}
   .topnav-pill.on{color:var(--ink);border-color:var(--signal);background:var(--signal-d)}
+  .topnav-num{font-size:10.5px;font-weight:700;letter-spacing:.04em;color:var(--faint)}
+  .topnav-pill.on .topnav-num{color:var(--signal)}
   .topnav-dot{width:7px;height:7px;border-radius:50%;background:var(--faint);flex:none}
   .topnav-dot.t-sig{background:var(--signal)}
   .topnav-dot.t-violet{background:var(--violet)}

@@ -808,6 +808,7 @@ test('Top nav: lists every stack, marks the current one, and links across', asyn
   const current = nav.locator('.topnav-pill[aria-current="page"]');
   await expect(current).toHaveCount(1);
   await expect(current).toHaveText(/Compiler/);
+  await expect(current.locator('.topnav-num')).toHaveText('08'); // compiler is layer 08
   // clicking another pill navigates to that stack
   await nav.locator('.topnav-pill', { hasText: 'Network' }).click();
   await expect(page).toHaveURL(/\/network\/?$/);
