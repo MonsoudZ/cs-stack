@@ -21,6 +21,7 @@ import splineBody from '@fontsource/spline-sans/files/spline-sans-latin-400-norm
 // so the nav and content can't drift.
 import { layers as mainLayers } from '../data/layers.js';
 import StackNav from '../components/StackNav.astro';
+import TopNav from '../components/TopNav.astro';
 import { stacks } from '../data/stacks.js';
 // The current page's slug (''/home for the main stack), used to tell the
 // cross-stack footer which deep-dive to omit from its list.
@@ -120,6 +121,7 @@ const jsonLd = {
 </head>
 <body>
   <a href="#main" class="skip-link">Skip to content</a>
+  <TopNav current={currentSlug} />
   <button type="button" id="themeToggle" class="theme-toggle" aria-label="Switch color theme" hidden></button>
   <div class="bg-grid"></div>
   <div class="bg-glow"></div>

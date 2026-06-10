@@ -797,6 +797,23 @@ test('Spine nav: clicking a rung deep-links the layer into the URL', async ({ pa
   await expect(page).toHaveURL(/#L12$/);
 });
 
+test('Top nav: lists every stack, marks the current one, and links across', async ({ page }) => {
+  await page.goto('/compiler');
+  const nav = page.locator('nav.topnav');
+  await expect(nav).toBeVisible();
+  // one pill per stack (15), plus the brand link home
+  await expect(nav.locator('.topnav-pill')).toHaveCount(15);
+  await expect(nav.locator('.topnav-brand')).toHaveAttribute('href', '/');
+  // the current stack's pill is highlighted
+  const current = nav.locator('.topnav-pill[aria-current="page"]');
+  await expect(current).toHaveCount(1);
+  await expect(current).toHaveText(/Compiler/);
+  // clicking another pill navigates to that stack
+  await nav.locator('.topnav-pill', { hasText: 'Network' }).click();
+  await expect(page).toHaveURL(/\/network\/?$/);
+  await expect(page.locator('nav.topnav .topnav-pill[aria-current="page"]')).toHaveText(/Network/);
+});
+
 test('Theme toggle: flips data-theme and persists the choice', async ({ page }) => {
   await page.goto('/');
   const toggle = page.locator('#themeToggle');

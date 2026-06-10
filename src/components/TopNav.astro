@@ -1,0 +1,56 @@
+---
+// Persistent cross-stack nav: a slim sticky bar, on every page, with the site
+// title and a horizontally-scrollable pill for each deep-dive. Driven by
+// stacks.js (same source as the footer map and OG cards), so adding a stack
+// adds its pill everywhere at once. The current stack's pill is highlighted;
+// on the main stack (no slug) the title carries aria-current instead. Pure
+// links — works with no JS. Each pill's dot uses the stack's accent, mapped to
+// a palette class (the audit bans static inline styles).
+import { stacks } from '../data/stacks.js';
+const { current = '' } = Astro.props;
+const TONE = { '#2ee6c0': 't-sig', '#a78bfa': 't-violet', '#ffb454': 't-amber', '#5b9dff': 't-blue', '#ff6b6b': 't-red' };
+const onHome = current === '';
+---
+<nav class="topnav" aria-label="Stacks" data-pagefind-ignore>
+  <div class="topnav-inner">
+    <a class="topnav-brand" href="/" aria-current={onHome ? 'page' : undefined}>
+      <span class="topnav-mark" aria-hidden="true"></span>THE STACK
+    </a>
+    <ul class="topnav-scroll">
+      {stacks.map((s) => (
+        <li>
+          <a
+            class:list={['topnav-pill', { on: s.slug === current }]}
+            href={`/${s.slug}`}
+            aria-current={s.slug === current ? 'page' : undefined}
+          >
+            <span class:list={['topnav-dot', TONE[s.accent] ?? '']} aria-hidden="true"></span>{s.name}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </div>
+</nav>
+
+<style>
+  .topnav{position:sticky;top:0;z-index:40;background:var(--overlay);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+  .topnav-inner{display:flex;align-items:center;gap:16px;max-width:1180px;margin:0 auto;padding:8px 24px 8px;padding-right:64px}
+  @media(max-width:640px){.topnav-inner{gap:10px;padding:7px 14px;padding-right:54px}}
+  .topnav-brand{flex:none;display:flex;align-items:center;gap:9px;font-family:var(--disp);font-weight:800;font-size:15px;letter-spacing:.02em;color:var(--ink);text-decoration:none;transition:color .15s}
+  .topnav-brand:hover,.topnav-brand:focus-visible{color:var(--signal)}
+  .topnav-brand[aria-current="page"]{color:var(--signal)}
+  .topnav-mark{width:11px;height:11px;border-radius:2px;background:var(--signal);box-shadow:0 0 9px var(--signal-d);flex:none}
+  .topnav-scroll{list-style:none;margin:0;padding:0 0 2px;display:flex;gap:6px;overflow-x:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent;scroll-padding-inline:24px;-webkit-overflow-scrolling:touch}
+  .topnav-scroll::-webkit-scrollbar{height:6px}
+  .topnav-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+  .topnav-pill{flex:none;display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:12.5px;color:var(--dim);text-decoration:none;
+    border:1px solid transparent;border-radius:999px;padding:5px 12px;white-space:nowrap;transition:color .15s,border-color .15s,background .15s}
+  .topnav-pill:hover,.topnav-pill:focus-visible{color:var(--ink);border-color:var(--border)}
+  .topnav-pill.on{color:var(--ink);border-color:var(--signal);background:var(--signal-d)}
+  .topnav-dot{width:7px;height:7px;border-radius:50%;background:var(--faint);flex:none}
+  .topnav-dot.t-sig{background:var(--signal)}
+  .topnav-dot.t-violet{background:var(--violet)}
+  .topnav-dot.t-amber{background:var(--amber)}
+  .topnav-dot.t-blue{background:var(--blue)}
+  .topnav-dot.t-red{background:var(--red)}
+</style>

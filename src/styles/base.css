@@ -139,7 +139,7 @@
   .rung .lbl{line-height:1.25}
 
   main{min-width:0}
-  section.layer{padding:38px 0;border-bottom:1px solid var(--border);scroll-margin-top:24px}
+  section.layer{padding:38px 0;border-bottom:1px solid var(--border);scroll-margin-top:64px}
   section.layer:first-child{padding-top:8px}
   .layer-head{display:flex;align-items:flex-start;gap:16px;margin-bottom:22px}
   .layer-idx{font-family:var(--mono);font-size:13px;color:var(--accent,var(--signal));border:1px solid var(--border);
