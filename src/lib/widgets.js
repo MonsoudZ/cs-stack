@@ -244,6 +244,57 @@ export function buildLex({ source = '3 + 4 * 2' } = {}) {
   return out;
 }
 
+// Parsing → AST: the same tokens `3 + 4 * 2` parse into two different trees.
+// With precedence, × binds tighter, so it sits deeper and reduces first → 11.
+// A naive left-to-right parse nests + deeper, reducing it first → 14. Stepping
+// either tree reduces it bottom-up (deepest operator first), showing that depth
+// on the tree *is* the order of evaluation. `leftToRight` switches the parse.
+export function buildAst({ leftToRight = false } = {}) {
+  let nid = 0;
+  const num = (v) => ({ id: nid++, kind: 'num', text: String(v), value: v });
+  const op = (o, l, r) => ({ id: nid++, kind: 'op', text: o, op: o, l, r });
+  // 3 + 4 * 2 — precedence puts × deeper; left-to-right puts + deeper.
+  const tree = leftToRight
+    ? op('×', op('+', num(3), num(4)), num(2))
+    : op('+', num(3), op('×', num(4), num(2)));
+  const out = [];
+  const clone = (n) => (n.kind === 'num' ? { ...n } : { ...n, l: clone(n.l), r: clone(n.r) });
+  const tagged = (root, activeId) => {
+    const c = clone(root);
+    const mark = (x) => { x.active = x.id === activeId; if (x.kind === 'op') { mark(x.l); mark(x.r); } };
+    mark(c);
+    return c;
+  };
+  const snap = (root, note, activeId = null) => out.push({ leftToRight, tree: tagged(root, activeId), note });
+  // deepest reducible operator (both children already numbers), leftmost first
+  const reducible = (n) => {
+    if (n.kind !== 'op') return null;
+    return reducible(n.l) || reducible(n.r) || (n.l.kind === 'num' && n.r.kind === 'num' ? n : null);
+  };
+  const replace = (n, targetId, repl) => {
+    if (n.id === targetId) return repl;
+    if (n.kind === 'op') return { ...n, l: replace(n.l, targetId, repl), r: replace(n.r, targetId, repl) };
+    return n;
+  };
+  const summary = leftToRight
+    ? 'parsed strictly left to right, 3 + 4 * 2 comes out as (3 + 4) × 2 = 14 — the “wrong” answer arithmetic conventions avoid. this is exactly why grammars bake in precedence, so × always sits deeper than +.'
+    : '3 + 4 * 2 = 11. because × binds tighter it sat deeper and reduced first; a left-to-right parse would give (3 + 4) × 2 = 14 instead. the shape of the tree is the precedence.';
+  snap(tree, leftToRight
+    ? 'the same tokens, but parsed strictly left to right: + nests deeper than ×, so 3 + 4 will reduce first. depth on the tree is the order of evaluation.'
+    : 'the parser used precedence: × binds tighter than +, so it sits deeper in the tree and reduces first. depth encodes precedence.');
+  let root = tree;
+  while (root.kind === 'op') {
+    const node = reducible(root);
+    snap(root, `reduce the deepest operator: ${node.l.text} ${node.text} ${node.r.text}.`, node.id);
+    const result = node.op === '×' ? node.l.value * node.r.value : node.l.value + node.r.value;
+    const folded = num(result);
+    root = replace(root, node.id, folded);
+    const note = root.kind === 'num' ? summary : `${node.l.text} ${node.text} ${node.r.text} = ${result} — that subtree collapses to a single value.`;
+    snap(root, note, folded.id);
+  }
+  return out;
+}
+
 // Bytecode VM: run `3 + 4 * 2` as stack-machine ops (postfix 3 4 2 * +). Operands
 // push; operators pop two and push the result. Returns steps; last carries the value.
 export function buildVm() {
@@ -265,6 +316,39 @@ export function buildVm() {
   });
   snap(-1, 'one value left on the stack: 3 + 4 × 2 = ' + stack[0] + ' — × bound tighter, so it ran first', stack[0]);
   return out;
+}
+
+// Running it: interpret, AOT-compile, or JIT. Run the same hot loop body N times
+// under each strategy and accumulate cost (abstract time units). The interpreter
+// pays a per-iteration cost forever; AOT pays a big upfront compile then runs
+// native-cheap; the JIT interprets until the loop turns "hot", compiles it once,
+// then runs native. Stepping advances the iteration count through milestones so
+// the crossovers show: interpreter wins cold, JIT bends down after warmup, AOT
+// wins the long run. Pure: returns one snapshot per milestone.
+export const RUNTIME_STRATEGIES = ['interpreter', 'AOT compiler', 'JIT'];
+export function buildRuntimes() {
+  const MILESTONES = [1, 5, 10, 20, 50, 100];
+  const C_INTERP = 10, C_NATIVE = 1, AOT_STARTUP = 30, HOT = 10, JIT_COMPILE = 25;
+  const interp = (n) => C_INTERP * n;
+  const aot = (n) => AOT_STARTUP + C_NATIVE * n;
+  const jit = (n) => (n <= HOT ? C_INTERP * n : C_INTERP * HOT + JIT_COMPILE + C_NATIVE * (n - HOT));
+  const notes = [
+    'one call: the interpreter wins outright — there’s no compiler to run first. AOT already spent 30 compiling the whole program and hasn’t broken even.',
+    'a few calls in, AOT’s upfront compile is nearly amortised. the JIT is still interpreting — warming up, watching for a hot path.',
+    'the loop just turned hot: the JIT compiles it to native code now (a one-time cost), while AOT is already far ahead of the interpreter.',
+    'past warmup the JIT runs native too — its cost line bends flat and it overtakes the interpreter. AOT still leads on total time.',
+    'the interpreter re-does the same decoding every iteration; the compiled strategies barely grow.',
+    'over a long run both compiled strategies crush the interpreter. AOT wins raw total; the JIT trades a little warmup to avoid compiling ahead of time — and stays portable.',
+  ];
+  return MILESTONES.map((n, i) => {
+    const rows = [
+      { name: 'interpreter', cost: interp(n), native: false },
+      { name: 'AOT compiler', cost: aot(n), native: true },
+      { name: 'JIT', cost: jit(n), native: n > HOT },
+    ];
+    const lead = rows.reduce((a, b) => (b.cost < a.cost ? b : a)).name;
+    return { iters: n, rows, lead, note: notes[i] };
+  });
 }
 
 // Type checking (semantic analysis): after parsing, walk the AST bottom-up and

@@ -617,6 +617,28 @@ test('Compiler page: own nav, tokenizer emits tokens, type checking rejects a bu
   }
   await expect(opt.locator('.opt-line')).toHaveCount(1);
   await expect(opt.locator('.opt-prog')).toContainText('return 16');
+  // AST (section K2): stepping reduces the tree bottom-up to a single 11
+  const ast = page.locator('#K2');
+  await ast.scrollIntoViewIfNeeded();
+  await expect(ast.locator('.ast-val')).toHaveCount(5); // +, 3, ×, 4, 2
+  for (let i = 0; i < 10; i++) {
+    await ast.locator('.cpu-ctrl button').first().click();
+    if ((await ast.locator('.ast-val').count()) === 1) break;
+    await page.waitForTimeout(40);
+  }
+  await expect(ast.locator('.ast-val')).toHaveCount(1);
+  await expect(ast.locator('.ast-val')).toContainText('11');
+  // runtimes (section K6): interpreter leads cold, a compiled strategy leads after the run
+  const rt = page.locator('#K6');
+  await rt.scrollIntoViewIfNeeded();
+  await expect(rt.locator('.rt-lead')).toContainText('interpreter');
+  for (let i = 0; i < 8; i++) {
+    await rt.locator('.cpu-ctrl button').first().click();
+    if (/after 100/.test(await rt.locator('.rt-iters').innerText())) break;
+    await page.waitForTimeout(40);
+  }
+  await expect(rt.locator('.rt-iters')).toContainText('100');
+  await expect(rt.locator('.rt-lead')).toContainText('AOT');
 });
 
 test('Network page: own nav, routing TTL counts down, DNS resolves, HTTP returns 200', async ({ page }) => {

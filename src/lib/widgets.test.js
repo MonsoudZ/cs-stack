@@ -3,7 +3,7 @@ import { quizzes } from '../data/quizzes.js';
 import { stacks } from '../data/stacks.js';
 import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum, DOPING, buildDiode, cmosInverter, nand, buildUniversal, mux2, ALU_OPS, computeAlu, PIPE_STAGES, buildPipeline, buildDeadlock, buildCas, buildLoadBalancer, buildReplication, buildLinkedList, buildStackQueue, GRAPH, buildGraphTraversal, buildStackHeap, buildAllocator, buildGc, ISOLATION_LEVELS, buildIsolation, buildTypeCheck, buildEventLoop, buildCrp, FS, buildPathResolve, buildJournal, buildSockets, buildHttp, buildJoin,
   computeNeuron, buildGradientDescent, EMBEDDINGS, nearestWords, buildAttention, softmaxTemp, nextTokenDist,
-  tokenize, TOK_VOCAB, buildTraining, buildRag, RAG_DOCS, buildOptimize } from './widgets.js';
+  tokenize, TOK_VOCAB, buildTraining, buildRag, RAG_DOCS, buildOptimize, buildAst, buildRuntimes } from './widgets.js';
 
 const popcount = (n) => { let c = 0; n >>>= 0; while (n) { c += n & 1; n >>>= 1; } return c; };
 
@@ -189,6 +189,59 @@ describe('buildVm (stack machine)', () => {
   });
   it('the operand stack peaks at 3 entries (PUSH 3, 4, 2)', () => {
     expect(Math.max(...steps.map((s) => s.stack.length))).toBe(3);
+  });
+});
+
+describe('buildAst (parsing → tree reduction)', () => {
+  const rootVal = (steps) => steps.at(-1).tree.value;
+  it('precedence parse reduces 3 + 4 * 2 to 11 (× deeper, reduces first)', () => {
+    const steps = buildAst();
+    expect(steps.at(-1).tree.kind).toBe('num');
+    expect(rootVal(steps)).toBe(11);
+  });
+  it('left-to-right parse reduces the same tokens to 14', () => {
+    const steps = buildAst({ leftToRight: true });
+    expect(rootVal(steps)).toBe(14);
+  });
+  it('the precedence tree puts × deeper than +', () => {
+    const root = buildAst()[0].tree;
+    expect(root.text).toBe('+');
+    // the × node is a child of the root +, not the other way around
+    const hasMulChild = [root.l, root.r].some((c) => c.kind === 'op' && c.op === '×');
+    expect(hasMulChild).toBe(true);
+  });
+  it('exactly one node is active per reduction step (none at intro)', () => {
+    const steps = buildAst();
+    const countActive = (n) => (n.active ? 1 : 0) + (n.kind === 'op' ? countActive(n.l) + countActive(n.r) : 0);
+    expect(countActive(steps[0].tree)).toBe(0);
+    for (let i = 1; i < steps.length; i++) expect(countActive(steps[i].tree)).toBe(1);
+  });
+});
+
+describe('buildRuntimes (interpret / AOT / JIT)', () => {
+  const steps = buildRuntimes();
+  const row = (s, name) => s.rows.find((r) => r.name === name);
+  it('the interpreter is cheapest cold (1 iteration) — no compile to pay for', () => {
+    expect(steps[0].iters).toBe(1);
+    expect(steps[0].lead).toBe('interpreter');
+  });
+  it('over the long run a compiled strategy wins, not the interpreter', () => {
+    const last = steps.at(-1);
+    expect(last.lead).not.toBe('interpreter');
+    // interpreter cost dwarfs both compiled strategies at 100 iters
+    expect(row(last, 'interpreter').cost).toBeGreaterThan(row(last, 'AOT compiler').cost);
+    expect(row(last, 'interpreter').cost).toBeGreaterThan(row(last, 'JIT').cost);
+  });
+  it('the JIT only goes native after the loop turns hot (10 iters)', () => {
+    expect(row(steps.find((s) => s.iters === 5), 'JIT').native).toBe(false);
+    expect(row(steps.find((s) => s.iters === 20), 'JIT').native).toBe(true);
+  });
+  it('every strategy’s cumulative cost is monotonically non-decreasing', () => {
+    for (const name of ['interpreter', 'AOT compiler', 'JIT']) {
+      for (let i = 1; i < steps.length; i++) {
+        expect(row(steps[i], name).cost).toBeGreaterThanOrEqual(row(steps[i - 1], name).cost);
+      }
+    }
   });
 });
 
