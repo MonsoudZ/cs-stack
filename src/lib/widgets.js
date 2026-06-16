@@ -224,6 +224,43 @@ export function buildHttp() {
   return out;
 }
 
+// TCP connection setup & congestion control. First the 3-way handshake
+// (SYN / SYN-ACK / ACK) opens the connection in one round-trip. Then the sender
+// probes for bandwidth: the congestion window cwnd doubles each round-trip in
+// SLOW START until it hits ssthresh, then grows by one per RTT in CONGESTION
+// AVOIDANCE. A loss halves ssthresh and drops cwnd to it (AIMD's multiplicative
+// decrease) — the classic TCP sawtooth. Returns the step trace.
+export function buildTcp() {
+  const out = [];
+  let cwnd = 0, ssthresh = 8, rtt = 0, phase = 'handshake';
+  const snap = (note, o = {}) => out.push({
+    phase, cwnd, ssthresh, rtt,
+    established: o.established ?? (phase !== 'handshake'),
+    event: o.event ?? null, lost: !!o.lost, note,
+  });
+  snap('SYN →  the client asks to open a connection, proposing a starting sequence number.', { established: false, event: 'SYN' });
+  snap('←  SYN-ACK   the server agrees, acknowledges, and sends its own sequence number.', { established: false, event: 'SYN-ACK' });
+  snap('ACK →  the client acknowledges back. Three messages, one round-trip — the connection is open.', { established: false, event: 'ACK' });
+  phase = 'slow start'; cwnd = 1; rtt = 1;
+  snap('start cautiously: congestion window cwnd = 1 segment. Send it, wait for the ack.');
+  while (cwnd < ssthresh) {
+    rtt++; cwnd *= 2;
+    snap('SLOW START: each round-trip of acks doubles cwnd → ' + cwnd + ' (exponential — find the ceiling fast). ssthresh = ' + ssthresh + '.');
+  }
+  phase = 'congestion avoidance';
+  for (let k = 0; k < 2; k++) { rtt++; cwnd += 1;
+    snap('cwnd hit ssthresh → CONGESTION AVOIDANCE: now grow by only +1 per round-trip → cwnd = ' + cwnd + ' (careful, linear).');
+  }
+  rtt++; const before = cwnd; ssthresh = Math.floor(cwnd / 2); cwnd = ssthresh; phase = 'loss';
+  snap('a packet is LOST (a missing ack) → back off hard: ssthresh = ' + before + '/2 = ' + ssthresh + ', cwnd drops to ' + cwnd + '. That is AIMD’s multiplicative decrease.', { event: 'loss', lost: true });
+  phase = 'congestion avoidance';
+  for (let k = 0; k < 2; k++) { rtt++; cwnd += 1;
+    snap('climb again, +1 per RTT → cwnd = ' + cwnd + '. Up slowly, down sharply: that repeating sawtooth is TCP sharing the link.');
+  }
+  snap('additive increase, multiplicative decrease — TCP keeps nudging cwnd up until loss, then halves, finding a fair rate without ever being told the link’s capacity.');
+  return out;
+}
+
 // --- COMPILER STACK (/compiler) ---
 
 // Lexing: scan source text left to right, grouping characters into tokens.
@@ -627,6 +664,69 @@ export function buildDiffieHellman({ p = 23, g = 5, a = 6, b = 15 } = {}) {
   alice = { ...alice, shared: sA }; snap('Alice computes B^a mod p = ' + B + '^' + a + ' mod ' + p + ' = ' + sA + '.');
   bob = { ...bob, shared: sB }; snap('Bob computes A^b mod p = ' + A + '^' + b + ' mod ' + p + ' = ' + sB + '.');
   snap('Both now hold the same secret ' + sA + ' — but an eavesdropper saw only p, g, A and B, and recovering it means solving a discrete logarithm.');
+  return out;
+}
+
+// Toy RSA parameters for the signature demo: p=11, q=13 → n=143, and
+// e·d ≡ 1 (mod λ(143)=60) with e=7, d=103. Tiny on purpose so every number is
+// legible; the round-trip m^(e·d) ≡ m (mod n) still holds for the whole range.
+export const RSA = { n: 143, e: 7, d: 103 };
+
+// Digital signatures: Alice signs a message's HASH with her PRIVATE key; anyone
+// verifies with her PUBLIC key. Because verification recovers the signed hash,
+// altering the message (which changes its hash) makes the check fail — so a
+// forgery without the private key is caught. The hash is squashed into 0..n-1
+// so the toy modulus can sign it. Returns the step trace, ending with a tamper
+// attempt that is rejected.
+export function buildSignature() {
+  const { n, e, d } = RSA;
+  const digest = (msg) => parseInt(toyHash(msg), 16) % n;
+  const message = 'pay alice $100';
+  const out = [];
+  const snap = (note, o = {}) => out.push({
+    message: o.message ?? message, hash: o.hash ?? null, sig: o.sig ?? null,
+    recovered: o.recovered ?? null, side: o.side ?? null, verdict: o.verdict ?? null, note,
+  });
+  const hM = digest(message);
+  const sig = modpow(hM, d, n);
+  const rec = modpow(sig, e, n);
+  snap('Alice wants to prove she sent “' + message + '” — and that no one changed it on the way.', { side: 'sign' });
+  snap('first, hash the message → ' + hM + ' (a fixed-size fingerprint; the thing she actually signs, not the whole text)', { side: 'sign', hash: hM });
+  snap('SIGN: raise the hash to her PRIVATE key d=' + d + ' (mod ' + n + ') → signature ' + sig + '. Only she can compute this.', { side: 'sign', hash: hM, sig });
+  snap('she sends (message, signature ' + sig + '). The signature travels in the open, alongside the message.', { side: 'send', hash: hM, sig });
+  snap('VERIFY: anyone raises the signature to her PUBLIC key e=' + e + ' (mod ' + n + ') → ' + rec + ', the hash she must have signed.', { side: 'verify', sig, recovered: rec });
+  snap('hash the received message → ' + digest(message) + '. It matches ' + rec + ' → authentic and untampered ✓', { side: 'verify', sig, recovered: rec, hash: digest(message), verdict: digest(message) === rec ? 'valid' : 'forged' });
+  const forged = 'pay alice $900';
+  const hF = digest(forged);
+  snap('now an attacker rewrites the message to “' + forged + '” — but without d they can’t produce a matching signature.', { side: 'tamper', message: forged, sig });
+  snap('VERIFY again: the public key still recovers ' + rec + ', but the tampered text hashes to ' + hF + ' ≠ ' + rec + ' → forged, rejected ✗', { side: 'tamper', message: forged, sig, recovered: rec, hash: hF, verdict: hF === rec ? 'valid' : 'forged' });
+  return out;
+}
+
+// A Merkle tree fingerprints a set of data blocks by hashing them pairwise up to
+// a single root, so any change to any block changes the root — the idea behind
+// content-addressing (git commits, IPFS, blockchains). Toy 4-leaf tree with
+// short digests; the final steps tamper with one block and show the root break.
+export function buildMerkle() {
+  const blocks = ['alice→bob: 5', 'bob→cy: 2', 'cy→dan: 9', 'dan→eve: 1'];
+  const h = (s) => toyHash(s).slice(0, 6);
+  const out = [];
+  let leaves = ['', '', '', ''], mids = ['', ''], root = '';
+  const snap = (note, o = {}) => out.push({
+    blocks: blocks.slice(), leaves: leaves.slice(), mids: mids.slice(), root,
+    active: o.active ?? null, tampered: o.tampered ?? null, broken: !!o.broken, note,
+  });
+  snap('Four data blocks. A Merkle tree fingerprints them so the tiniest change is detectable from one short root hash.');
+  for (let i = 0; i < 4; i++) { leaves[i] = h(blocks[i]); snap('hash block ' + i + ' on its own → leaf ' + leaves[i], { active: 'leaf' + i }); }
+  mids[0] = h(leaves[0] + leaves[1]); snap('hash the first two leaves together → ' + mids[0], { active: 'mid0' });
+  mids[1] = h(leaves[2] + leaves[3]); snap('hash the second two leaves → ' + mids[1], { active: 'mid1' });
+  root = h(mids[0] + mids[1]); snap('hash the two halves into the single Merkle root → ' + root + '. Publish just this.', { active: 'root' });
+  const goodRoot = root;
+  const tIdx = 2;
+  blocks[tIdx] = 'cy→dan: 90'; leaves[tIdx] = h(blocks[tIdx]);
+  snap('now an attacker edits block ' + tIdx + ' (9 → 90). Its leaf hash changes immediately…', { active: 'leaf' + tIdx, tampered: tIdx });
+  mids[1] = h(leaves[2] + leaves[3]); snap('…so the half-hash above it changes…', { active: 'mid1', tampered: tIdx });
+  root = h(mids[0] + mids[1]); snap('…so the root changes: ' + root + ' ≠ the published ' + goodRoot + ' → the tampering is caught with one comparison.', { active: 'root', tampered: tIdx, broken: true });
   return out;
 }
 

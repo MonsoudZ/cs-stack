@@ -377,3 +377,69 @@ const MORE = {
 };
 Object.assign(METHODS, MORE);
 METHOD_ORDER.push('twopointer','sliding','dfs','dp','insort','linear','bubble','kadane','dijkstra','prim');
+
+
+// ---- still more traced methods (the divide-and-conquer + selection sorts) ----
+const SORTS = {
+  select:{ name:'Selection sort', header:'selection_sort([5, 3, 1, 4, 2]) → [1, 2, 3, 4, 5]',
+    intro:'Each pass scans the unsorted tail for its smallest value, then swaps that one element into the next slot — so the sorted prefix grows by a guaranteed-correct value at a time, with at most one swap per pass.',
+    structLabel:'③ the array · the minimum of the tail is selected, then swapped forward (layers 10/11/12)',
+    src:['def selection_sort(arr)','  (0...arr.length - 1).each do |i|','    min = i','    (i + 1...arr.length).each do |j|','      min = j if arr[j] < arr[min]','    end','    arr[i], arr[min] = arr[min], arr[i]','  end','  arr','end'],
+    build(){ const arr=[5,3,1,4,2],n=arr.length,steps=[];
+      const cells=(placed,i,min,j,swap)=>arr.map((_,k)=>{let role='',mark='';
+        if(k<placed)role='sorted';
+        if(min!=null&&k===min){role='win';mark='min';}
+        if(j!=null&&k===j){role='cmp';mark='j';}
+        if(i!=null&&k===i&&!mark)mark='i';
+        if(swap&&(k===i||k===min))mark='swap';
+        return {role,mark};});
+      const push=o=>steps.push(step(o,{kind:'array',arr:arr.slice(),cells:o.cells,info:o.info}));
+      push({line:0,vm:['method entry'],vars:{arr:'['+arr.join(', ')+']'},touches:[5.5,6.5,7,7.5],note:'each pass selects the smallest remaining value and swaps it to the front of the unsorted tail',cells:cells(0,null,null,null),info:'nothing placed yet'});
+      for(let i=0;i<n-1;i++){ let min=i;
+        push({line:2,vm:['min = '+i],vars:{arr:'['+arr.join(', ')+']',i,min},touches:[5.5,6.5,7],note:'assume slot '+i+' (value '+arr[i]+') holds the minimum, then look for something smaller',cells:cells(i,i,i,null),info:'min starts at index '+i});
+        for(let j=i+1;j<n;j++){ const smaller=arr[j]<arr[min]; const nm=smaller?j:min;
+          push({line:4,vm:['arr['+j+'] < arr[min] ?  '+(smaller?'yes':'no')],vars:{arr:'['+arr.join(', ')+']',i,min:nm,j},touches:[3,4,6],cpu:{label:'ALU compare',expr:'arr['+j+'] = '+arr[j]+(smaller?' < ':' ≥ ')+arr[min]+' (arr[min])'},note:smaller?'arr['+j+']='+arr[j]+' is the smallest seen so far → min = '+j:'arr['+j+']='+arr[j]+' ≥ current min '+arr[min]+' → keep min',cells:cells(i,i,nm,j),info:'scanning the tail for its minimum'});
+          if(smaller)min=j;
+        }
+        const swapped=min!==i; const va=arr[i],vb=arr[min]; arr[i]=vb; arr[min]=va;
+        push({line:6,vm:['arr['+i+'], arr['+min+'] = arr['+min+'], arr['+i+']'],vars:{arr:'['+arr.join(', ')+']',i,min},touches:[6,7],cpu:swapped?{label:'swap into place',expr:va+' ↔ '+vb}:{label:'already in place',expr:'min == i → no swap'},note:swapped?'swap the minimum ('+vb+') into slot '+i+' → prefix [0..'+i+'] is now final':'the minimum was already at slot '+i+' → no swap; prefix [0..'+i+'] is final',cells:cells(i+1,null,null,null),info:(i+1)+' value(s) placed'});
+      }
+      push({line:8,vm:['return arr'],vars:{arr:'['+arr.join(', ')+']'},touches:[10.8,10.5,10,9,8.5,7.5,7,6.5,6,5.5,5,3],result:'['+arr.join(', ')+']',finale:true,note:'fully sorted: ['+arr.join(', ')+'] climbs back up through runtime, systems, network, database, and UI',cells:arr.map(()=>({role:'sorted',mark:''})),info:'done'}); return steps; } },
+
+  quick:{ name:'Quicksort', header:'quicksort([3, 7, 1, 5, 2, 4]) → [1, 2, 3, 4, 5, 7]',
+    intro:'Divide and conquer: pick a pivot, partition everything smaller to its left and larger to its right (so the pivot lands in its final spot), then recurse on each side. Here partition uses Lomuto’s scheme and an explicit range stack instead of recursion.',
+    structLabel:'③ the array · partition around a pivot, then recurse on each side (layers 10/11/12)',
+    src:['def quicksort(arr)','  stack = [[0, arr.length - 1]]','  until stack.empty?','    lo, hi = stack.pop','    next if lo >= hi','    pivot = arr[hi]','    i = lo','    (lo...hi).each do |j|','      if arr[j] < pivot','        arr[i], arr[j] = arr[j], arr[i]','        i += 1','      end','    end','    arr[i], arr[hi] = arr[hi], arr[i]','    stack.push([lo, i - 1], [i + 1, hi])','  end','  arr','end'],
+    build(){ const arr=[3,7,1,5,2,4],steps=[],done=new Set(),ranges=[[0,arr.length-1]];
+      const cells=(lo,hi,i,j,pivot,swap)=>arr.map((_,k)=>{let role='',mark='';
+        if(done.has(k))role='sorted';
+        else if(lo!=null&&(k<lo||k>hi))role='dimx';
+        if(pivot!=null&&k===pivot){role='cmp';mark='pivot';}
+        else if(j!=null&&k===j){role='cmp';mark='j';}
+        if(i!=null&&k===i&&!mark)mark='i';
+        if(swap&&(k===i||k===j))mark='swap';
+        return {role,mark};});
+      const push=o=>steps.push(step(o,{kind:'array',arr:arr.slice(),cells:o.cells,info:o.info}));
+      push({line:0,vm:['method entry','stack = [[0, '+(arr.length-1)+']]'],vars:{arr:'['+arr.join(', ')+']'},touches:[5.5,6.5,7,7.5],note:'sort the whole range by partitioning it around pivots — no recursion, an explicit stack of [lo, hi] ranges does the same job',cells:cells(0,arr.length-1,null,null,null),info:'one range to sort: [0..'+(arr.length-1)+']'});
+      while(ranges.length){ const [lo,hi]=ranges.pop();
+        if(lo>=hi){ if(lo===hi&&!done.has(lo)){ done.add(lo);
+            push({line:4,vm:['lo >= hi → next'],vars:{arr:'['+arr.join(', ')+']',lo,hi},touches:[6],note:'range ['+lo+'..'+hi+'] is a single element → already in place',cells:cells(lo,hi,null,null,null),info:'index '+lo+' locked'}); }
+          continue; }
+        const pivot=arr[hi]; let i=lo;
+        push({line:5,vm:['pivot = arr['+hi+'] = '+pivot,'i = '+lo],vars:{arr:'['+arr.join(', ')+']',lo,hi,pivot,i},touches:[5.5,6.5,7],note:'partition ['+lo+'..'+hi+'] around pivot '+pivot+' (the last element); i marks the boundary where smaller values pile up',cells:cells(lo,hi,i,null,hi),info:'pivot = '+pivot+' at index '+hi});
+        for(let j=lo;j<hi;j++){ const less=arr[j]<pivot;
+          if(less){ const va=arr[i],vb=arr[j]; arr[i]=vb; arr[j]=va;
+            push({line:9,vm:['arr['+j+'] < pivot','arr['+i+'] ↔ arr['+j+']','i += 1'],vars:{arr:'['+arr.join(', ')+']',lo,hi,pivot,i,j},touches:[3,4,6,7],cpu:{label:'ALU compare → swap',expr:arr[j]+' < '+pivot+' → swap into the “smaller” side'},note:'arr['+j+']='+vb+' < pivot '+pivot+' → swap it down to the boundary and grow it (i → '+(i+1)+')',cells:cells(lo,hi,i,j,hi,true),info:'boundary i = '+(i+1)});
+            i++;
+          } else {
+            push({line:8,vm:['arr['+j+'] < pivot ?  no'],vars:{arr:'['+arr.join(', ')+']',lo,hi,pivot,i,j},touches:[3,4,6],cpu:{label:'ALU compare',expr:arr[j]+' ≥ '+pivot+' → leave on the “larger” side'},note:'arr['+j+']='+arr[j]+' ≥ pivot '+pivot+' → leave it on the larger side, advance j',cells:cells(lo,hi,i,j,hi)});
+          }
+        }
+        const pa=arr[i],pv=arr[hi]; arr[i]=pv; arr[hi]=pa; done.add(i);
+        push({line:13,vm:['arr['+i+'] ↔ arr['+hi+']  (drop pivot in place)'],vars:{arr:'['+arr.join(', ')+']',lo,hi,pivot},touches:[6,7],cpu:{label:'place the pivot',expr:'pivot '+pivot+' → index '+i+' (final)'},note:'swap the pivot into the boundary → '+pivot+' is now at its final index '+i+'; everything left is smaller, right is larger',cells:cells(lo,hi,null,null,i),info:'pivot '+pivot+' locked at index '+i});
+        ranges.push([lo,i-1],[i+1,hi]);
+      }
+      push({line:16,vm:['stack empty → return arr'],vars:{arr:'['+arr.join(', ')+']'},touches:[10.8,10.5,10,9,8.5,7.5,7,6.5,6,5.5,5,3],result:'['+arr.join(', ')+']',finale:true,note:'every range partitioned → fully sorted: ['+arr.join(', ')+'] climbs back up the layers',cells:arr.map(()=>({role:'sorted',mark:''})),info:'done'}); return steps; } }
+};
+Object.assign(METHODS, SORTS);
+METHOD_ORDER.push('select','quick');

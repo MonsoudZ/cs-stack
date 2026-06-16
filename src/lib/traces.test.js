@@ -20,6 +20,8 @@ const EXPECTED = {
   kadane: 6,
   dijkstra: 9,
   prim: 15,
+  select: '[1, 2, 3, 4, 5]',
+  quick: '[1, 2, 3, 4, 5, 7]',
 };
 
 describe('method registry', () => {

@@ -4,6 +4,8 @@ import LayerSection from '../components/LayerSection.astro';
 import { cryptoLayers } from '../data/cryptoLayers.js';
 import HashAvalanche from '../components/HashAvalanche.svelte';
 import DiffieHellman from '../components/DiffieHellman.svelte';
+import Signature from '../components/Signature.svelte';
+import Merkle from '../components/Merkle.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
 import Quiz from '../components/Quiz.svelte';
@@ -18,7 +20,7 @@ const description = 'A deep dive into the crypto behind a secure connection: has
     <div class="kicker">A deep dive into layer 15</div>
     <h1 class="title">THE <em>CRYPTO</em><br />STACK</h1>
     <p class="lede">A padlock in the address bar is a stack of its own: a one-way fingerprint, two kinds of keys, a way to agree on a secret in the open, and a chain of trust — assembled, every connection, into TLS.</p>
-    <div class="hero-meta"><a class="back-link" href="/">← back to the full stack</a> · hashing → symmetric → asymmetric → key exchange → certificates</div>
+    <div class="hero-meta"><a class="back-link" href="/">← back to the full stack</a> · hashing → symmetric → asymmetric → key exchange → certificates → signatures</div>
   </div>
 
   <LayerSection {...L.X0}>
@@ -86,7 +88,22 @@ const description = 'A deep dive into the crypto behind a secure connection: has
       problem="A real connection needs privacy, integrity, and authenticity at once, and symmetric speed without a pre-shared key."
       idea="Use asymmetric crypto and certificates to authenticate and agree on a key, then switch to symmetric encryption for the actual data, with hashes guarding integrity."
       tradeoff="The handshake adds round-trips and complexity, and its security is only as strong as its weakest link — the CA system, the cipher suite, the implementation."
-      next="Zoom back out: this is what the main stack's Security layer leans on to make sharing safe."
+      next="TLS proves who you're talking to right now — but the same primitives also prove who wrote something, and that it hasn't changed since."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.X6}>
+    <p class="prose">Encryption hides data; a <b>signature</b> proves its origin and integrity. Alice hashes a message and encrypts that hash with her <span class="hl">private</span> key — anyone can decrypt it with her <span class="hl">public</span> key and check it against the message's hash. Only she could have produced it, and changing one character breaks the match.</p>
+    <Signature client:visible />
+    <p class="prose">Scale that idea up and you get a <b>Merkle tree</b>: hash each block of data, then hash those hashes pairwise, all the way up to a single <span class="hl">root</span>. The root is a fingerprint of <i>everything</i> below it — so one tampered block changes its leaf, then its parent, then the root, caught with a single comparison.</p>
+    <Merkle client:visible />
+    <Takeaway>A signature binds a message to a key; a Merkle root binds a mountain of data to one hash. Together they're how systems prove <i>who said it</i> and <i>that nothing changed</i> — the backbone of content-addressing.</Takeaway>
+    <SeeAlso slug="structures" note="the trees and hash maps these are built from" />
+    <Why
+      problem="Secrecy isn't enough: you also need to know a message really came from who it claims, and that not a single byte was altered — at any scale, from one message to a whole filesystem."
+      idea="Sign a hash with a private key so anyone can verify it with the public one, and chain hashes into a tree so the root certifies every block beneath it."
+      tradeoff="Verification is cheap and tamper-evidence is total, but it all rests on the hash staying collision-resistant and the private key staying private — break either and the proof collapses."
+      next="Hashing up to a root is exactly how Git, content-addressed storage, and blockchains name and trust data — zoom back out to see where this whole stack plugs in."
     />
   </LayerSection>
 

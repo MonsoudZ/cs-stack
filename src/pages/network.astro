@@ -4,6 +4,7 @@ import LayerSection from '../components/LayerSection.astro';
 import { networkLayers } from '../data/networkLayers.js';
 import Encapsulation from '../components/Encapsulation.svelte';
 import Packets from '../components/Packets.svelte';
+import Tcp from '../components/Tcp.svelte';
 import Routing from '../components/Routing.svelte';
 import Dns from '../components/Dns.svelte';
 import Sockets from '../components/Sockets.svelte';
@@ -22,7 +23,7 @@ const description = 'A deep dive into the network stack: signals on the wire, en
     <div class="kicker">A deep dive into layer 16</div>
     <h1 class="title">THE <em>NETWORK</em><br />STACK</h1>
     <p class="lede">In the main stack, "the network" is one rung. Pull it apart and it's a whole ladder of its own — each layer wrapping the one above, just to get a few bytes across the world and back.</p>
-    <div class="hero-meta"><a class="back-link" href="/">← back to the full stack</a> · signals → encapsulation → routing → reliability → DNS → sockets → HTTP</div>
+    <div class="hero-meta"><a class="back-link" href="/">← back to the full stack</a> · signals → encapsulation → routing → reliability → congestion → DNS → sockets → HTTP</div>
   </div>
 
   <LayerSection {...L.N0}>
@@ -68,11 +69,23 @@ const description = 'A deep dive into the network stack: signals on the wire, en
       problem="Applications want an ordered, gap-free stream of bytes, but the layer beneath drops and reorders packets freely."
       idea="Number each segment, acknowledge what arrives, retransmit what doesn't, and reassemble in order before handing the stream up."
       tradeoff="Reliability adds round-trips, buffering, and head-of-line blocking — which is exactly why some apps choose bare UDP instead."
-      next="Before any of this can start, the program needs the destination's address — and humans type names, not numbers."
+      next="Reliability assumes a connection already exists and that you know how fast to send — but both have to be established first."
     />
   </LayerSection>
 
   <LayerSection {...L.N4}>
+    <p class="prose">Before a byte of data flows, TCP <b>opens</b> the connection with a three-way handshake (<code>SYN</code> → <code>SYN-ACK</code> → <code>ACK</code>). Then it faces a question the network never answers directly: how fast can I send? It <b>probes</b> — the congestion window (<span class="hl">cwnd</span>) doubles each round-trip in <i>slow start</i>, then creeps up <b>+1</b> per round-trip; a lost packet <b>halves</b> it. That additive-increase / multiplicative-decrease rhythm is TCP's sawtooth.</p>
+    <Tcp client:visible />
+    <Takeaway>TCP opens with a handshake, then finds a safe sending rate by itself: ramp up until loss, back off hard, repeat — sharing the link fairly without ever being told its capacity.</Takeaway>
+    <Why
+      problem="Two ends must agree to talk before sending, and neither knows how much the path in between can carry — push too hard and you cause the very congestion that drops your packets."
+      idea="Open with a three-way handshake, then treat loss as the signal: grow the congestion window while acks arrive, and cut it sharply the moment one goes missing."
+      tradeoff="Using loss as the only feedback means TCP repeatedly overshoots and backs off (the sawtooth), and a single lost packet can throttle a fast link — which is why modern variants probe with delay and pacing instead."
+      next="A connection that's open and paced still needs the destination's address — and humans type names, not numbers."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.N5}>
     <p class="prose">You typed a name, but routing needs a number. DNS is the phone book: a resolver walks the name hierarchy — root, then the <code>.dev</code> top-level domain, then the domain's own authoritative server — until something answers with an IP.</p>
     <Dns client:visible />
     <Takeaway>DNS turns a human name into an IP by asking down a hierarchy and caching the answer — the same "names are an agreement" idea as encoding.</Takeaway>
@@ -84,7 +97,7 @@ const description = 'A deep dive into the network stack: signals on the wire, en
     />
   </LayerSection>
 
-  <LayerSection {...L.N5}>
+  <LayerSection {...L.N6}>
     <p class="prose">An IP gets you to the machine; a <b>port</b> gets you to the program on it. A <span class="hl">socket</span> is that endpoint — an IP plus a port. A web server listens on one port (443), yet serves thousands of clients at once: the OS tells the connections apart by the full <b>4-tuple</b> (your ip:port ↔ the server's ip:port) and demuxes each arriving packet to the right one.</p>
     <Sockets client:visible />
     <Takeaway>A socket is an ip:port endpoint; a connection is identified by all four (both ends), so one listening port can hold thousands of simultaneous connections apart.</Takeaway>
@@ -97,7 +110,7 @@ const description = 'A deep dive into the network stack: signals on the wire, en
     />
   </LayerSection>
 
-  <LayerSection {...L.N6}>
+  <LayerSection {...L.N7}>
     <p class="prose">Over that connection, the client and server speak <b>HTTP</b> — and it's just text. The client sends a <span class="hl">request</span> (a method like <code>GET</code>, a path, and headers); the server sends back a <span class="hl">response</span> (a <b>status code</b> like 200 or 404, headers, and a body). Each exchange stands alone — HTTP is <i>stateless</i>.</p>
     <Http client:visible />
     <Takeaway>HTTP is a stateless text protocol: method + path + headers up, status + headers + body down — the simple conversation the entire web is built on.</Takeaway>
@@ -109,7 +122,7 @@ const description = 'A deep dive into the network stack: signals on the wire, en
     />
   </LayerSection>
 
-  <LayerSection {...L.N7}>
+  <LayerSection {...L.N8}>
     <p class="prose">Type a URL and it all fires in order: <b>DNS</b> turns the name into an IP, <b>TCP</b> opens a connection (the SYN / SYN-ACK / ACK handshake), <b>TLS</b> negotiates keys and checks a certificate so the bytes are private, and finally <b>HTTP</b> carries your request — which descends every layer here, crosses the world, and climbs back up as a response.</p>
     <Takeaway>One click is this entire ladder, run twice — once down on the way out, once up on the way back.</Takeaway>
     <SeeAlso slug="crypto" note="how that connection is encrypted before any data flows (TLS)" />

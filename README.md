@@ -45,7 +45,7 @@ src/
   styles/                 global.css just @imports base.css + widgets.css + mobile.css
   lib/
     stepper.svelte.js     shared STEP / AUTO / RESET store — every step widget uses it
-    traces.js             the capstone: 14 traced algorithms + the layer-touch maps
+    traces.js             the capstone: 16 traced algorithms + the layer-touch maps
     sim.js                scheduler simulation + factorial call-stack builder
     widgets.js            pure build*() functions for the CPU/network/cloud widgets
     *.test.js             unit tests (answers, termination, shape, stepper lifecycle)
@@ -66,10 +66,10 @@ src/
     index.astro           the main stack — composes the layer sections, hydrates each island
     learn.astro           the guided path: ordered curriculum + localStorage progress (data/curriculum.js)
     404.astro             on-brand not-found page (Base chrome={false})
-    network.astro         a /network deep-dive (signals → encapsulation → routing → reliability → DNS → sockets → HTTP); reuses the same engine (Base takes a `layers` prop)
+    network.astro         a /network deep-dive (signals → encapsulation → routing → reliability → congestion → DNS → sockets → HTTP); reuses the same engine (Base takes a `layers` prop)
     compiler.astro        a /compiler deep-dive (lex → parse → type check → bytecode → optimize → run)
     render.astro          a /render deep-dive (DOM → style → layout → paint → composite → critical rendering path → the event loop)
-    crypto.astro          a /crypto deep-dive (hashing → keys → exchange → certs → TLS)
+    crypto.astro          a /crypto deep-dive (hashing → keys → exchange → certs → TLS → signatures & Merkle trees)
     database.astro        a /database deep-dive (tables → indexes → queries → joins → txns → isolation → durability → replication)
     memory.astro          a /memory deep-dive (addresses → stack/heap → allocation → GC → cache → hierarchy → virtual memory → TLB)
     os.astro              an /os deep-dive (processes → scheduler → context switch → syscalls → interrupts → filesystem → journaling)
@@ -90,12 +90,12 @@ e2e/                      playwright interaction tests
 ```
 
 ## The tracer
-The `★ Trace` capstone runs one of **14 algorithms** step-by-step through every
+The `★ Trace` capstone runs one of **16 algorithms** step-by-step through every
 layer at once — source line, VM ops, the data structure mutating in memory, and
 the CPU arithmetic: two-sum (hashing), binary search, BFS, DFS, recursion,
-two-pointer, sliding window, DP/memo, insertion + bubble sort, linear search,
-Kadane's max subarray, Dijkstra's shortest path, and Prim's minimum spanning
-tree. The trace + step are deep-linkable (`?trace=bfs&step=4`).
+two-pointer, sliding window, DP/memo, insertion + bubble + selection sort,
+quicksort, linear search, Kadane's max subarray, Dijkstra's shortest path, and
+Prim's minimum spanning tree. The trace + step are deep-linkable (`?trace=bfs&step=4`).
 
 ## Deploying
 Set `site` in `astro.config.mjs` to your real origin before launch — it's the

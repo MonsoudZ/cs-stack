@@ -7,4 +7,5 @@ export const cryptoLayers = [
   { id: 'X3', num: '03', navLabel: 'Key exchange', zone: 'system', title: 'Key exchange: a secret over a public wire', sub: 'crypto · Diffie–Hellman · modular arithmetic' },
   { id: 'X4', num: '04', navLabel: 'Certificates', zone: 'system', title: 'Certificates: who vouches for a key', sub: 'crypto · trust · the CA chain' },
   { id: 'X5', num: '05', navLabel: 'TLS', zone: 'all', title: 'TLS: the whole handshake', sub: 'the whole trip · verify, agree, encrypt' },
+  { id: 'X6', num: '06', navLabel: 'Signatures', zone: 'system', title: 'Signatures & Merkle trees: proving who, and what', sub: 'crypto · sign / verify · hashing up to a root' },
 ];

@@ -477,7 +477,7 @@ test('OS page: own nav, the scheduler runs a process, a syscall traps, a path re
 test('Crypto page: own nav, hash avalanches, DH agrees on a shared secret', async ({ page }) => {
   await page.goto('/crypto');
   await expect(page.locator('h1.title')).toContainText('CRYPTO');
-  await expect(page.locator('.spine .rung')).toHaveCount(6);
+  await expect(page.locator('.spine .rung')).toHaveCount(7);
   // hash: changing the input changes the digest
   const hash = page.locator('#X0');
   await hash.scrollIntoViewIfNeeded();
@@ -496,6 +496,16 @@ test('Crypto page: own nav, hash avalanches, DH agrees on a shared secret', asyn
     await page.waitForTimeout(40);
   }
   await expect(dh.locator('.dh-shared.on').first()).toHaveText('2');
+  // signatures & merkle (section X6): stepping the merkle build reaches a tampered
+  // block that breaks the root hash
+  const mk = page.locator('#X6 .widget').nth(1); // the second widget is the Merkle tree
+  await mk.scrollIntoViewIfNeeded();
+  for (let i = 0; i < 12; i++) {
+    await mk.locator('.cpu-ctrl button').first().click();
+    if (await mk.locator('.mk-node.root.bad').count()) break;
+    await page.waitForTimeout(40);
+  }
+  await expect(mk.locator('.mk-node.root.bad')).toBeVisible();
 });
 
 test('Render page: own nav, transform re-runs only composite, the event loop renders once', async ({ page }) => {
@@ -664,7 +674,7 @@ test('Compiler page: own nav, tokenizer emits tokens, type checking rejects a bu
 test('Network page: own nav, routing TTL counts down, DNS resolves, HTTP returns 200', async ({ page }) => {
   await page.goto('/network');
   await expect(page.locator('h1.title')).toContainText('NETWORK');
-  await expect(page.locator('.spine .rung')).toHaveCount(8); // its own layer set
+  await expect(page.locator('.spine .rung')).toHaveCount(9); // its own layer set
   // routing: stepping drops the TTL
   const routing = page.locator('#N2');
   await routing.scrollIntoViewIfNeeded();
@@ -675,8 +685,18 @@ test('Network page: own nav, routing TTL counts down, DNS resolves, HTTP returns
     await rstep().click();
     await expect(ttl).toHaveText('5', { timeout: 400 });
   }).toPass({ timeout: 8000 });
+  // congestion control (section N4): stepping past the handshake and ramp reaches
+  // a loss that collapses the congestion window
+  const tcp = page.locator('#N4');
+  await tcp.scrollIntoViewIfNeeded();
+  for (let i = 0; i < 12; i++) {
+    await tcp.locator('.cpu-ctrl button').first().click();
+    if (await tcp.locator('.tcp-cwnd.lost').count()) break;
+    await page.waitForTimeout(40);
+  }
+  await expect(tcp.locator('.tcp-cwnd.lost')).toBeVisible();
   // dns: stepping the walk reveals the resolved IP
-  const dns = page.locator('#N4');
+  const dns = page.locator('#N5');
   await dns.scrollIntoViewIfNeeded();
   for (let i = 0; i < 8; i++) {
     await dns.locator('.cpu-ctrl button').first().click();
@@ -684,8 +704,8 @@ test('Network page: own nav, routing TTL counts down, DNS resolves, HTTP returns
     await page.waitForTimeout(40);
   }
   await expect(dns.locator('.dns-ans').first()).toContainText('93.184');
-  // http (section N6): stepping the exchange surfaces the 200 status line
-  const http = page.locator('#N6');
+  // http (section N7): stepping the exchange surfaces the 200 status line
+  const http = page.locator('#N7');
   await http.scrollIntoViewIfNeeded();
   for (let i = 0; i < 8; i++) {
     await http.locator('.cpu-ctrl button').first().click();

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { quizzes } from '../data/quizzes.js';
 import { stacks } from '../data/stacks.js';
-import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum, DOPING, buildDiode, cmosInverter, nand, buildUniversal, mux2, ALU_OPS, computeAlu, PIPE_STAGES, buildPipeline, buildDeadlock, buildCas, buildLoadBalancer, buildReplication, buildLinkedList, buildStackQueue, GRAPH, buildGraphTraversal, buildStackHeap, buildAllocator, buildGc, ISOLATION_LEVELS, buildIsolation, buildTypeCheck, buildEventLoop, buildCrp, FS, buildPathResolve, buildJournal, buildSockets, buildHttp, buildJoin,
+import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, RSA, buildSignature, buildMerkle, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum, DOPING, buildDiode, cmosInverter, nand, buildUniversal, mux2, ALU_OPS, computeAlu, PIPE_STAGES, buildPipeline, buildDeadlock, buildCas, buildLoadBalancer, buildReplication, buildLinkedList, buildStackQueue, GRAPH, buildGraphTraversal, buildStackHeap, buildAllocator, buildGc, ISOLATION_LEVELS, buildIsolation, buildTypeCheck, buildEventLoop, buildCrp, FS, buildPathResolve, buildJournal, buildSockets, buildHttp, buildTcp, buildJoin,
   computeNeuron, buildGradientDescent, EMBEDDINGS, nearestWords, buildAttention, softmaxTemp, nextTokenDist,
   tokenize, TOK_VOCAB, buildTraining, buildRag, RAG_DOCS, buildOptimize, buildAst, buildRuntimes, buildRegisters, REG_COUNT, buildScopes } from './widgets.js';
 
@@ -389,6 +389,72 @@ describe('Diffie–Hellman key exchange', () => {
     expect(last.alice.shared).toBe(2);
     // the secret is never on the wire — only A and B are
     expect(buildDiffieHellman().every((s) => s.wire === null || /^[AB] =/.test(s.wire))).toBe(true);
+  });
+});
+
+describe('buildSignature (toy RSA signatures)', () => {
+  it('the RSA keys round-trip: m^(e·d) ≡ m (mod n) across the whole range', () => {
+    const { n, e, d } = RSA;
+    for (let m = 0; m < n; m++) expect(modpow(modpow(m, d, n), e, n)).toBe(m);
+  });
+  it('a genuine signature verifies, and a tampered message is rejected', () => {
+    const steps = buildSignature();
+    const valid = steps.find((s) => s.verdict === 'valid');
+    expect(valid).toBeTruthy();
+    // verification recovers exactly the hash that was signed
+    expect(valid.recovered).toBe(valid.hash);
+    const last = steps.at(-1);
+    expect(last.side).toBe('tamper');
+    expect(last.verdict).toBe('forged');
+    expect(last.hash).not.toBe(last.recovered); // the altered text hashes differently
+  });
+  it('is deterministic', () => {
+    expect(buildSignature()).toEqual(buildSignature());
+  });
+});
+
+describe('buildMerkle (content-addressed hash tree)', () => {
+  it('builds four leaves, two mids, and a root from the blocks', () => {
+    const built = buildMerkle().find((s) => s.active === 'root' && !s.broken);
+    expect(built.leaves.every((l) => /^[0-9a-f]{6}$/.test(l))).toBe(true);
+    expect(built.mids.every((m) => /^[0-9a-f]{6}$/.test(m))).toBe(true);
+    expect(built.root).toMatch(/^[0-9a-f]{6}$/);
+  });
+  it('tampering with a block cascades up and changes the root', () => {
+    const steps = buildMerkle();
+    const cleanRoot = steps.find((s) => s.active === 'root' && !s.broken).root;
+    const last = steps.at(-1);
+    expect(last.broken).toBe(true);
+    expect(last.tampered).toBe(2);
+    expect(last.root).not.toBe(cleanRoot); // the published root no longer matches
+  });
+  it('is deterministic', () => {
+    expect(buildMerkle()).toEqual(buildMerkle());
+  });
+});
+
+describe('buildTcp (handshake + congestion control)', () => {
+  const steps = buildTcp();
+  it('opens with a 3-way handshake, then marks the connection established', () => {
+    expect(steps.slice(0, 3).map((s) => s.event)).toEqual(['SYN', 'SYN-ACK', 'ACK']);
+    expect(steps.slice(0, 3).every((s) => !s.established)).toBe(true);
+    expect(steps.find((s) => s.established)).toBeTruthy();
+  });
+  it('slow start doubles cwnd each RTT until ssthresh', () => {
+    const ss = steps.filter((s) => s.phase === 'slow start').map((s) => s.cwnd);
+    expect(ss).toEqual([1, 2, 4, 8]); // 1, then doubling to ssthresh=8
+    for (let i = 1; i < ss.length; i++) expect(ss[i]).toBe(ss[i - 1] * 2);
+  });
+  it('a loss halves ssthresh and collapses cwnd (multiplicative decrease)', () => {
+    const loss = steps.find((s) => s.lost);
+    expect(loss).toBeTruthy();
+    expect(loss.event).toBe('loss');
+    expect(loss.ssthresh).toBe(5); // was 10 → halved
+    expect(loss.cwnd).toBe(5);
+  });
+  it('then climbs linearly again, and is deterministic', () => {
+    expect(steps.at(-1).cwnd).toBe(7); // 5 → 6 → 7
+    expect(buildTcp()).toEqual(buildTcp());
   });
 });
 
