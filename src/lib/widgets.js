@@ -608,7 +608,7 @@ export function buildEventLoop() {
   stack = ['Promise .then'];
   snap('micro', 'before anything else, ALL microtasks drain — the Promise callback runs now, this same turn, not next');
   micro = []; stack = [];
-  snap('micro', 'the microtask queue is empty; a frame is due (~16ms have passed), so the loop heads into rendering');
+  snap('micro', 'the microtask queue is empty; a frame is due (~16ms have passed at 60Hz — less on a faster display), so the loop heads into rendering');
   stack = ['rAF cb']; raf = [];
   snap('raf', 'requestAnimationFrame callbacks run first — the right place to make visual changes, just before layout');
   stack = [];
@@ -1164,22 +1164,25 @@ export function mux2(sel, a, b) {
 // --- CPU STACK (/cpu) ---
 
 // The ALU: the CPU's calculator. An opcode selects one operation over two 8-bit
-// inputs; the result wraps at 8 bits and sets condition flags (Z = zero result,
-// C = carry/borrow out) that branches later read. Pure — drives the widget.
+// inputs; the result wraps at 8 bits and sets condition flags that branches
+// later read: Z = zero result, C = unsigned carry/borrow out, V = signed
+// overflow (the two's-complement result's sign came out wrong — distinct from
+// the unsigned carry). Pure — drives the widget.
 export const ALU_OPS = ['ADD', 'SUB', 'AND', 'OR', 'XOR'];
 export function computeAlu(op, a, b) {
   a &= 0xff; b &= 0xff;
-  let raw, carry = 0;
+  let raw, carry = 0, overflow = 0;
+  const sign = (n) => (n & 0x80) ? 1 : 0; // the 8-bit sign bit
   switch (op) {
-    case 'ADD': raw = a + b; carry = raw > 0xff ? 1 : 0; break;
-    case 'SUB': raw = a - b; carry = a < b ? 1 : 0; break; // carry = borrow
+    case 'ADD': raw = a + b; carry = raw > 0xff ? 1 : 0; overflow = (sign(a) === sign(b) && sign(raw & 0xff) !== sign(a)) ? 1 : 0; break;
+    case 'SUB': raw = a - b; carry = a < b ? 1 : 0; overflow = (sign(a) !== sign(b) && sign(raw & 0xff) !== sign(a)) ? 1 : 0; break; // carry = borrow
     case 'AND': raw = a & b; break;
     case 'OR': raw = a | b; break;
     case 'XOR': raw = a ^ b; break;
     default: raw = 0;
   }
   const result = raw & 0xff;
-  return { op, a, b, result, carry, zero: result === 0 ? 1 : 0 };
+  return { op, a, b, result, carry, overflow, zero: result === 0 ? 1 : 0 };
 }
 
 // Pipelining: a classic 5-stage pipeline (IF·ID·EX·MEM·WB). Unpipelined, each
@@ -1352,7 +1355,7 @@ export function buildRaftElection() {
   node.N3.votedFor = 'N2'; node.N3.term = 2;
   snap('N1 and N3 grant votes for term 2 → 3 of 5 again (N0 is down and can’t reply).', { candidate: 'N2', votes: 3, granted: ['N1', 'N2', 'N3'], event: 'grant' });
   node.N2.role = 'leader'; node.N4.term = 2;
-  snap('N2 wins → new LEADER for term 2. A crash cost one timeout, and Raft healed itself with no human in the loop.', { leader: 'N2', candidate: 'N2', votes: 3, granted: ['N1', 'N2', 'N3'], event: 'win' });
+  snap('N2 wins → new LEADER for term 2. A crash cost one timeout, and Raft healed itself with no human in the loop. (Not shown here: voters also refuse any candidate whose log is behind theirs, so a re-election can never drop a committed entry.)', { leader: 'N2', candidate: 'N2', votes: 3, granted: ['N1', 'N2', 'N3'], event: 'win' });
   return out;
 }
 

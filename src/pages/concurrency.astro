@@ -35,7 +35,7 @@ const description = 'A deep dive into concurrency: threads sharing memory, race 
   </LayerSection>
 
   <LayerSection {...L.CC1}>
-    <p class="prose">Even <code>counter += 1</code> isn't one step — it's <b>read, add, write</b>. If the scheduler pauses one thread mid-sequence, another can read the same old value, and one update is silently lost. A <span class="hl">lock</span> fixes it by letting only one thread into the critical section at a time. Toggle it below.</p>
+    <p class="prose">Even <code>counter += 1</code> isn't one step — it's <b>read, add, write</b>. If the scheduler pauses one thread mid-sequence — or, on a multi-core machine, two threads run the sequence at the very same instant — another can read the same old value, and one update is silently lost. A <span class="hl">lock</span> fixes it by letting only one thread into the critical section at a time. Toggle it below.</p>
     <RaceCondition client:visible />
     <Takeaway>A race condition is a bug that depends on timing; a lock serializes the read-modify-write so the interleaving can’t corrupt shared state.</Takeaway>
     <Why
@@ -59,7 +59,7 @@ const description = 'A deep dive into concurrency: threads sharing memory, race 
   </LayerSection>
 
   <LayerSection {...L.CC3}>
-    <p class="prose">Some hardware instructions are <b>atomic</b> — indivisible by construction. <span class="hl">Compare-and-swap</span> writes a new value only if the old one is unchanged, in one uninterruptible step. You can build a counter with no lock at all: read, try to swap, and if you lost the race, just retry.</p>
+    <p class="prose">Some hardware instructions are <b>atomic</b> — indivisible by construction. <span class="hl">Compare-and-swap</span> writes a new value only if the old one is unchanged, in one uninterruptible step. You can build a counter with no lock at all: read, try to swap, and if you lost the race, just retry. Atomics (and locks) also force the write to be <i>visible</i> to other cores and in the right <b>order</b> — without that, each core can keep working from a stale cached copy.</p>
     <Cas client:visible />
     <Takeaway>Atomic compare-and-swap lets threads update shared state without a lock — losers simply retry — trading the risk of deadlock for the cost of occasional spins.</Takeaway>
     <Why

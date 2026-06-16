@@ -50,7 +50,7 @@ const description = 'A deep dive into how computers represent numbers: binary pl
   </LayerSection>
 
   <LayerSection {...L.NB2}>
-    <p class="prose">For fractions and huge ranges, floating point borrows <b>scientific notation</b>: a sign, an <span class="hl">exponent</span> that slides the point, and a <b>mantissa</b> for the digits. Toggle the bits below — the same layout as a real 64-bit double, just smaller.</p>
+    <p class="prose">For fractions and huge ranges, floating point borrows <b>scientific notation</b>: a sign, an <span class="hl">exponent</span> that slides the point, and a <b>mantissa</b> for the digits — plus a free leading <b>1</b> that normalized values assume but never store. Toggle the bits below — the same layout as a real 64-bit double, just smaller.</p>
     <FloatBits client:visible />
     <Takeaway>Floating point spends its bits on a sign, an exponent, and a mantissa, reaching from the tiny to the enormous — but only landing on a fixed set of values.</Takeaway>
     <Why

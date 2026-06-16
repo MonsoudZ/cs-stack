@@ -44,7 +44,7 @@ const bigo = [
   </LayerSection>
 
   <LayerSection {...L.S1}>
-    <p class="prose">A <b>linked list</b> drops the contiguity. Each <span class="hl">node</span> sits anywhere in memory and holds a value plus a <b>pointer</b> to the next one — order comes from the links. Splicing a node in or out is just a couple of pointer writes, <b>O(1)</b>, where an array would shift everything after it.</p>
+    <p class="prose">A <b>linked list</b> drops the contiguity. Each <span class="hl">node</span> sits anywhere in memory and holds a value plus a <b>pointer</b> to the next one — order comes from the links. Splicing a node in or out is just a couple of pointer writes, <b>O(1)</b> once you already hold the node — where an array would shift everything after it. (Finding that node first is still O(n): there's no random access.)</p>
     <LinkedList client:visible />
     <Takeaway>A linked list trades the array’s instant indexing for instant splicing: no random access, but inserting or removing at a known spot never shifts a thing.</Takeaway>
     <Why
@@ -92,7 +92,7 @@ const bigo = [
   </LayerSection>
 
   <LayerSection {...L.S5}>
-    <p class="prose">A <b>tree</b> links nodes by <i>choices</i>. A balanced search tree keeps keys ordered so every step throws away half the remaining options — finding one key among thousands takes only a handful of comparisons: <b>O(log n)</b>.</p>
+    <p class="prose">A <b>tree</b> links nodes by <i>choices</i>. A balanced search tree keeps keys ordered so every step throws away a large fraction of what's left (half for a binary tree; even more for the many-keyed B-tree shown here) — finding one key among thousands takes only a handful of comparisons: <b>O(log n)</b>.</p>
     <BTreeSearch client:visible />
     <Takeaway>A search tree trades a hash map's flat speed for ordering: lookups are O(log n), but the data stays sorted, so ranges and "next-largest" come free.</Takeaway>
     <SeeAlso slug="database" note="B-tree indexes use exactly this to find rows without scanning the table" />

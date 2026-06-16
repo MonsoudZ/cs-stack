@@ -19,7 +19,7 @@ const description = 'A deep dive into how the browser turns code into pixels: th
   <div slot="hero">
     <div class="kicker">A deep dive into layer 19</div>
     <h1 class="title">THE <em>RENDER</em><br />PIPELINE</h1>
-    <p class="lede">The browser does this dance up to 60 times a second: turn your HTML and CSS into a tree, compute styles, lay out boxes, paint pixels, and composite layers onto the screen. Touch the wrong property and the whole thing re-runs.</p>
+    <p class="lede">The browser does this dance once per frame — 60+ times a second, as fast as the display refreshes: turn your HTML and CSS into a tree, compute styles, lay out boxes, paint pixels, and composite layers onto the screen. Touch the wrong property and as much of it as the change needs re-runs.</p>
     <div class="hero-meta"><a class="back-link" href="/">← back to the full stack</a> · DOM → style → layout → paint → composite → first paint → the event loop</div>
   </div>
 
@@ -128,7 +128,7 @@ const description = 'A deep dive into how the browser turns code into pixels: th
       problem="JavaScript and rendering run on one thread, so they must take turns — and the order (and what blocks what) decides whether the UI stays smooth."
       idea="Run one task fully, drain all microtasks, then render at most once per frame; schedule visual work in requestAnimationFrame and defer heavy work off the critical path."
       tradeoff="The single thread keeps the model simple but unforgiving: one long task (or a flood of microtasks) freezes input and animation until it finishes."
-      next="Put the pipeline and the loop together and it's one frame, sixty times a second."
+      next="Put the pipeline and the loop together and it's one frame, sixty-plus times a second."
     />
   </LayerSection>
 

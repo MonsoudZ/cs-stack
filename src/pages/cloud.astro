@@ -83,7 +83,7 @@ const description = 'A deep dive into the cloud: scaling out, the load balancer 
   </LayerSection>
 
   <LayerSection {...L.CD5}>
-    <p class="prose">When the network between machines <b>partitions</b> — and at scale it eventually will — a replica that can't reach the primary faces a forced choice: refuse the request to stay <span class="hl">consistent</span>, or answer with possibly-stale data to stay <span class="hl">available</span>. You can't have both during a partition. That's <b>CAP</b>.</p>
+    <p class="prose">When the network between machines <b>partitions</b> — and at scale it eventually will — a replica that can't reach the primary faces a forced choice: refuse the request to stay <span class="hl">consistent</span>, or answer with possibly-stale data to stay <span class="hl">available</span>. You can't have both during a partition — though when the network is healthy you can have both at once; the forced choice only appears during the split. That's <b>CAP</b>.</p>
     <Takeaway>CAP is the cloud’s law of physics: when the network splits, you must choose consistency or availability — every distributed system is really a stance on that tradeoff.</Takeaway>
     <SeeAlso slug="raft" note="how the replicas actually agree — electing a leader and committing one shared log" />
     <Why

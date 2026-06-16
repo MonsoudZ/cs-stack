@@ -32,10 +32,11 @@
     <span class="alu-flags">
       <span class="alu-flag" class:on={r.zero}>Z</span>
       <span class="alu-flag" class:on={r.carry}>C</span>
+      <span class="alu-flag" class:on={r.overflow}>V</span>
     </span>
   </div>
   <div class="csnote" role="status" aria-live="polite">
-    {op} of {a} and {b} = {r.result}{r.carry ? (op === 'SUB' ? ' (borrow out)' : ' (carry out — the unsigned result didn’t fit in 8 bits)') : ''}{r.zero ? (op === 'SUB' ? ' · the zero flag is set — after a subtract, that’s how a branch knows two values were equal' : ' · the zero flag is set — the result came out zero') : ''}.
+    {op} of {a} and {b} = {r.result}{r.carry ? (op === 'SUB' ? ' (borrow out)' : ' (carry out — the unsigned result didn’t fit in 8 bits)') : ''}{r.overflow ? ' · V (signed overflow — read as two’s complement, the result’s sign is wrong; distinct from the unsigned carry)' : ''}{r.zero ? (op === 'SUB' ? ' · the zero flag is set — after a subtract, that’s how a branch knows two values were equal' : ' · the zero flag is set — the result came out zero') : ''}.
   </div>
 </div>
 

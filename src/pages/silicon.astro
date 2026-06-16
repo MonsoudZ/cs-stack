@@ -70,7 +70,7 @@ const description = 'A deep dive into the physics under the stack: doping, the P
   </LayerSection>
 
   <LayerSection {...L.SI4}>
-    <p class="prose">Stack a p-type FET (which pulls the output up to HIGH) above an n-type FET (which pulls it down to LOW), tie their gates together, and you have a <b>CMOS inverter</b>: exactly one transistor conducts, so the output is always the <i>opposite</i> of the input. That's a <span class="hl">NOT</span> gate — and it sips almost no power while idle.</p>
+    <p class="prose">Stack a p-type FET (which pulls the output up to HIGH) above an n-type FET (which pulls it down to LOW), tie their gates together, and you have a <b>CMOS inverter</b>: because a p-type FET conducts when its gate is LOW and an n-type when its gate is HIGH, the shared input switches exactly one of them on — so the output is always the <i>opposite</i> of the input. That's a <span class="hl">NOT</span> gate — and it sips almost no power while idle.</p>
     <CmosInverter client:visible />
     <Takeaway>Two complementary switches make a logic gate: the CMOS inverter is the bridge from silicon physics to Boolean logic — and the reason chips can pack billions of gates without melting.</Takeaway>
     <Why
