@@ -118,6 +118,7 @@ const description = 'A deep dive into how code stops being text: lexing into tok
     <p class="prose">Three ways to actually run it: an <b>interpreter</b> walks the bytecode op by op (simple, portable, slower); an <b>ahead-of-time compiler</b> emits machine code once (fast start, less portable); a <b>JIT</b> interprets first, then compiles the <span class="hl">hot paths</span> to native code while running. Run the loop and watch which is cheapest flip as the iteration count climbs.</p>
     <Runtimes client:visible />
     <Takeaway>Interpret, compile ahead of time, or JIT — the same pipeline, differing only in when (and whether) bytecode becomes machine code.</Takeaway>
+    <SeeAlso slug="languages" note="which real languages (C, Rust, Go, Python, JS) pick each of these strategies" />
     <Why
       problem="Producing operations isn't enough — they have to execute, and the right strategy depends on startup time, peak speed, and portability."
       idea="Pick where on the spectrum to sit: interpret bytecode directly, compile it all up front, or compile just the parts that run hot, just in time."

@@ -146,12 +146,12 @@ test('Cross-stack footer: lists every deep dive on home, omits the current one o
   // home: every deep dive is linked, no "back to full stack" (we're home)
   await page.goto('/');
   const homeNav = page.locator('.stacknav');
-  await expect(homeNav.locator('.stacknav-link')).toHaveCount(16);
+  await expect(homeNav.locator('.stacknav-link')).toHaveCount(17);
   await expect(homeNav.locator('.stacknav-home')).toHaveCount(0);
   // a deep dive: the current stack is omitted (the rest) and home link returns
   await page.goto('/memory');
   const sibNav = page.locator('.stacknav');
-  await expect(sibNav.locator('.stacknav-link')).toHaveCount(15);
+  await expect(sibNav.locator('.stacknav-link')).toHaveCount(16);
   await expect(sibNav.getByRole('link', { name: /the Memory stack/i })).toHaveCount(0);
   // the links actually navigate to a sibling explorable
   await sibNav.getByRole('link', { name: /the Crypto stack/i }).click();
@@ -225,8 +225,8 @@ test('Prev/next: deep dives chain through the curriculum order', async ({ page }
 test('Guided path: /learn lists the curriculum, tracks progress, and resumes', async ({ page }) => {
   await page.goto('/learn');
   await expect(page.locator('h1.title')).toContainText('LEARN');
-  // 17 lessons: the full-stack overview + 16 deep dives
-  await expect(page.locator('.path-item')).toHaveCount(17);
+  // 18 lessons: the full-stack overview + 17 deep dives
+  await expect(page.locator('.path-item')).toHaveCount(18);
   // homepage CTA points here
   await page.goto('/');
   await expect(page.locator('.hero-path')).toHaveAttribute('href', '/learn');
@@ -237,12 +237,12 @@ test('Guided path: /learn lists the curriculum, tracks progress, and resumes', a
     await first.click();
     await expect(first).toHaveAttribute('aria-pressed', 'true', { timeout: 400 });
   }).toPass({ timeout: 8000 });
-  await expect(page.locator('#pathCount')).toContainText('1 of 17 done');
+  await expect(page.locator('#pathCount')).toContainText('1 of 18 done');
   await expect(page.locator('#pathResume')).toContainText('Resume');
   // survives a reload
   await page.reload();
   await expect(page.locator('.path-item').first().locator('.path-done')).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.locator('#pathCount')).toContainText('1 of 17 done');
+  await expect(page.locator('#pathCount')).toContainText('1 of 18 done');
 });
 
 test('Quiz: wrong answer gives feedback, correct answer marks the lesson done on the path', async ({ page }) => {
@@ -318,6 +318,32 @@ test('Raft page: own nav, an election produces a leader, a log entry commits on 
     await page.waitForTimeout(40);
   }
   await expect(lg.locator('.rl-entry.committed').first()).toBeVisible();
+});
+
+test('Languages page: own nav, the run-model widget reveals JIT, the memory widget shows a manual leak', async ({ page }) => {
+  await page.goto('/languages');
+  await expect(page.locator('h1.title')).toContainText('LANGUAGES');
+  await expect(page.locator('.spine .rung')).toHaveCount(6);
+  // run models (LA1): stepping reveals each language, ending with the JIT lane (JS)
+  const run = page.locator('#LA1');
+  await run.scrollIntoViewIfNeeded();
+  for (let i = 0; i < 8; i++) {
+    await run.locator('.cpu-ctrl button').first().click();
+    if (await run.locator('.lr-lane.m-JIT.shown').count()) break;
+    await page.waitForTimeout(40);
+  }
+  await expect(run.locator('.lr-lane.m-JIT.shown')).toBeVisible();
+  // memory models (LA3): stepping reaches the manual-free leak
+  const mem = page.locator('#LA3');
+  await mem.scrollIntoViewIfNeeded();
+  for (let i = 0; i < 6; i++) {
+    await mem.locator('.cpu-ctrl button').first().click();
+    if (await mem.locator('.lm-block.leaked').count()) break;
+    await page.waitForTimeout(40);
+  }
+  await expect(mem.locator('.lm-block.leaked')).toBeVisible();
+  // the capstone comparison table lists all five languages
+  await expect(page.locator('#LA5 .lang-tbl tbody tr')).toHaveCount(5);
 });
 
 test('Concurrency page: own nav, two locks deadlock, compare-and-swap stays correct', async ({ page }) => {
@@ -845,8 +871,8 @@ test('Top nav: lists every stack, marks the current one, and links across', asyn
   await page.goto('/compiler');
   const nav = page.locator('nav.topnav');
   await expect(nav).toBeVisible();
-  // one pill per stack (16), plus the brand link home
-  await expect(nav.locator('.topnav-pill')).toHaveCount(16);
+  // one pill per stack (17), plus the brand link home
+  await expect(nav.locator('.topnav-pill')).toHaveCount(17);
   await expect(nav.locator('.topnav-brand')).toHaveAttribute('href', '/');
   // the current stack's pill is highlighted
   const current = nav.locator('.topnav-pill[aria-current="page"]');

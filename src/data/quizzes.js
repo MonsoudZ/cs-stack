@@ -48,6 +48,15 @@ export const quizzes = {
       { label: 'Unreachable dead code', why: 'Dead-code removal is an optimization; type checking is about meaning, not reachability.' },
     ],
   },
+  languages: {
+    question: 'Rust gives you memory safety without a garbage collector. How does it free heap memory?',
+    options: [
+      { label: 'The compiler tracks a single owner per value and frees it when the owner leaves scope', correct: true, why: 'Ownership + the borrow checker let the compiler prove at build time exactly when each value is dropped — no GC, no manual free, and use-after-free or double-free won’t compile.' },
+      { label: 'It runs a garbage collector, just a faster one', why: 'Rust has no garbage collector at all; reclamation is decided at compile time, not by a runtime collector.' },
+      { label: 'You call free() yourself, exactly like C', why: 'That’s manual management (C). In Rust the drop is inserted automatically by the compiler when the owner goes out of scope.' },
+      { label: 'It never frees — the OS reclaims everything when the program exits', why: 'That would leak for any long-running program; Rust frees each value deterministically as its owner is dropped.' },
+    ],
+  },
   memory: {
     question: 'A cache miss loads a whole line of neighbouring addresses, not just the one byte you asked for. Why?',
     options: [

@@ -1,0 +1,129 @@
+---
+import Base from '../layouts/Base.astro';
+import LayerSection from '../components/LayerSection.astro';
+import { langLayers } from '../data/langLayers.js';
+import { LANGS } from '../lib/widgets.js';
+import LangRun from '../components/LangRun.svelte';
+import LangMemory from '../components/LangMemory.svelte';
+import Why from '../components/Why.astro';
+import Takeaway from '../components/Takeaway.astro';
+import Quiz from '../components/Quiz.svelte';
+import PrevNext from '../components/PrevNext.astro';
+import SeeAlso from '../components/SeeAlso.astro';
+const L = Object.fromEntries(langLayers.map((l) => [l.id, l]));
+const title = 'THE STACK — programming languages';
+const description = 'A deep dive into what separates C, Rust, Go, Python, and JavaScript: how source reaches the CPU (compiled, interpreted, or JIT), static vs dynamic types, manual vs ownership vs garbage-collected memory, and their concurrency models — read as positions on the tradeoffs the rest of the stack teaches.';
+---
+<Base {title} {description} layers={langLayers}>
+  <div slot="hero">
+    <div class="kicker">A deep dive into layer 08</div>
+    <h1 class="title">THE <em>LANGUAGES</em><br />STACK</h1>
+    <p class="lede">Every language compiles down to the same numbered instructions — so what actually separates them? Not syntax. It's the stand each one takes on the tradeoffs you've already met: how it reaches the CPU, when it checks types, who frees memory, and how it runs things at once.</p>
+    <div class="hero-meta"><a class="back-link" href="/">← back to the full stack</a> · what a language is → how it runs → types → memory → concurrency → side by side</div>
+  </div>
+
+  <LayerSection {...L.LA0}>
+    <p class="prose">A programming language is a <b>human surface</b> over the machine — a notation a compiler or interpreter turns into the instructions from the compiler and CPU stacks. Any language <i>can</i> express any computation (they're all Turing-complete), so a language isn't defined by what it can do, but by the <span class="hl">tradeoffs</span> it makes you take: safety vs control, speed vs flexibility, simplicity vs power.</p>
+    <Takeaway>All languages bottom out at the same CPU, so the interesting differences aren't capability — they're the tradeoffs each one bakes in, on the very axes the rest of this stack is about.</Takeaway>
+    <Why
+      problem="We need to tell a machine what to do, but raw instructions are unreadable and unsafe to write by hand at any scale."
+      idea="Invent higher-level notations with their own rules, and lean on a compiler or interpreter to bridge them down to the machine — each language choosing a different balance of control and convenience."
+      tradeoff="Every convenience (a garbage collector, dynamic types, a VM) costs something (control, speed, predictability) — which is why no one language wins everywhere."
+      next="The first fork: does the language compile to machine code, or get interpreted as it runs?"
+    />
+  </LayerSection>
+
+  <LayerSection {...L.LA1}>
+    <p class="prose">The first split is <b>how source reaches the CPU</b>. <span class="hl">Compiled</span> languages (C, Rust, Go) translate everything to a native binary ahead of time — fast, with little or nothing between you and the machine. <span class="hl">Interpreted</span> ones (Python) compile to bytecode that a VM walks op by op — flexible and simple, but slower. A <span class="hl">JIT</span> (JavaScript) starts interpreting, then compiles the hot paths to native code while running — slow to warm up, fast once hot.</p>
+    <LangRun client:visible />
+    <Takeaway>Compiled, interpreted, JIT: the same three execution strategies the compiler stack's "runtimes" layer showed — now you can see which real language sits where.</Takeaway>
+    <SeeAlso slug="compiler" note="the interpret / AOT / JIT machinery, built up from bytecode and registers" />
+    <Why
+      problem="Source code is text; the CPU runs numbered instructions — something has to bridge that, and when it happens (before or during the run) is a real choice."
+      idea="Compile everything up front for speed, interpret bytecode for flexibility and portability, or JIT-compile the hot parts at runtime to get both."
+      tradeoff="AOT gives peak speed but slow builds and less portability; interpreters start instantly but run slower; JITs pay a warm-up cost and carry a compiler at runtime."
+      next="The next fork shows up before the program even runs: when are types checked?"
+    />
+  </LayerSection>
+
+  <LayerSection {...L.LA2}>
+    <p class="prose"><b>Static</b> languages (C, Rust, Go) check types at <span class="hl">compile time</span>: every variable's type is known before the program runs, so whole classes of bugs are caught early and the compiler can optimize hard. <b>Dynamic</b> languages (Python, JS) check at <span class="hl">run time</span>: values carry their type, variables hold anything — quicker to write and bend, but a type error only surfaces when that line actually executes.</p>
+    <Takeaway>Static vs dynamic is just <i>when</i> types are checked: before it runs (safer, faster, stricter) or as it runs (looser, faster to write, riskier).</Takeaway>
+    <SeeAlso slug="compiler" note="the type-checking pass that does this for a statically-typed language" />
+    <Why
+      problem="A program constantly assumes a value is a number, a string, a list — and being wrong is a bug; the question is when you find out."
+      idea="Check types ahead of time against declarations (static) for early errors and speed, or attach types to values and check them as operations happen (dynamic) for flexibility."
+      tradeoff="Static typing catches bugs early and runs faster but demands more up front and can feel rigid; dynamic typing is fluid but defers errors to runtime and loses optimization headroom."
+      next="The choice with the biggest day-to-day consequences: who manages memory?"
+    />
+  </LayerSection>
+
+  <LayerSection {...L.LA3}>
+    <p class="prose">Every program allocates on the heap — the question is who frees it. <b>Manual</b> (C): you call <code>free()</code> yourself — total control, but forget and it <span class="hl">leaks</span>, free twice and it corrupts. <b>Ownership</b> (Rust): the compiler tracks a single owner and frees the moment it leaves scope — safe and GC-free, proven at compile time. <b>Garbage collection</b> (Go, Python, JS): a collector frees unreachable memory for you — easy and leak-resistant, at the cost of a pause you don't control.</p>
+    <LangMemory client:visible />
+    <Takeaway>Manual, ownership, or GC: total control with the bug risk, compiler-proven safety with the strictness, or hands-off convenience with the unpredictable pause — there's no free lunch on the heap.</Takeaway>
+    <SeeAlso slug="memory" note="the heap, allocation, and how garbage collection actually reclaims it" />
+    <Why
+      problem="Heap memory has to be returned, and getting it wrong is catastrophic: leaks exhaust memory, double-frees and use-after-frees corrupt or get exploited."
+      idea="Pick who's responsible: the programmer (manual), the compiler via ownership rules (Rust), or a runtime garbage collector (Go/Python/JS)."
+      tradeoff="Manual is fastest and most dangerous; ownership is safe and fast but demands you satisfy the borrow checker; GC is easiest but adds runtime cost and latency you can't fully predict."
+      next="The last axis is how a language runs more than one thing at a time."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.LA4}>
+    <p class="prose">Finally, <b>concurrency</b>. C and Rust hand you real <span class="hl">OS threads</span> (Rust adds compile-time guarantees against data races — "fearless concurrency"). Go gives you cheap <span class="hl">goroutines</span> over a built-in scheduler, so a program can run millions. Python has threads but a <span class="hl">GIL</span> that lets only one run Python at a time (so it leans on async or multiple processes). JavaScript is <span class="hl">single-threaded</span> with an event loop — concurrency without parallelism.</p>
+    <Takeaway>From OS threads to goroutines to a single event loop, each language picks a different point on the "how do we do many things at once" spectrum — the concurrency stack's problems, with different defaults.</Takeaway>
+    <SeeAlso slug="concurrency" note="threads, races, and the locks/atomics underneath all of these models" />
+    <Why
+      problem="Modern machines have many cores and programs wait on I/O constantly, so doing one thing at a time leaves performance (and responsiveness) on the table."
+      idea="Expose a concurrency model: OS threads for raw parallelism, lightweight green threads (goroutines) scheduled in userspace, or a single-threaded event loop that interleaves I/O without shared-memory hazards."
+      tradeoff="Threads are powerful but race-prone; goroutines are cheap but still share memory; an event loop sidesteps races but can't use multiple cores for CPU work, and the GIL is exactly that compromise made explicit."
+      next="Put all four axes in one table and each language's personality falls out."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.LA5}>
+    <p class="prose">None of these axes is independent — a language is a <i>bundle</i> of positions, and the bundle is its personality. C chose control everywhere; Python chose convenience everywhere; Rust chose safety without a GC; Go chose simplicity plus built-in concurrency; JS was shaped by the browser. Here they are side by side:</p>
+    <div class="lang-tablewrap">
+      <table class="lang-tbl">
+        <thead>
+          <tr><th scope="col">Language</th><th scope="col">Runs as</th><th scope="col">Types</th><th scope="col">Memory</th><th scope="col">Concurrency</th></tr>
+        </thead>
+        <tbody>
+          {LANGS.map((l) => (
+            <tr>
+              <th scope="row">{l.id}</th>
+              <td>{l.run}</td>
+              <td>{l.types}</td>
+              <td>{l.memory}</td>
+              <td>{l.concurrency}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+    <Takeaway>A language isn't its syntax — it's the bundle of tradeoffs it picks on execution, types, memory, and concurrency. Learn the axes and any new language is just a new combination of them.</Takeaway>
+    <SeeAlso slug="compiler" note="how any of these source languages becomes the instructions the CPU runs" />
+    <Why
+      problem="“Which language should I use?” has no universal answer, and syntax comparisons miss what actually differs."
+      idea="Read each language as a point in a space of tradeoffs — execution model, type discipline, memory management, concurrency — so the choice becomes about which costs you can accept for which job."
+      tradeoff="Every cell in the table is a gain paid for elsewhere; the 'best' language is the one whose compromises fit the problem in front of you."
+      next="Zoom back out: every one of these still rides the same climb — silicon, logic, the CPU, memory — underneath."
+    />
+  </LayerSection>
+
+  <Quiz slug="languages" client:visible />
+  <PrevNext slug="languages" />
+</Base>
+
+<style>
+  .back-link{color:var(--accent,var(--signal))}
+  .lang-tablewrap{overflow-x:auto;border:1px solid var(--border);border-radius:14px;background:var(--surface)}
+  .lang-tbl{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:13px;min-width:560px}
+  .lang-tbl th,.lang-tbl td{text-align:left;padding:11px 14px;border-top:1px solid var(--border);vertical-align:top}
+  .lang-tbl thead th{border-top:none;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);font-weight:600}
+  .lang-tbl tbody th{color:var(--ink);font-weight:700;font-size:15px}
+  .lang-tbl tbody td{color:var(--dim)}
+  .lang-tbl tbody tr:hover{background:var(--panel2)}
+</style>

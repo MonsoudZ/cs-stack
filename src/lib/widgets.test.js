@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { quizzes } from '../data/quizzes.js';
 import { stacks } from '../data/stacks.js';
-import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, RSA, buildSignature, buildMerkle, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum, DOPING, buildDiode, cmosInverter, nand, buildUniversal, mux2, ALU_OPS, computeAlu, PIPE_STAGES, buildPipeline, buildDeadlock, buildCas, buildLoadBalancer, buildReplication, buildRaftElection, buildRaftLog, buildLinkedList, buildStackQueue, GRAPH, buildGraphTraversal, buildStackHeap, buildAllocator, buildGc, ISOLATION_LEVELS, buildIsolation, buildTypeCheck, buildEventLoop, buildCrp, FS, buildPathResolve, buildJournal, buildSockets, buildHttp, buildTcp, buildJoin,
+import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, RSA, buildSignature, buildMerkle, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum, DOPING, buildDiode, cmosInverter, nand, buildUniversal, mux2, ALU_OPS, computeAlu, PIPE_STAGES, buildPipeline, buildDeadlock, buildCas, buildLoadBalancer, buildReplication, buildRaftElection, buildRaftLog, LANGS, buildLangRun, buildLangMemory, buildLinkedList, buildStackQueue, GRAPH, buildGraphTraversal, buildStackHeap, buildAllocator, buildGc, ISOLATION_LEVELS, buildIsolation, buildTypeCheck, buildEventLoop, buildCrp, FS, buildPathResolve, buildJournal, buildSockets, buildHttp, buildTcp, buildJoin,
   computeNeuron, buildGradientDescent, EMBEDDINGS, nearestWords, cosineSim, buildAttention, softmaxTemp, nextTokenDist,
   tokenize, TOK_VOCAB, buildTraining, buildRag, RAG_DOCS, buildOptimize, buildAst, buildRuntimes, buildRegisters, REG_COUNT, buildScopes } from './widgets.js';
 
@@ -821,6 +821,42 @@ describe('buildRaftLog (log replication)', () => {
   });
   it('is deterministic', () => {
     expect(buildRaftLog()).toEqual(buildRaftLog());
+  });
+});
+
+describe('LANGS + buildLangRun (execution models)', () => {
+  it('LANGS covers the five languages with the required axes', () => {
+    expect(LANGS.map((l) => l.id)).toEqual(['C', 'Rust', 'Go', 'Python', 'JS']);
+    for (const l of LANGS) {
+      for (const k of ['model', 'run', 'types', 'memory', 'concurrency', 'mem']) {
+        expect(l[k], `${l.id}.${k}`).toBeTruthy();
+      }
+    }
+    // the three execution models are all represented
+    expect(new Set(LANGS.map((l) => l.model))).toEqual(new Set(['compiled', 'interpreted', 'JIT']));
+  });
+  it('reveals each language exactly once, then a summary', () => {
+    const steps = buildLangRun();
+    const revealed = steps.filter((s) => s.active).map((s) => s.active);
+    expect(revealed).toEqual(['C', 'Rust', 'Go', 'Python', 'JS']);
+    expect(steps.at(-1).active).toBe(null); // closing summary
+    expect(buildLangRun()).toEqual(buildLangRun()); // deterministic
+  });
+});
+
+describe('buildLangMemory (manual / ownership / GC)', () => {
+  const steps = buildLangMemory();
+  it('walks all three memory regimes', () => {
+    const regimes = [...new Set(steps.map((s) => s.regime).filter(Boolean))];
+    expect(regimes).toEqual(['manual', 'ownership', 'GC'.toLowerCase()]); // ['manual','ownership','gc']
+  });
+  it('manual leaks if you forget free; ownership and GC end freed', () => {
+    expect(steps.some((s) => s.regime === 'manual' && s.leaked)).toBe(true);
+    expect(steps.some((s) => s.regime === 'ownership' && s.freed)).toBe(true);
+    expect(steps.some((s) => s.regime === 'gc' && s.freed)).toBe(true);
+  });
+  it('is deterministic', () => {
+    expect(buildLangMemory()).toEqual(buildLangMemory());
   });
 });
 

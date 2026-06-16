@@ -1399,6 +1399,66 @@ export function buildRaftLog() {
   return out;
 }
 
+// --- LANGUAGES STACK (/languages) ---
+
+// Where five real languages sit on the axes the rest of the site teaches:
+// how source reaches the CPU (compiled / interpreted / JIT), static vs dynamic
+// types, how memory is managed (manual / ownership / GC), and the concurrency
+// model. The single source of truth for the widgets and the comparison table.
+export const LANGS = [
+  { id: 'C',      model: 'compiled',    run: 'AOT → native binary',         types: 'static',  memory: 'manual (malloc / free)',     concurrency: 'OS threads', mem: 'manual' },
+  { id: 'Rust',   model: 'compiled',    run: 'AOT → native binary',         types: 'static',  memory: 'ownership + borrow check',   concurrency: 'OS threads', mem: 'ownership' },
+  { id: 'Go',     model: 'compiled',    run: 'AOT → native + runtime',      types: 'static',  memory: 'garbage collected',          concurrency: 'goroutines', mem: 'gc' },
+  { id: 'Python', model: 'interpreted', run: 'bytecode → interpreter (VM)', types: 'dynamic', memory: 'garbage collected',          concurrency: 'threads + GIL / async', mem: 'gc' },
+  { id: 'JS',     model: 'JIT',         run: 'interpret → JIT hot paths',   types: 'dynamic', memory: 'garbage collected',          concurrency: 'single-threaded event loop', mem: 'gc' },
+];
+
+// Reveal each language's path from source to running, one at a time — so the
+// three execution models (AOT-native, bytecode-interpreted, JIT) line up side
+// by side. Returns the step trace (the component accumulates revealed lanes).
+export function buildLangRun() {
+  const out = [];
+  const snap = (note, o = {}) => out.push({ active: o.active ?? null, model: o.model ?? null, note });
+  snap('The same source code — but how does it actually reach the CPU? Each language picks a different path. Step through them.');
+  const why = {
+    C: 'C compiles ahead of time straight to a native binary the CPU runs directly — no runtime, nothing between you and the machine.',
+    Rust: 'Rust also compiles AOT to a native binary, adding compile-time safety checks that cost nothing at runtime — still no GC, no VM.',
+    Go: 'Go compiles AOT to native too, but the binary bundles a small runtime (a garbage collector and the goroutine scheduler).',
+    Python: 'Python compiles your source to bytecode, then the CPython VM interprets it op by op — flexible and simple, but slower.',
+    JS: 'JavaScript starts by interpreting, then a JIT compiles the hot functions to native code while the program runs — slow to warm up, fast once hot.',
+  };
+  for (const l of LANGS) snap(why[l.id], { active: l.id, model: l.model });
+  snap('Three strategies: compile everything up front (native), interpret bytecode in a VM, or JIT the hot paths — trading startup time, peak speed, and flexibility.');
+  return out;
+}
+
+// The same heap allocation under three memory regimes: manual (you free it —
+// forget and it leaks), ownership (freed automatically when the owner leaves
+// scope, proven at compile time), and a garbage collector (freed later, when
+// the collector notices it's unreachable). Returns the step trace.
+export function buildLangMemory() {
+  const out = [];
+  const snap = (regime, langs, note, o = {}) => out.push({
+    regime, langs, block: o.block ?? null, note,
+    freed: !!o.freed, leaked: !!o.leaked,
+  });
+  snap(null, '', 'One job — allocate a buffer on the heap, use it, then the function returns. Watch who cleans it up under three regimes.');
+  // manual (C)
+  snap('manual', 'C', 'C: malloc() hands you a block on the heap. It is yours.', { block: 'used' });
+  snap('manual', 'C', 'You use it… then the function returns. Nothing frees it automatically.', { block: 'used' });
+  snap('manual', 'C', 'You must call free() yourself. Forget, and the block leaks — still allocated, but nothing can reach it. (Free it twice, and you corrupt the heap.)', { block: 'leaked', leaked: true });
+  // ownership (Rust)
+  snap('ownership', 'Rust', 'Rust: the block has a single owner — the variable it was bound to.', { block: 'used' });
+  snap('ownership', 'Rust', 'When the owner goes out of scope at the end of the function, Rust frees the block automatically.', { block: 'used' });
+  snap('ownership', 'Rust', 'No GC, no manual free — the compiler proved exactly when it was safe to drop. Forgetting to free is impossible.', { block: 'freed', freed: true });
+  // gc (Go / Python / JS)
+  snap('gc', 'Go · Python · JS', 'Garbage-collected languages: you allocate and simply stop referencing it. You never free anything.', { block: 'used' });
+  snap('gc', 'Go · Python · JS', 'Later, the collector scans for blocks nothing can reach…', { block: 'used' });
+  snap('gc', 'Go · Python · JS', '…and frees them. Convenient and leak-resistant — at the cost of a collection pause you don’t control.', { block: 'freed', freed: true });
+  snap(null, '', 'Same allocation, three answers: you free it (fast, error-prone), the compiler frees it (safe, strict), or a collector frees it (easy, unpredictable).');
+  return out;
+}
+
 // --- DATA STRUCTURES STACK (/structures), part 2: the linked ADTs ---
 
 // A linked list: nodes scattered in memory, each holding a value and a pointer

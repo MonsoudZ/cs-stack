@@ -68,6 +68,7 @@ src/
     404.astro             on-brand not-found page (Base chrome={false})
     network.astro         a /network deep-dive (signals → encapsulation → routing → reliability → congestion → DNS → sockets → HTTP); reuses the same engine (Base takes a `layers` prop)
     compiler.astro        a /compiler deep-dive (lex → parse → type check → bytecode → optimize → run)
+    languages.astro       a /languages deep-dive (how C/Rust/Go/Python/JS differ: run model, types, memory, concurrency)
     render.astro          a /render deep-dive (DOM → style → layout → paint → composite → critical rendering path → the event loop)
     crypto.astro          a /crypto deep-dive (hashing → keys → exchange → certs → TLS → signatures & Merkle trees)
     database.astro        a /database deep-dive (tables → indexes → queries → joins → txns → isolation → durability → replication)

@@ -9,6 +9,7 @@ export const stacks = [
   { slug: 'logic', name: 'Logic', kind: 'stack', layer: '02', accent: '#a78bfa', blurb: 'boolean algebra, gates, NAND universality, the mux, and the adder' },
   { slug: 'numbers', name: 'Numbers', kind: 'stack', layer: '06', accent: '#ffb454', blurb: 'two’s complement, IEEE-754, and why 0.1 + 0.2 ≠ 0.3' },
   { slug: 'compiler', name: 'Compiler', kind: 'stack', layer: '08', accent: '#a78bfa', blurb: 'lexing, parsing, type checking, bytecode, and a tiny VM' },
+  { slug: 'languages', name: 'Languages', kind: 'stack', layer: '08', accent: '#ffb454', blurb: 'how C, Rust, Go, Python & JS pick sides on memory, types & speed' },
   { slug: 'cpu', name: 'CPU', kind: 'stack', layer: '09', accent: '#5b9dff', blurb: 'registers, fetch-decode-execute, the ALU, pipelining, and the clock' },
   { slug: 'memory', name: 'Memory', kind: 'stack', layer: '10', accent: '#5b9dff', blurb: 'the stack & heap, allocation, GC, caches, virtual memory, and the TLB' },
   { slug: 'structures', name: 'Structures', kind: 'stack', layer: '12', accent: '#2ee6c0', blurb: 'linked lists, stacks & queues, hash maps, trees, and graphs' },
