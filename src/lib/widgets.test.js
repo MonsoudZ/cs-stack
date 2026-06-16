@@ -828,7 +828,7 @@ describe('LANGS + buildLangRun (execution models)', () => {
   it('LANGS covers the five languages with the required axes', () => {
     expect(LANGS.map((l) => l.id)).toEqual(['C', 'Rust', 'Go', 'Python', 'JS']);
     for (const l of LANGS) {
-      for (const k of ['model', 'run', 'types', 'memory', 'concurrency', 'mem']) {
+      for (const k of ['model', 'run', 'types', 'memory', 'concurrency']) {
         expect(l[k], `${l.id}.${k}`).toBeTruthy();
       }
     }

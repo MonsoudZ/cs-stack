@@ -1406,11 +1406,11 @@ export function buildRaftLog() {
 // types, how memory is managed (manual / ownership / GC), and the concurrency
 // model. The single source of truth for the widgets and the comparison table.
 export const LANGS = [
-  { id: 'C',      model: 'compiled',    run: 'AOT → native binary',         types: 'static',  memory: 'manual (malloc / free)',     concurrency: 'OS threads', mem: 'manual' },
-  { id: 'Rust',   model: 'compiled',    run: 'AOT → native binary',         types: 'static',  memory: 'ownership + borrow check',   concurrency: 'OS threads', mem: 'ownership' },
-  { id: 'Go',     model: 'compiled',    run: 'AOT → native + runtime',      types: 'static',  memory: 'garbage collected',          concurrency: 'goroutines', mem: 'gc' },
-  { id: 'Python', model: 'interpreted', run: 'bytecode → interpreter (VM)', types: 'dynamic', memory: 'garbage collected',          concurrency: 'threads + GIL / async', mem: 'gc' },
-  { id: 'JS',     model: 'JIT',         run: 'interpret → JIT hot paths',   types: 'dynamic', memory: 'garbage collected',          concurrency: 'single-threaded event loop', mem: 'gc' },
+  { id: 'C',      model: 'compiled',    run: 'AOT → native binary',         types: 'static',  memory: 'manual (malloc / free)',     concurrency: 'OS threads' },
+  { id: 'Rust',   model: 'compiled',    run: 'AOT → native binary',         types: 'static',  memory: 'ownership + borrow check',   concurrency: 'OS threads' },
+  { id: 'Go',     model: 'compiled',    run: 'AOT → native + runtime',      types: 'static',  memory: 'garbage collected',          concurrency: 'goroutines' },
+  { id: 'Python', model: 'interpreted', run: 'bytecode → interpreter (VM)', types: 'dynamic', memory: 'garbage collected',          concurrency: 'threads + GIL / async' },
+  { id: 'JS',     model: 'JIT',         run: 'interpret → JIT hot paths',   types: 'dynamic', memory: 'garbage collected',          concurrency: 'single-threaded event loop' },
 ];
 
 // Reveal each language's path from source to running, one at a time — so the
@@ -1418,7 +1418,7 @@ export const LANGS = [
 // by side. Returns the step trace (the component accumulates revealed lanes).
 export function buildLangRun() {
   const out = [];
-  const snap = (note, o = {}) => out.push({ active: o.active ?? null, model: o.model ?? null, note });
+  const snap = (note, o = {}) => out.push({ active: o.active ?? null, note });
   snap('The same source code — but how does it actually reach the CPU? Each language picks a different path. Step through them.');
   const why = {
     C: 'C compiles ahead of time straight to a native binary the CPU runs directly — no runtime, nothing between you and the machine.',
@@ -1427,7 +1427,7 @@ export function buildLangRun() {
     Python: 'Python compiles your source to bytecode, then the CPython VM interprets it op by op — flexible and simple, but slower.',
     JS: 'JavaScript starts by interpreting, then a JIT compiles the hot functions to native code while the program runs — slow to warm up, fast once hot.',
   };
-  for (const l of LANGS) snap(why[l.id], { active: l.id, model: l.model });
+  for (const l of LANGS) snap(why[l.id], { active: l.id });
   snap('Three strategies: compile everything up front (native), interpret bytecode in a VM, or JIT the hot paths — trading startup time, peak speed, and flexibility.');
   return out;
 }
