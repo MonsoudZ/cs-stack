@@ -22,7 +22,7 @@ Base also owns the cross-cutting chrome: SEO + Open Graph/Twitter + JSON-LD, the
 no-FOUC theme script + toggle, the guided tour, `j`/`k` keyboard nav, the
 scroll-spy, and the `StackNav` footer.
 
-The main stack (`src/pages/index.astro`) and all 14 deep dives (`/silicon`,
+The main stack (`src/pages/index.astro`) and all 15 deep dives (`/silicon`,
 `/cpu`, …) are the same `<Base>` with a different `layers` array and hero.
 
 ## Single sources of truth (`src/data/`)
@@ -34,8 +34,8 @@ place its facts live:
 |---|---|---|
 | `layers.js` | the main stack's 23 layers (+ `layerById`) | the spine nav + `index.astro` sections + JSON-LD topics |
 | `<x>Layers.js` | one per deep dive (`cpuLayers`, `memLayers`, …) | that page's nav + sections |
-| `stacks.js` | the 14 deep dives: `slug, name, kind, layer, accent, blurb` | `StackNav` footer, `GoDeeper`, `SeeAlso`, per-stack OG cards, `curriculum` |
-| `curriculum.js` | the guided-path order (overview + 14), derived from `stacks.js`; `key` = localStorage progress id | `/learn`, `PrevNext` |
+| `stacks.js` | the 15 deep dives: `slug, name, kind, layer, accent, blurb` | `StackNav` footer, `GoDeeper`, `SeeAlso`, per-stack OG cards, `curriculum` |
+| `curriculum.js` | the guided-path order (overview + 15), derived from `stacks.js`; `key` = localStorage progress id | `/learn`, `PrevNext` |
 | `quizzes.js` | one question per stack, keyed by slug | `Quiz.svelte` |
 
 So adding a stack to `stacks.js` automatically gives it a footer card, an OG
@@ -101,8 +101,8 @@ and is regression-tested in e2e.
 9. **e2e** — add a test in `e2e/widgets.spec.js`; bump the footer-count assertions.
 10. **Verify** — `npm test && npm run audit && npm run test:e2e`, all green.
 
-## The one launch TODO
+## The deployed origin
 
-`site` in `astro.config.mjs` is a placeholder. It's the only place the deployed
-origin lives; setting it fixes canonical URLs, the sitemap, `robots.txt`, and the
-absolute OG-image URLs in one line.
+`site` in `astro.config.mjs` (`https://cs-stack.pages.dev`) is the only place the
+deployed origin lives; it drives canonical URLs, the sitemap, `robots.txt`, and the
+absolute OG-image URLs. Change it there in one line if the site moves.

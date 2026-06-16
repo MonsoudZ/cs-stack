@@ -45,7 +45,7 @@ src/
   styles/                 global.css just @imports base.css + widgets.css + mobile.css
   lib/
     stepper.svelte.js     shared STEP / AUTO / RESET store — every step widget uses it
-    traces.js             the capstone: 12 traced algorithms + the layer-touch maps
+    traces.js             the capstone: 14 traced algorithms + the layer-touch maps
     sim.js                scheduler simulation + factorial call-stack builder
     widgets.js            pure build*() functions for the CPU/network/cloud widgets
     *.test.js             unit tests (answers, termination, shape, stepper lifecycle)
@@ -90,11 +90,12 @@ e2e/                      playwright interaction tests
 ```
 
 ## The tracer
-The `★ Trace` capstone runs one of **12 algorithms** step-by-step through every
+The `★ Trace` capstone runs one of **14 algorithms** step-by-step through every
 layer at once — source line, VM ops, the data structure mutating in memory, and
 the CPU arithmetic: two-sum (hashing), binary search, BFS, DFS, recursion,
 two-pointer, sliding window, DP/memo, insertion + bubble sort, linear search,
-and Kadane's max subarray. The trace + step are deep-linkable (`?trace=bfs&step=4`).
+Kadane's max subarray, Dijkstra's shortest path, and Prim's minimum spanning
+tree. The trace + step are deep-linkable (`?trace=bfs&step=4`).
 
 ## Deploying
 Set `site` in `astro.config.mjs` to your real origin before launch — it's the
