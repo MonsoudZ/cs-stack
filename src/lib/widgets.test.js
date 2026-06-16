@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { quizzes } from '../data/quizzes.js';
 import { stacks } from '../data/stacks.js';
-import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, RSA, buildSignature, buildMerkle, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum, DOPING, buildDiode, cmosInverter, nand, buildUniversal, mux2, ALU_OPS, computeAlu, PIPE_STAGES, buildPipeline, buildDeadlock, buildCas, buildLoadBalancer, buildReplication, buildLinkedList, buildStackQueue, GRAPH, buildGraphTraversal, buildStackHeap, buildAllocator, buildGc, ISOLATION_LEVELS, buildIsolation, buildTypeCheck, buildEventLoop, buildCrp, FS, buildPathResolve, buildJournal, buildSockets, buildHttp, buildTcp, buildJoin,
+import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, RSA, buildSignature, buildMerkle, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum, DOPING, buildDiode, cmosInverter, nand, buildUniversal, mux2, ALU_OPS, computeAlu, PIPE_STAGES, buildPipeline, buildDeadlock, buildCas, buildLoadBalancer, buildReplication, buildRaftElection, buildRaftLog, buildLinkedList, buildStackQueue, GRAPH, buildGraphTraversal, buildStackHeap, buildAllocator, buildGc, ISOLATION_LEVELS, buildIsolation, buildTypeCheck, buildEventLoop, buildCrp, FS, buildPathResolve, buildJournal, buildSockets, buildHttp, buildTcp, buildJoin,
   computeNeuron, buildGradientDescent, EMBEDDINGS, nearestWords, cosineSim, buildAttention, softmaxTemp, nextTokenDist,
   tokenize, TOK_VOCAB, buildTraining, buildRag, RAG_DOCS, buildOptimize, buildAst, buildRuntimes, buildRegisters, REG_COUNT, buildScopes } from './widgets.js';
 
@@ -769,6 +769,58 @@ describe('buildReplication (read replicas / eventual consistency)', () => {
     const last = steps[steps.length - 1];
     expect(last.primary).toBe(1);
     expect(last.replicas.every((r) => r.v === 1)).toBe(true);
+  });
+});
+
+describe('buildRaftElection (leader election)', () => {
+  const steps = buildRaftElection();
+  it('starts with five followers in term 0 and no leader', () => {
+    expect(steps[0].leader).toBe(null);
+    expect(steps[0].nodes).toHaveLength(5);
+    expect(steps[0].nodes.every((n) => n.role === 'follower' && n.term === 0)).toBe(true);
+  });
+  it('never shows two leaders at once, and a winner always has a majority', () => {
+    for (const s of steps) {
+      expect(s.nodes.filter((n) => n.role === 'leader').length).toBeLessThanOrEqual(1);
+      if (s.event === 'win') expect(s.votes).toBeGreaterThanOrEqual(s.majority);
+    }
+  });
+  it('elects N0 in term 1, then heals to N2 in term 2 after the leader crashes', () => {
+    const firstWin = steps.find((s) => s.event === 'win');
+    expect(firstWin.leader).toBe('N0');
+    expect(firstWin.nodes.find((n) => n.id === 'N0').term).toBe(1);
+    const last = steps.at(-1);
+    expect(last.leader).toBe('N2');
+    expect(last.nodes.find((n) => n.id === 'N2').term).toBe(2);
+    expect(last.nodes.find((n) => n.id === 'N0').role).toBe('down'); // crashed
+  });
+  it('is deterministic', () => {
+    expect(buildRaftElection()).toEqual(buildRaftElection());
+  });
+});
+
+describe('buildRaftLog (log replication)', () => {
+  const steps = buildRaftLog();
+  it('starts with three empty logs', () => {
+    expect(steps[0].nodes).toHaveLength(3);
+    expect(steps[0].nodes.every((n) => n.log.length === 0 && n.commit === 0)).toBe(true);
+    expect(steps[0].nodes.find((n) => n.id === 'N0').role).toBe('leader');
+  });
+  it('only commits after a majority has stored the entry', () => {
+    const firstCommit = steps.find((s) => s.action === 'commit');
+    const leader = firstCommit.nodes.find((n) => n.id === 'N0');
+    const stored = firstCommit.nodes.filter((n) => n.log.length >= 1).length;
+    expect(stored).toBeGreaterThanOrEqual(2); // majority of 3
+    expect(leader.commit).toBe(1);
+    expect(firstCommit.state).toBe('x=1');
+  });
+  it('ends with every replica holding the same committed log and state', () => {
+    const last = steps.at(-1);
+    expect(last.nodes.every((n) => n.log.length === 2 && n.commit === 2)).toBe(true);
+    expect(last.state).toBe('x=1, y=2');
+  });
+  it('is deterministic', () => {
+    expect(buildRaftLog()).toEqual(buildRaftLog());
   });
 });
 

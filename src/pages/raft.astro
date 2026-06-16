@@ -1,0 +1,100 @@
+---
+import Base from '../layouts/Base.astro';
+import LayerSection from '../components/LayerSection.astro';
+import { raftLayers } from '../data/raftLayers.js';
+import RaftElection from '../components/RaftElection.svelte';
+import RaftLog from '../components/RaftLog.svelte';
+import Why from '../components/Why.astro';
+import Takeaway from '../components/Takeaway.astro';
+import Quiz from '../components/Quiz.svelte';
+import PrevNext from '../components/PrevNext.astro';
+import SeeAlso from '../components/SeeAlso.astro';
+const L = Object.fromEntries(raftLayers.map((l) => [l.id, l]));
+const title = 'THE STACK — consensus, with Raft';
+const description = 'A deep dive into distributed consensus through Raft: replicated state machines, leader election with terms and votes, log replication and majority commit, the safety rules that make it correct, and how the cluster heals when a leader crashes.';
+---
+<Base {title} {description} layers={raftLayers}>
+  <div slot="hero">
+    <div class="kicker">A deep dive into layer 17</div>
+    <h1 class="title">THE <em>CONSENSUS</em><br />STACK</h1>
+    <p class="lede">The cloud’s replicas only stayed “eventually” consistent because keeping copies in lockstep is hard. Consensus is the harder promise — many machines agreeing on one ordered history, even as some crash and the network tears. Raft is the algorithm that makes that promise legible.</p>
+    <div class="hero-meta"><a class="back-link" href="/">← back to the full stack</a> · the problem → election → replication → safety → crash → all at once</div>
+  </div>
+
+  <LayerSection {...L.RF0}>
+    <p class="prose">Replicate a service for fault tolerance and a new problem appears: the copies must agree on <b>what happened, and in what order</b>. Model each replica as a <span class="hl">state machine</span> — feed every copy the same commands in the same sequence and they stay identical. The whole game is agreeing on that one sequence. The danger is <b>split-brain</b>: two replicas each believing they're in charge, accepting conflicting writes.</p>
+    <Takeaway>Consensus = getting many machines to agree on one ordered log of commands, despite crashes and an unreliable network — so each replicated state machine ends up in the same place.</Takeaway>
+    <Why
+      problem="A single server is a single point of failure, but the moment you replicate it the copies can disagree — and two servers both acting as the authority corrupt the data."
+      idea="Have the cluster agree on a single, ordered log of commands and apply it identically everywhere, so the replicas are deterministic copies of one state machine."
+      tradeoff="Agreement needs rounds of messages and a majority present, so consensus is slower than a lone server and stalls if too many nodes are unreachable."
+      next="The first job is to elect one server allowed to decide the order."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.RF1}>
+    <p class="prose">Raft makes one server the <b>leader</b>; everyone else follows. Time is divided into numbered <span class="hl">terms</span>. A follower that hears no heartbeat times out, becomes a <b>candidate</b>, increments the term, votes for itself, and asks the rest. Each server grants at most <b>one vote per term</b>, so only a candidate with a <b>majority</b> can win — which makes two leaders in the same term impossible.</p>
+    <RaftElection client:visible />
+    <Takeaway>Leader election is just terms + majority voting: bump the term, ask for votes, and one-vote-per-term guarantees at most one winner — no split-brain.</Takeaway>
+    <Why
+      problem="If any server could accept writes, conflicting decisions would diverge the replicas; but a fixed leader can also crash, so leadership must be reassignable."
+      idea="Elect a leader by majority vote within a numbered term, with each server voting only once per term, so exactly one leader can emerge and a new term can elect a fresh one."
+      tradeoff="Randomized timeouts usually avoid split votes, but a tie just means no winner that term — the cluster simply tries again in the next one."
+      next="With a leader in place, it can start ordering the actual commands."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.RF2}>
+    <p class="prose">The leader is the only server that takes writes. Each client command is <b>appended</b> to the leader's log, then pushed to followers with <code>AppendEntries</code>. Once a <b>majority</b> have stored an entry, the leader <span class="hl">commits</span> it — applies it to its state machine and tells the followers to apply it too. Same commands, same order, everywhere.</p>
+    <RaftLog client:visible />
+    <Takeaway>One log, one writer: the leader replicates each entry and only commits once a majority hold it, so every replica applies an identical sequence of commands.</Takeaway>
+    <Why
+      problem="Even with one leader, a copy could be missing entries or apply them out of order, which would silently diverge the replicas."
+      idea="Funnel all writes through the leader’s ordered log, replicate entries by index, and commit only after a majority store them — then apply in log order on every node."
+      tradeoff="Routing every write through one leader caps write throughput and adds a round-trip, the price of a single agreed order."
+      next="Why is “a majority” exactly the right bar for calling an entry safe?"
+    />
+  </LayerSection>
+
+  <LayerSection {...L.RF3}>
+    <p class="prose">Commitment rests on one fact about <b>majorities</b>: any two of them overlap in at least one server. So a committed entry — stored on a majority — is guaranteed to appear in the next leader's election majority, and can never be lost. Raft enforces this with an <span class="hl">election restriction</span>: a server only grants its vote to a candidate whose log is at least as <b>up to date</b> as its own, so a candidate missing committed entries can't win.</p>
+    <Takeaway>Two majorities always overlap, so a committed entry survives every future election — and the “vote only for an up-to-date log” rule keeps a leader from ever erasing committed history.</Takeaway>
+    <Why
+      problem="A naïve leader change could elect a server that’s missing already-committed entries, which would roll back acknowledged writes — the one thing a consensus system must never do."
+      idea="Define commit as majority-stored, and forbid voting for a candidate with a less-up-to-date log, so every new leader necessarily already holds every committed entry."
+      tradeoff="The restriction can reject an otherwise-willing majority and force another election round, trading a little availability for the guarantee that committed means permanent."
+      next="Put it to the test: crash the leader and watch the rules hold."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.RF4}>
+    <p class="prose">When the leader crashes, its heartbeats stop and a follower times out — exactly the election from layer 01, now in a <b>higher term</b>. The new leader wins only if its log is up to date, so no committed entry is lost. It then brings stragglers back into line: followers accept the leader's log as authoritative, <span class="hl">overwriting</span> any uncommitted entries that conflict. The cluster reconverges on its own.</p>
+    <Takeaway>A crash costs one election timeout: a higher term elects a new (sufficiently up-to-date) leader, and conflicting uncommitted tails get overwritten — automatic recovery, no operator needed.</Takeaway>
+    <SeeAlso slug="cloud" note="the replica set this is keeping consistent in the first place" />
+    <Why
+      problem="Leaders fail, and a new one may inherit followers whose logs disagree about the most recent, uncommitted entries."
+      idea="Use a higher term to supersede the dead leader, elect only an up-to-date candidate, and let the new leader force its log onto followers to resolve conflicts."
+      tradeoff="Recovery pauses writes for an election timeout, and uncommitted work on the old leader can be discarded — never committed work, which is the line Raft holds."
+      next="Step back and see the three pieces working as one."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.RF5}>
+    <p class="prose">Raft is just those three pieces composed: <b>leader election</b> picks one server to order writes, <b>log replication</b> commits an entry once a majority store it, and the <b>safety</b> rules guarantee a committed entry is never lost across leader changes. That’s strong consistency — the “C” the cloud layer gave up under CAP — bought with a majority of healthy, reachable nodes.</p>
+    <Takeaway>Election + replication + safety = a cluster that behaves like one reliable machine: it tolerates a minority failing, never loses committed data, and heals itself — as long as a majority can still talk.</Takeaway>
+    <SeeAlso slug="cloud" note="where this plugs in: the CAP tradeoff Raft resolves toward consistency" />
+    <Why
+      problem="Real systems need a single source of truth that survives crashes and network faults — the guarantee a lone server and eventually-consistent replicas can’t give."
+      idea="Compose a majority-elected leader, a majority-committed log, and an up-to-date-log voting rule into one algorithm that’s consistent and partition-tolerant."
+      tradeoff="It chooses consistency over availability under CAP: lose the majority — too many nodes down or partitioned — and the cluster correctly stops accepting writes rather than risk divergence."
+      next="Zoom back out: this is how the cloud’s coordination layer (and the databases beneath it) actually keep one truth."
+    />
+  </LayerSection>
+
+  <Quiz slug="raft" client:visible />
+  <PrevNext slug="raft" />
+</Base>
+
+<style>
+  .back-link{color:var(--accent,var(--signal))}
+</style>

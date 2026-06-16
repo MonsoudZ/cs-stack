@@ -22,7 +22,7 @@ Base also owns the cross-cutting chrome: SEO + Open Graph/Twitter + JSON-LD, the
 no-FOUC theme script + toggle, the guided tour, `j`/`k` keyboard nav, the
 scroll-spy, and the `StackNav` footer.
 
-The main stack (`src/pages/index.astro`) and all 15 deep dives (`/silicon`,
+The main stack (`src/pages/index.astro`) and all 16 deep dives (`/silicon`,
 `/cpu`, …) are the same `<Base>` with a different `layers` array and hero.
 
 ## Single sources of truth (`src/data/`)
@@ -34,8 +34,8 @@ place its facts live:
 |---|---|---|
 | `layers.js` | the main stack's 23 layers (+ `layerById`) | the spine nav + `index.astro` sections + JSON-LD topics |
 | `<x>Layers.js` | one per deep dive (`cpuLayers`, `memLayers`, …) | that page's nav + sections |
-| `stacks.js` | the 15 deep dives: `slug, name, kind, layer, accent, blurb` | `StackNav` footer, `GoDeeper`, `SeeAlso`, per-stack OG cards, `curriculum` |
-| `curriculum.js` | the guided-path order (overview + 15), derived from `stacks.js`; `key` = localStorage progress id | `/learn`, `PrevNext` |
+| `stacks.js` | the 16 deep dives: `slug, name, kind, layer, accent, blurb` | `StackNav` footer, `GoDeeper`, `SeeAlso`, per-stack OG cards, `curriculum` |
+| `curriculum.js` | the guided-path order (overview + 16), derived from `stacks.js`; `key` = localStorage progress id | `/learn`, `PrevNext` |
 | `quizzes.js` | one question per stack, keyed by slug | `Quiz.svelte` |
 
 So adding a stack to `stacks.js` automatically gives it a footer card, an OG

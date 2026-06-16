@@ -17,6 +17,7 @@ export const stacks = [
   { slug: 'crypto', name: 'Crypto', kind: 'stack', layer: '15', accent: '#ff6b6b', blurb: 'hashing, keys, key exchange, certificates, TLS, and signatures' },
   { slug: 'network', name: 'Network', kind: 'stack', layer: '16', accent: '#5b9dff', blurb: 'encapsulation, routing, reliability, congestion control, DNS, and HTTP' },
   { slug: 'cloud', name: 'Cloud', kind: 'stack', layer: '17', accent: '#2ee6c0', blurb: 'scaling out, load balancing, replicas, and the CAP tradeoff' },
+  { slug: 'raft', name: 'Consensus', kind: 'stack', layer: '17', accent: '#a78bfa', blurb: 'leader election, log replication, commits, and surviving a crash' },
   { slug: 'database', name: 'Database', kind: 'stack', layer: '18', accent: '#ffb454', blurb: 'B-trees, joins, transactions, isolation levels, durability, and replication' },
   { slug: 'render', name: 'Render', kind: 'pipeline', layer: '19', accent: '#a78bfa', blurb: 'DOM, style, layout, paint, the critical rendering path, and the event loop' },
   { slug: 'ai', name: 'AI', kind: 'stack', layer: 'app', accent: '#2ee6c0', blurb: 'the neuron, learning, tokens, embeddings, attention, the LLM, training, and RAG' },

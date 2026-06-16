@@ -1311,6 +1311,91 @@ export function buildReplication() {
   return out;
 }
 
+// --- CONSENSUS STACK (/raft) ---
+
+// Raft leader election. Five servers start as followers in term 0. When one
+// stops hearing from a leader its election timeout fires: it becomes a
+// candidate, bumps the term, votes for itself, and asks the others. A candidate
+// that collects a majority of votes becomes leader and sends heartbeats. The
+// trace runs a clean election, then crashes the leader and shows the cluster
+// heal itself with a fresh election in a higher term. Majority of 5 is 3.
+export function buildRaftElection() {
+  const MAJORITY = 3;
+  const ids = ['N0', 'N1', 'N2', 'N3', 'N4'];
+  const node = {};
+  ids.forEach((id) => (node[id] = { id, role: 'follower', term: 0, votedFor: null }));
+  const out = [];
+  const snap = (note, o = {}) => out.push({
+    nodes: ids.map((id) => ({ ...node[id], granted: (o.granted || []).includes(id) })),
+    leader: o.leader ?? null, candidate: o.candidate ?? null, votes: o.votes ?? null,
+    majority: MAJORITY, event: o.event ?? null, note,
+  });
+  snap('Five servers, all followers in term 0 — no leader yet. Each one waits a random election timeout for a heartbeat that never comes.');
+  // --- election of N0 for term 1 ---
+  node.N0 = { id: 'N0', role: 'candidate', term: 1, votedFor: 'N0' };
+  snap('N0’s timeout fires first → it becomes a CANDIDATE, bumps to term 1, and votes for itself (1 vote).', { candidate: 'N0', votes: 1, granted: ['N0'], event: 'timeout' });
+  snap('N0 sends RequestVote(term 1) to the other four and waits for replies.', { candidate: 'N0', votes: 1, granted: ['N0'], event: 'request' });
+  node.N1.votedFor = 'N0'; node.N1.term = 1;
+  snap('N1 hasn’t voted this term → it grants its vote and advances to term 1 (2 votes).', { candidate: 'N0', votes: 2, granted: ['N0', 'N1'], event: 'grant' });
+  node.N2.votedFor = 'N0'; node.N2.term = 1;
+  snap('N2 grants too → that’s 3 of 5, a MAJORITY. One vote per server per term is what stops two leaders.', { candidate: 'N0', votes: 3, granted: ['N0', 'N1', 'N2'], event: 'grant' });
+  node.N0.role = 'leader';
+  snap('N0 has a majority → it becomes LEADER for term 1.', { leader: 'N0', candidate: 'N0', votes: 3, granted: ['N0', 'N1', 'N2'], event: 'win' });
+  ids.forEach((id) => { if (id !== 'N0') { node[id].role = 'follower'; node[id].term = 1; } });
+  snap('N0 sends heartbeats (empty AppendEntries) to all → everyone resets their timeout and stays a follower. The cluster is stable.', { leader: 'N0', event: 'heartbeat' });
+  // --- the leader crashes; the cluster re-elects ---
+  node.N0.role = 'down';
+  snap('Now N0 CRASHES. Its heartbeats stop, so the followers’ election timeouts start counting down again.', { event: 'crash' });
+  node.N2 = { id: 'N2', role: 'candidate', term: 2, votedFor: 'N2' };
+  snap('N2 times out first → CANDIDATE for term 2 (a higher term always wins), voting for itself.', { candidate: 'N2', votes: 1, granted: ['N2'], event: 'timeout' });
+  node.N1.votedFor = 'N2'; node.N1.term = 2;
+  node.N3.votedFor = 'N2'; node.N3.term = 2;
+  snap('N1 and N3 grant votes for term 2 → 3 of 5 again (N0 is down and can’t reply).', { candidate: 'N2', votes: 3, granted: ['N1', 'N2', 'N3'], event: 'grant' });
+  node.N2.role = 'leader'; node.N4.term = 2;
+  snap('N2 wins → new LEADER for term 2. A crash cost one timeout, and Raft healed itself with no human in the loop.', { leader: 'N2', candidate: 'N2', votes: 3, granted: ['N1', 'N2', 'N3'], event: 'win' });
+  return out;
+}
+
+// Raft log replication. The leader is the only writer: a client command is
+// appended to the leader's log, then replicated to followers via AppendEntries.
+// Once a majority have stored an entry the leader COMMITS it, applies it to its
+// state machine, and tells the followers to apply it too — so every replica runs
+// the same commands in the same order. Three nodes here, so a majority is 2.
+export function buildRaftLog() {
+  const ids = ['N0', 'N1', 'N2'];
+  const log = { N0: [], N1: [], N2: [] };
+  const commit = { N0: 0, N1: 0, N2: 0 };
+  const out = [];
+  const stateOf = () => log.N0.slice(0, commit.N0).map((e) => e.cmd).join(', ') || '∅';
+  const snap = (note, o = {}) => out.push({
+    nodes: ids.map((id) => ({
+      id, role: id === 'N0' ? 'leader' : 'follower',
+      log: log[id].map((e) => ({ ...e })), commit: commit[id],
+    })),
+    state: stateOf(), action: o.action ?? null, client: o.client ?? null, note,
+  });
+  snap('Three servers: N0 is the leader (term 1), N1 and N2 are followers. All logs empty, state machine x = ∅.');
+  // command 1
+  snap('A client sends the command “x=1” — to the leader, the only server allowed to append.', { client: 'x=1' });
+  log.N0.push({ term: 1, cmd: 'x=1' });
+  snap('The leader APPENDS x=1 to its own log at index 1 (uncommitted — not yet safe).', { action: 'append' });
+  log.N1.push({ term: 1, cmd: 'x=1' });
+  snap('It sends AppendEntries to the followers; N1 stores x=1 and acks. Now the leader + N1 have it — that’s 2 of 3, a MAJORITY.', { action: 'replicate' });
+  commit.N0 = 1;
+  snap('Majority stored → the leader COMMITS index 1 and applies it: state machine x = 1. A committed entry can never be lost.', { action: 'commit' });
+  log.N2.push({ term: 1, cmd: 'x=1' });
+  commit.N1 = 1; commit.N2 = 1;
+  snap('N2 stores x=1 too, and the next heartbeat carries the commit index → all three apply x=1. Every replica now agrees.', { action: 'apply' });
+  // command 2
+  log.N0.push({ term: 1, cmd: 'y=2' });
+  log.N1.push({ term: 1, cmd: 'y=2' });
+  log.N2.push({ term: 1, cmd: 'y=2' });
+  snap('A second command “y=2” is appended and replicated to both followers at index 2.', { client: 'y=2', action: 'replicate' });
+  commit.N0 = 2; commit.N1 = 2; commit.N2 = 2;
+  snap('Majority again → commit and apply index 2 everywhere. Same commands, same order, same result: one consistent replicated state machine.', { action: 'commit' });
+  return out;
+}
+
 // --- DATA STRUCTURES STACK (/structures), part 2: the linked ADTs ---
 
 // A linked list: nodes scattered in memory, each holding a value and a pointer

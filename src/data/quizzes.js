@@ -111,6 +111,15 @@ export const quizzes = {
       { label: 'The cache or the database', why: 'CAP is a property of the distributed system as a whole, not a choice between components.' },
     ],
   },
+  raft: {
+    question: 'In Raft, when is a log entry safe to apply to the state machine (committed)?',
+    options: [
+      { label: 'Once a majority of servers have stored it', correct: true, why: 'The leader commits only after a majority replicate the entry; any two majorities overlap, so a committed entry survives every future election and can never be lost.' },
+      { label: 'As soon as the leader writes it to its own log', why: 'The leader appends first, but the entry is uncommitted until a majority store it — the leader could crash before replicating it to anyone.' },
+      { label: 'Only after every single server has acknowledged it', why: 'Requiring all servers would stall on any one slow or crashed node; Raft needs only a majority, which is what keeps it available under a minority failure.' },
+      { label: 'When the client retries the request', why: 'Clients don’t take part in commitment; it’s decided inside the cluster by majority replication, not by the caller.' },
+    ],
+  },
   database: {
     question: 'The READ COMMITTED isolation level stops dirty reads but still allows what?',
     options: [
