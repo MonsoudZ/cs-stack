@@ -74,7 +74,7 @@ const description = 'A deep dive into the network stack: signals on the wire, en
   </LayerSection>
 
   <LayerSection {...L.N4}>
-    <p class="prose">Before a byte of data flows, TCP <b>opens</b> the connection with a three-way handshake (<code>SYN</code> → <code>SYN-ACK</code> → <code>ACK</code>). Then it faces a question the network never answers directly: how fast can I send? It <b>probes</b> — the congestion window (<span class="hl">cwnd</span>) doubles each round-trip in <i>slow start</i>, then creeps up <b>+1</b> per round-trip; a lost packet <b>halves</b> it. That additive-increase / multiplicative-decrease rhythm is TCP's sawtooth.</p>
+    <p class="prose">Before a byte of data flows, TCP <b>opens</b> the connection with a three-way handshake (<code>SYN</code> → <code>SYN-ACK</code> → <code>ACK</code>). Then it faces a question the network never answers directly: how fast can I send? It <b>probes</b> — the congestion window (<span class="hl">cwnd</span>) doubles each round-trip in <i>slow start</i>, then creeps up <b>+1</b> per round-trip; a lost packet caught early (by duplicate acks → <i>fast retransmit</i>) <b>halves</b> it, while a full <b>timeout</b> is treated as worse — cwnd drops all the way back to 1 and slow-starts again. That additive-increase / multiplicative-decrease rhythm is TCP's sawtooth.</p>
     <Tcp client:visible />
     <Takeaway>TCP opens with a handshake, then finds a safe sending rate by itself: ramp up until loss, back off hard, repeat — sharing the link fairly without ever being told its capacity.</Takeaway>
     <Why

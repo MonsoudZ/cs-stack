@@ -47,7 +47,7 @@ const description = 'A deep dive into concurrency: threads sharing memory, race 
   </LayerSection>
 
   <LayerSection {...L.CC2}>
-    <p class="prose">Locks fix races but introduce a new failure: if Thread A holds L1 and wants L2, while Thread B holds L2 and wants L1, neither can proceed and neither will let go. That's a <b>deadlock</b> — a circular wait. The classic cure is a <span class="hl">lock ordering</span>: make every thread acquire locks in the same order.</p>
+    <p class="prose">Locks fix races but introduce a new failure: if Thread A holds L1 and wants L2, while Thread B holds L2 and wants L1, neither can proceed and neither will let go. That's a <b>deadlock</b> — a circular wait. It can only happen when four things hold at once (the <b>Coffman conditions</b>): mutual exclusion, hold-and-wait, no preemption, and that circular wait — so breaking any one of them prevents it. The classic cure is a <span class="hl">lock ordering</span>: make every thread acquire locks in the same global order, which makes the circular wait impossible to form.</p>
     <Deadlock client:visible />
     <Takeaway>Deadlock is a circle of threads each waiting on a lock the next one holds; acquiring locks in a consistent global order makes that circle impossible to form.</Takeaway>
     <Why

@@ -80,7 +80,7 @@ const bigo = [
   </LayerSection>
 
   <LayerSection {...L.S4}>
-    <p class="prose">A <b>hash map</b> turns a key into an array index by <span class="hl">hashing</span> it to a bucket. Lookup jumps straight to that bucket — no scanning. Two keys can hash to the same bucket (a <b>collision</b>), so each bucket holds a short chain you scan through.</p>
+    <p class="prose">A <b>hash map</b> turns a key into an array index by <span class="hl">hashing</span> it to a bucket. Lookup jumps straight to that bucket — no scanning. Two keys can hash to the same bucket (a <b>collision</b>), so each bucket holds a short chain you scan through. To keep those chains short as it fills up, the map tracks its <b>load factor</b> (entries ÷ buckets) and, once it crosses a threshold (often ~0.75), allocates a bigger bucket array and <span class="hl">rehashes</span> every key into it — which is what keeps lookups O(1) on average as <i>n</i> grows.</p>
     <HashMap client:visible />
     <Takeaway>A hash map buys near-instant lookup by key — at the cost of order, and of degrading to a scan when too many keys pile into one bucket.</Takeaway>
     <Why

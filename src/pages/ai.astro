@@ -28,7 +28,7 @@ const description = 'A deep dive into how AI works, from the bottom up: the neur
   </div>
 
   <LayerSection {...L.AI0}>
-    <p class="prose">The unit of every neural network is the <b>neuron</b>: take some inputs, multiply each by a <span class="hl">weight</span>, add them up with a <span class="hl">bias</span>, and pass the result through an <b>activation</b> that decides whether it fires. That's it — the rest is scale.</p>
+    <p class="prose">The unit of every neural network is the <b>neuron</b>: take some inputs, multiply each by a <span class="hl">weight</span>, add them up with a <span class="hl">bias</span>, and pass the result through an <b>activation</b>. This demo uses a hard on/off threshold to make the logic-gate analogy crisp; real networks use a <i>smooth</i> activation (like ReLU) so the result changes gradually — which is what lets the learning loop in the next layer nudge the weights at all. That's it — the rest is scale.</p>
     <Neuron client:visible />
     <Takeaway>A neuron is a weighted sum plus a threshold — literally a tunable logic gate. Its “knowledge” is nothing but its weights.</Takeaway>
     <SeeAlso slug="logic" note="a fixed-weight version of this is exactly a logic gate — here the weights are learned" />
@@ -78,7 +78,7 @@ const description = 'A deep dive into how AI works, from the bottom up: the neur
   </LayerSection>
 
   <LayerSection {...L.AI4}>
-    <p class="prose">A word's meaning depends on the words around it. <b>Attention</b> — the engine of the transformer — lets every token <span class="hl">look at</span> the others and pull in what's relevant: each token's new representation is a weighted blend of all of them, the weights set by how aligned their vectors are.</p>
+    <p class="prose">A word's meaning depends on the words around it. <b>Attention</b> — the engine of the transformer — lets every token <span class="hl">look at</span> the others and pull in what's relevant. Each token casts three vectors: a <b>query</b>, a <b>key</b>, and a <b>value</b>. How aligned one token's query is with another's key sets the weight, and it's the <i>values</i> that get blended into the new representation (not the same vectors that did the scoring). Two practical notes: attention itself ignores word order, so position is mixed in separately (a <span class="hl">positional encoding</span>); and in a text-<i>generating</i> model each token may only look back at earlier ones (<span class="hl">causal masking</span>), never ahead.</p>
     <Attention client:visible />
     <Takeaway>Attention lets each token gather context from the whole sequence — the mechanism that finally let models handle long-range meaning, and the heart of every transformer.</Takeaway>
     <Why

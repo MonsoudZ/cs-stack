@@ -97,7 +97,7 @@ const description = 'A deep dive into memory: the stack and heap, allocation and
   </LayerSection>
 
   <LayerSection {...L.M6}>
-    <p class="prose">Each program sees its own clean <b>virtual</b> address space. The MMU translates a virtual address — split into a <span class="hl">page</span> number and an offset — to a physical one, by looking the page up in a <b>page table</b>.</p>
+    <p class="prose">Each program sees its own clean <b>virtual</b> address space. The MMU translates a virtual address — split into a <span class="hl">page</span> number and an offset — to a physical one, by looking the page up in a <b>page table</b>. If a page isn't resident (its entry is marked not-present), the lookup raises a <b>page fault</b>: the CPU traps to the OS, which brings the page in from disk into a free frame, updates the table, and restarts the instruction. That's what lets the address space be larger than physical RAM — and why a access that misses to disk is thousands of times slower.</p>
     <AddressTranslation client:visible />
     <Takeaway>Virtual memory gives every process a private address space; a page table maps its virtual pages to wherever they physically live.</Takeaway>
     <SeeAlso slug="os" note="the OS owns that page table, and uses it to isolate one process from another" />

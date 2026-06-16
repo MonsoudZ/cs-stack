@@ -108,7 +108,7 @@ const description = 'A deep dive into how the browser turns code into pixels: th
   </LayerSection>
 
   <LayerSection {...L.R5}>
-    <p class="prose">A style change doesn't always re-run everything. Changing geometry (<code>width</code>) forces layout, paint, and composite. A color change skips layout. But <code>transform</code> and <code>opacity</code> only re-composite — the compositor just moves an existing layer.</p>
+    <p class="prose">A style change doesn't always re-run everything. The browser first does a quick <b>style recalc</b> (working out which rules now apply), then re-runs only the stages below it that the change actually touches. Changing geometry (<code>width</code>) forces layout, paint, and composite. A color change skips layout. But <code>transform</code> and <code>opacity</code> only re-composite — the compositor just moves an existing layer.</p>
     <RenderInvalidation client:visible />
     <Takeaway>Animate transform and opacity, not width and top: the cheap properties skip layout and paint entirely.</Takeaway>
     <Why
