@@ -1,0 +1,15 @@
+# Security headers for the Cloudflare Pages deploy. This file is copied verbatim
+# from public/ into dist/ at build time and applied to every response.
+#
+# The site is fully static and same-origin: self-hosted fonts (@fontsource,
+# bundled into /_astro), a same-origin Pagefind search index, no third-party
+# scripts, fonts, frames, or analytics — so every fetch directive is locked to
+# 'self'. script-src and style-src keep 'unsafe-inline' because the site relies
+# on inline scripts (the no-FOUC theme toggle, scroll-spy, guided tour, island
+# hydration) and runtime-computed `style:` bindings; there is no user input or
+# injection surface for them to widen.
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), microphone=(), camera=(), interest-cohort=()

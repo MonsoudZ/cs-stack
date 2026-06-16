@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { quizzes } from '../data/quizzes.js';
 import { stacks } from '../data/stacks.js';
 import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, RSA, buildSignature, buildMerkle, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum, DOPING, buildDiode, cmosInverter, nand, buildUniversal, mux2, ALU_OPS, computeAlu, PIPE_STAGES, buildPipeline, buildDeadlock, buildCas, buildLoadBalancer, buildReplication, buildLinkedList, buildStackQueue, GRAPH, buildGraphTraversal, buildStackHeap, buildAllocator, buildGc, ISOLATION_LEVELS, buildIsolation, buildTypeCheck, buildEventLoop, buildCrp, FS, buildPathResolve, buildJournal, buildSockets, buildHttp, buildTcp, buildJoin,
-  computeNeuron, buildGradientDescent, EMBEDDINGS, nearestWords, buildAttention, softmaxTemp, nextTokenDist,
+  computeNeuron, buildGradientDescent, EMBEDDINGS, nearestWords, cosineSim, buildAttention, softmaxTemp, nextTokenDist,
   tokenize, TOK_VOCAB, buildTraining, buildRag, RAG_DOCS, buildOptimize, buildAst, buildRuntimes, buildRegisters, REG_COUNT, buildScopes } from './widgets.js';
 
 const popcount = (n) => { let c = 0; n >>>= 0; while (n) { c += n & 1; n >>>= 1; } return c; };
@@ -364,6 +364,38 @@ describe('invalidatedStages (render pipeline)', () => {
     const r = invalidatedStages('composite');
     expect(r.map((s) => s.rerun)).toEqual([false, false, true]);
     expect(r.filter((s) => s.rerun)).toHaveLength(1);
+  });
+  it('throws on an unknown change kind', () => {
+    expect(() => invalidatedStages('teleport')).toThrow(/unknown change kind/);
+  });
+});
+
+describe('cosineSim (embedding similarity)', () => {
+  it('is 1 for identical directions and 0 for orthogonal vectors', () => {
+    expect(cosineSim([1, 0], [3, 0])).toBeCloseTo(1, 10); // same direction, any magnitude
+    expect(cosineSim([1, 0], [0, 1])).toBeCloseTo(0, 10); // perpendicular
+    expect(cosineSim([1, 0], [-1, 0])).toBeCloseTo(-1, 10); // opposite
+  });
+  it('returns 0 for a zero vector instead of dividing by zero', () => {
+    expect(cosineSim([0, 0], [1, 2])).toBe(0);
+    expect(cosineSim([1, 2], [0, 0])).toBe(0);
+    expect(cosineSim([0, 0], [0, 0])).toBe(0);
+  });
+});
+
+describe('softmaxTemp (temperature-scaled softmax)', () => {
+  const logits = [2, 1, 0];
+  it('always yields a probability distribution that sums to 1', () => {
+    for (const T of [0.5, 1, 2]) {
+      const p = softmaxTemp(logits, T);
+      expect(sum(p)).toBeCloseTo(1, 10);
+      expect(p.every((x) => x >= 0 && x <= 1)).toBe(true);
+    }
+  });
+  it('a lower temperature sharpens the top probability; a higher one flattens it', () => {
+    const top = (T) => Math.max(...softmaxTemp(logits, T));
+    expect(top(0.5)).toBeGreaterThan(top(1)); // cold → peakier
+    expect(top(1)).toBeGreaterThan(top(2)); // hot → flatter
   });
 });
 
