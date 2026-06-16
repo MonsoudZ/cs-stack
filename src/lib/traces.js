@@ -327,7 +327,7 @@ const MORE = {
       push({line:6,vm:['return best'],vars:{arr:'['+arr.join(', ')+']',i:arr.length-1,cur,best},touches:[10.8,10.5,10,9,8.5,7.5,7,6.5,6,5.5,5,3],result:best,finale:true,note:'best subarray sum = '+best+' (the run [4, −1, 2, 1]) climbs back up',cells:arr.map((_,k)=>({role:(k>=3&&k<=6)?'sorted':'',mark:''})),info:'answer = '+best}); return steps; } },
 
   dijkstra:{ name:'Dijkstra', header:"dijkstra(weighted graph, 'A') → shortest path to E = 9",
-    intro:'Greedy shortest paths on a weighted graph: always finalize the nearest unvisited node, then relax its edges. A tentative distance only ever shrinks — never grows.',
+    intro:'Greedy shortest paths on a weighted graph with non-negative edges: always finalize the nearest unvisited node, then relax its edges. A tentative distance only ever shrinks — never grows — which is exactly why a negative edge would break it (a later detour could undercut a “finalized” node).',
     structLabel:'③ the weighted graph + priority queue · the nearest node is finalized each step (layer 07)',
     src:['def dijkstra(graph, start)','  dist = Hash.new(Float::INFINITY)','  dist[start] = 0','  pq = [start]','  until pq.empty?','    u = pq.min_by { |n| dist[n] }','    pq.delete(u)','    graph[u].each do |v, w|','      next if dist[u] + w >= dist[v]','      dist[v] = dist[u] + w','      pq << v unless pq.include?(v)','    end','  end','  dist','end'],
     build(){ const W={'A-B':4,'A-C':1,'B-D':4,'C-D':2,'C-E':8};
@@ -364,16 +364,16 @@ const MORE = {
         let u=pq[0]; for(const n of pq) if(key[n]<key[u]) u=n;
         pq.splice(pq.indexOf(u),1); mst.push(u);
         if(from[u]!=null){ tree.push(ek(from[u],u)); total+=key[u]; }
-        push({line:8,vm:['u = pq.min_by(key) → '+u,'mst << '+u],vars:{start:'A',u,mst:'['+mst.join(', ')+']'},current:u,touches:[4,6.5,7],cpu:from[u]!=null?{label:'add cheapest edge',expr:from[u]+'–'+u+' (weight '+key[u]+')  ·  total '+total}:{label:'seed the tree',expr:'start at '+u},note:from[u]!=null?'add '+u+' via edge '+from[u]+'–'+u+' (weight '+key[u]+') — running tree weight '+total:'start the tree at '+u});
+        push({line:5,vm:['u = pq.min_by(key) → '+u,'mst << '+u],vars:{start:'A',u,mst:'['+mst.join(', ')+']'},current:u,touches:[4,6.5,7],cpu:from[u]!=null?{label:'add cheapest edge',expr:from[u]+'–'+u+' (weight '+key[u]+')  ·  total '+total}:{label:'seed the tree',expr:'start at '+u},note:from[u]!=null?'add '+u+' via edge '+from[u]+'–'+u+' (weight '+key[u]+') — running tree weight '+total:'start the tree at '+u});
         for(const [v,w] of G[u]){ if(mst.includes(v)) continue;
           if(w<key[v]){ const old=key[v]; key[v]=w; from[v]=u; if(!pq.includes(v)) pq.push(v);
-            push({line:11,vm:['key['+v+'] = '+w],vars:{start:'A',u,mst:'['+mst.join(', ')+']'},current:u,touches:[4,7],cpu:{label:'cheaper link to '+v,expr:'edge '+u+'–'+v+' = '+w+(old===Infinity?'  (was ∞)':'  < '+old)},note:'edge '+u+'–'+v+' (weight '+w+') is '+(old===Infinity?'the first link to '+v:'cheaper than '+v+'’s old '+old)+' → '+v+' now hangs off '+u});
+            push({line:10,vm:['key['+v+'] = '+w],vars:{start:'A',u,mst:'['+mst.join(', ')+']'},current:u,touches:[4,7],cpu:{label:'cheaper link to '+v,expr:'edge '+u+'–'+v+' = '+w+(old===Infinity?'  (was ∞)':'  < '+old)},note:'edge '+u+'–'+v+' (weight '+w+') is '+(old===Infinity?'the first link to '+v:'cheaper than '+v+'’s old '+old)+' → '+v+' now hangs off '+u});
           } else {
             push({line:9,vm:['w ≥ key['+v+'] → skip'],vars:{start:'A',u,mst:'['+mst.join(', ')+']'},current:u,touches:[4],cpu:{label:'link to '+v,expr:'edge '+u+'–'+v+' = '+w+' ≥ '+key[v]},note:'edge '+u+'–'+v+' (weight '+w+') is no cheaper than '+v+'’s current '+key[v]+' → leave it'});
           }
         }
       }
-      push({line:15,vm:['return mst'],vars:{start:'A',u:'–',mst:'['+mst.join(', ')+']'},touches:[10.8,10.5,10,9,8.5,7.5,7,6.5,6,5.5,5,3],result:total,finale:true,note:'spanning tree complete — minimum total weight '+total+' climbs back up the layers'}); return steps; } }
+      push({line:14,vm:['return mst'],vars:{start:'A',u:'–',mst:'['+mst.join(', ')+']'},touches:[10.8,10.5,10,9,8.5,7.5,7,6.5,6,5.5,5,3],result:total,finale:true,note:'spanning tree complete — minimum total weight '+total+' climbs back up the layers'}); return steps; } }
 };
 Object.assign(METHODS, MORE);
 METHOD_ORDER.push('twopointer','sliding','dfs','dp','insort','linear','bubble','kadane','dijkstra','prim');

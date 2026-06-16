@@ -833,7 +833,7 @@ export function buildIsolation({ level = 'READ COMMITTED' } = {}) {
     ? 'READ UNCOMMITTED allows both a dirty read and a non-repeatable read — fastest, least safe'
     : level === 'READ COMMITTED'
       ? 'READ COMMITTED blocks the dirty read, but the value still changed between T1’s reads — a non-repeatable read'
-      : 'REPEATABLE READ hands T1 a stable snapshot: every read returns 100, no anomaly — this is what MVCC buys, at the cost of keeping old row versions around';
+      : 'REPEATABLE READ hands T1 a stable snapshot: every read returns 100, no dirty or non-repeatable read — this is what MVCC buys (the ANSI level still allows phantoms; SERIALIZABLE blocks those too), at the cost of keeping old row versions around';
   snap(verdict);
   return out;
 }

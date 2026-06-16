@@ -93,7 +93,7 @@ const description = 'A deep dive into the crypto behind a secure connection: has
   </LayerSection>
 
   <LayerSection {...L.X6}>
-    <p class="prose">Encryption hides data; a <b>signature</b> proves its origin and integrity. Alice hashes a message and encrypts that hash with her <span class="hl">private</span> key — anyone can decrypt it with her <span class="hl">public</span> key and check it against the message's hash. Only she could have produced it, and changing one character breaks the match.</p>
+    <p class="prose">Encryption hides data; a <b>signature</b> proves its origin and integrity — and it's <i>not</i> encryption. Alice <b>signs</b> the message's hash with her <span class="hl">private</span> key (an operation only she can perform); anyone <b>verifies</b> it with her <span class="hl">public</span> key, checking the result against the message's own hash. Only she could have produced it, and changing one character breaks the match.</p>
     <Signature client:visible />
     <p class="prose">Scale that idea up and you get a <b>Merkle tree</b>: hash each block of data, then hash those hashes pairwise, all the way up to a single <span class="hl">root</span>. The root is a fingerprint of <i>everything</i> below it — so one tampered block changes its leaf, then its parent, then the root, caught with a single comparison.</p>
     <Merkle client:visible />
