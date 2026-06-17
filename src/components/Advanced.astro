@@ -1,0 +1,28 @@
+---
+// An optional "go deeper" disclosure for a layer — the advanced detail that
+// would overwhelm the intro flow, tucked behind a collapsible <details> so
+// beginners skip it and advanced readers can expand it. Same pattern as Why,
+// tinted amber to read as "extra depth" rather than core narrative.
+const { title = 'Go deeper' } = Astro.props;
+---
+<details class="adv">
+  <summary>{title}</summary>
+  <div class="adv-body"><slot /></div>
+</details>
+
+<style>
+  .adv{margin-top:14px;border:1px solid var(--border);border-radius:14px;background:var(--surface);overflow:hidden}
+  .adv summary{font-family:var(--mono);font-size:12px;letter-spacing:.13em;text-transform:uppercase;color:var(--amber);
+    cursor:pointer;list-style:none;padding:13px 16px;display:flex;align-items:center;justify-content:space-between;gap:14px}
+  .adv summary::-webkit-details-marker{display:none}
+  .adv summary::after{content:"+";font-size:16px;color:var(--faint);transition:.16s}
+  .adv[open] summary{border-bottom:1px solid var(--border);background:var(--fill)}
+  .adv[open] summary::after{content:"–";color:var(--amber)}
+  .adv summary:hover{background:var(--fill)}
+  .adv-body{padding:16px;color:var(--dim);line-height:1.65;font-size:14px}
+  .adv-body :global(p){margin:0 0 11px}
+  .adv-body :global(p:last-child){margin-bottom:0}
+  .adv-body :global(b){color:var(--ink)}
+  .adv-body :global(code){font-family:var(--mono);font-size:.9em;color:var(--ink);background:rgba(120,200,255,.09);padding:1px 5px;border-radius:5px}
+  @media print{.adv{background:#fff}.adv[open] summary{background:#f3f5f7}}
+</style>

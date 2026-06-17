@@ -259,6 +259,11 @@ test('Quiz: wrong answer gives feedback, correct answer marks the lesson done on
   await quiz.getByRole('button', { name: 'try again' }).click();
   await quiz.getByRole('button', { name: /no exact binary form/ }).click();
   await expect(quiz.locator('.quiz-verdict')).toContainText('Correct');
+  // the tiered quiz exposes harder questions: switch to the Hard tier and solve it
+  await quiz.getByRole('tab', { name: /hard/i }).click();
+  await expect(quiz.locator('.quiz-q')).toContainText('x + 1.0 == x');
+  await quiz.getByRole('button', { name: /spacing between representable doubles is larger than 1/ }).click();
+  await expect(quiz.locator('.quiz-verdict')).toContainText('Correct');
   // the guided path now reflects the numbers lesson as done
   await page.goto('/learn');
   await expect(page.locator('.path-item[data-key="numbers"] .path-done')).toHaveAttribute('aria-pressed', 'true');

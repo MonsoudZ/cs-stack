@@ -21,15 +21,38 @@ export const quizzes = {
       { label: 'CPUs are only allowed to use NAND', why: 'Chips use many gate types; NAND is just provably sufficient on its own.' },
     ],
   },
-  numbers: {
-    question: 'Why isn’t 0.1 + 0.2 exactly 0.3 in floating point?',
-    options: [
-      { label: '0.1 and 0.2 have no exact binary form, so each is rounded — and the sum rounds again', correct: true, why: 'Like ⅓ in decimal, tenths repeat forever in base 2; the stored values are a hair off, and the rounded sum lands on a different double than stored 0.3.' },
-      { label: 'Floating-point hardware has bugs', why: 'It’s behaving exactly to spec (IEEE-754); the “error” is unavoidable rounding, not a defect.' },
-      { label: 'Because 0.3 is a prime number', why: '0.3 isn’t an integer, let alone prime; the issue is binary representability.' },
-      { label: 'Integer overflow wraps the result', why: 'No overflow is involved — these are fractional values, rounded to the nearest representable double.' },
-    ],
-  },
+  numbers: [
+    {
+      level: 'easy',
+      question: 'Why isn’t 0.1 + 0.2 exactly 0.3 in floating point?',
+      options: [
+        { label: '0.1 and 0.2 have no exact binary form, so each is rounded — and the sum rounds again', correct: true, why: 'Like ⅓ in decimal, tenths repeat forever in base 2; the stored values are a hair off, and the rounded sum lands on a different double than stored 0.3.' },
+        { label: 'Floating-point hardware has bugs', why: 'It’s behaving exactly to spec (IEEE-754); the “error” is unavoidable rounding, not a defect.' },
+        { label: 'Because 0.3 is a prime number', why: '0.3 isn’t an integer, let alone prime; the issue is binary representability.' },
+        { label: 'Integer overflow wraps the result', why: 'No overflow is involved — these are fractional values, rounded to the nearest representable double.' },
+      ],
+    },
+    {
+      level: 'medium',
+      question: 'A double has 52 stored mantissa bits. Above which value can it no longer represent every integer exactly?',
+      options: [
+        { label: '2⁵³ — past it, the gap between consecutive doubles exceeds 1, so some integers round to a neighbour', correct: true, why: 'The implicit leading 1 gives 53 significant bits, so every integer up to 2⁵³ is exact; beyond it the spacing (the ulp) is ≥ 2, and odd integers can’t be stored.' },
+        { label: '2³², the limit of a 32-bit integer', why: 'That’s the range of a 32-bit int — unrelated to a 64-bit double’s mantissa, which stays integer-exact far past 2³².' },
+        { label: 'There is no limit — doubles represent every integer', why: 'Only finitely many bit patterns exist; once the gap between representable values exceeds 1, integers must round.' },
+        { label: '2⁵², the number of stored mantissa bits', why: 'Off by one: the hidden leading 1 bit makes 53 significant bits, so the exact-integer limit is 2⁵³, not 2⁵².' },
+      ],
+    },
+    {
+      level: 'hard',
+      question: 'For a large double x, why can `x + 1.0 == x` evaluate to true?',
+      options: [
+        { label: 'Near x the spacing between representable doubles is larger than 1, so adding 1.0 rounds straight back to x', correct: true, why: 'This is absorption: when the ulp at x exceeds the value being added, the small operand falls below the rounding threshold and is lost entirely.' },
+        { label: 'The literal 1.0 underflows to zero before the addition', why: 'Underflow is about values too small to represent near zero; 1.0 is fine. The loss happens in the rounding of the sum, not the operand.' },
+        { label: 'Comparing floats with == is simply undefined behaviour', why: '== on floats is well-defined; here it’s correctly reporting that the rounded sum equals x.' },
+        { label: 'The compiler optimizes away any “+ 1.0”', why: 'It can’t — the result genuinely depends on x; for small x, x + 1.0 ≠ x. The effect is numeric (absorption), not a compiler trick.' },
+      ],
+    },
+  ],
   cpu: {
     question: 'What does pipelining improve?',
     options: [

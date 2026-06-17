@@ -1,17 +1,31 @@
 <script>
   import { quizzes } from '../data/quizzes.js';
   let { slug } = $props();
-  const quiz = quizzes[slug];
-  let picked = $state(null); // index of the chosen option, or null
-  let chosen = $derived(picked == null ? null : quiz.options[picked]);
+  const raw = quizzes[slug];
+  // Normalize to a list of questions. A legacy single-question entry
+  // ({question, options}) becomes a one-element list, so stacks that haven't
+  // been given tiered quizzes yet keep working unchanged.
+  const questions = Array.isArray(raw)
+    ? raw
+    : raw ? [{ level: 'check', question: raw.question, options: raw.options }] : [];
+  const multi = questions.length > 1;
+
+  let active = $state(0);
+  let picked = $state(questions.map(() => null)); // chosen option index per question
+  let q = $derived(questions[active]);
+  let here = $derived(picked[active]);
+  let chosen = $derived(here == null ? null : q.options[here]);
 
   function pick(i) {
-    if (picked != null) return; // lock after first answer
-    picked = i;
-    if (quiz.options[i].correct) markDone();
+    if (picked[active] != null) return; // lock after first answer
+    picked[active] = i;
+    if (q.options[i].correct) markDone();
   }
-  function reset() { picked = null; }
-  // A correct answer marks this lesson done in the same store /learn reads.
+  function reset() { picked[active] = null; }
+  function select(i) { active = i; }
+  const solved = (i) => picked[i] != null && questions[i].options[picked[i]].correct;
+
+  // A correct answer (on any tier) marks this lesson done in the store /learn reads.
   function markDone() {
     try {
       const KEY = 'stack:progress';
@@ -22,33 +36,48 @@
   }
 </script>
 
-{#if quiz}
+{#if questions.length}
   <section class="quiz" aria-label="Check your understanding">
     <div class="quiz-tag">Check your understanding</div>
-    <p class="quiz-q">{quiz.question}</p>
+    {#if multi}
+      <div class="quiz-levels" role="tablist" aria-label="Difficulty">
+        {#each questions as qq, i}
+          <button
+            type="button"
+            class="quiz-level lvl-{qq.level}"
+            class:on={active === i}
+            class:solved={solved(i)}
+            role="tab"
+            aria-selected={active === i}
+            onclick={() => select(i)}
+          >{qq.level}{solved(i) ? ' ✓' : ''}</button>
+        {/each}
+      </div>
+    {/if}
+    <p class="quiz-q">{q.question}</p>
     <ul class="quiz-opts" role="list">
-      {#each quiz.options as opt, i}
+      {#each q.options as opt, i}
         <li>
           <button
             type="button"
             class="quiz-opt"
-            class:correct={picked != null && opt.correct}
-            class:wrong={picked === i && !opt.correct}
-            disabled={picked != null}
-            aria-pressed={picked === i}
+            class:correct={here != null && opt.correct}
+            class:wrong={here === i && !opt.correct}
+            disabled={here != null}
+            aria-pressed={here === i}
             onclick={() => pick(i)}
           >
-            <span class="quiz-mark" aria-hidden="true">{picked != null && opt.correct ? '✓' : picked === i ? '✗' : ''}</span>
+            <span class="quiz-mark" aria-hidden="true">{here != null && opt.correct ? '✓' : here === i ? '✗' : ''}</span>
             <span class="quiz-label">{opt.label}</span>
           </button>
-          {#if picked != null && (picked === i || opt.correct)}
+          {#if here != null && (here === i || opt.correct)}
             <p class="quiz-why" class:ok={opt.correct}>{opt.why}</p>
           {/if}
         </li>
       {/each}
     </ul>
     <div class="quiz-foot" role="status" aria-live="polite">
-      {#if picked != null}
+      {#if here != null}
         <span class="quiz-verdict" class:ok={chosen.correct}>{chosen.correct ? '✓ Correct — lesson marked done on your path.' : '✗ Not quite — see the highlighted answer.'}</span>
         <button type="button" class="quiz-reset" onclick={reset}>try again</button>
       {/if}
@@ -59,6 +88,15 @@
 <style>
   .quiz{max-width:680px;margin:40px auto 0;border:1px solid var(--border);border-radius:16px;padding:22px 24px;background:var(--surface)}
   .quiz-tag{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--signal);margin-bottom:10px}
+  .quiz-levels{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+  .quiz-level{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);
+    border:1px solid var(--border);border-radius:999px;padding:6px 13px;background:var(--bg);cursor:pointer;transition:.15s}
+  .quiz-level:hover{color:var(--ink);border-color:var(--faint)}
+  .quiz-level.on{color:var(--ink);border-color:var(--accent,var(--signal))}
+  .quiz-level.lvl-easy.on{border-color:var(--signal);color:var(--signal)}
+  .quiz-level.lvl-medium.on{border-color:var(--amber);color:var(--amber)}
+  .quiz-level.lvl-hard.on{border-color:var(--red);color:var(--red)}
+  .quiz-level.solved{border-color:var(--signal)}
   .quiz-q{margin:0 0 16px;font-size:17px;font-weight:500;color:var(--ink);line-height:1.45}
   .quiz-opts{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
   .quiz-opt{width:100%;display:flex;align-items:baseline;gap:10px;text-align:left;font:inherit;font-size:15px;color:var(--dim);

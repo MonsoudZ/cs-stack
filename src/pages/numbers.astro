@@ -9,6 +9,7 @@ import FloatGrid from '../components/FloatGrid.svelte';
 import FloatSum from '../components/FloatSum.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
+import Advanced from '../components/Advanced.astro';
 import Quiz from '../components/Quiz.svelte';
 import PrevNext from '../components/PrevNext.astro';
 import SeeAlso from '../components/SeeAlso.astro';
@@ -28,6 +29,10 @@ const description = 'A deep dive into how computers represent numbers: binary pl
     <p class="prose">Give each wire a <span class="hl">place value</span> — 1, 2, 4, 8, … — and a row of on/off bits <i>is</i> a number: just add up the weights of the bits that are on. This is plain binary, and it only ever counts up from zero.</p>
     <Bits client:visible />
     <Takeaway>Unsigned binary is decimal’s idea — place value — with only two digits; the pattern of bits names a whole number.</Takeaway>
+    <Advanced>
+      <p>Programmers rarely write raw binary — they group it. <b>Hex</b> packs four bits into one digit (so <code>0xFF</code> is <code>1111 1111</code> = 255) and <b>octal</b> three; both are just binary in disguise, which is why memory dumps, color codes, and byte literals use hex.</p>
+      <p>Bits clump into <b>bytes</b> (8) and machine <b>words</b> (32 or 64 bits — the native register width). When a multi-byte number sits in memory, byte order matters: <b>little-endian</b> machines (x86, ARM) store the least-significant byte first, <b>big-endian</b> ones (and most network protocols) store it last — the source of countless cross-platform and wire-format bugs.</p>
+    </Advanced>
     <Why
       problem="Hardware stores only on/off, but programs need quantities, not just yes/no."
       idea="Weight each bit by a power of two and sum the ones — a compact, hardware-friendly way to write any non-negative whole number."
@@ -41,6 +46,10 @@ const description = 'A deep dive into how computers represent numbers: binary pl
     <TwosComplement client:visible />
     <Takeaway>Two’s complement encodes negatives by making the high bit count downward, so one adder handles both signs — at the cost of a hard wrap from the largest positive to the most negative.</Takeaway>
     <SeeAlso slug="cpu" note="the ALU that runs this arithmetic in hardware, flags and all" />
+    <Advanced>
+      <p>Why two's complement and not a plain sign bit? <b>Sign-magnitude</b> (top bit = sign) and <b>one's complement</b> (negate by flipping) both burn a bit pattern on a useless <i>negative zero</i> and need special-case adders. Two's complement has a single zero and lets one ordinary adder handle every combination of signs — which is why essentially all hardware uses it.</p>
+      <p>The price is an <b>asymmetric range</b>: in 8 bits, −128 has no positive twin, so negating <code>INT_MIN</code> overflows back to itself. Widening a signed value <b>sign-extends</b> — the top bit is copied leftward — so −1 reads as −1 whether it's 8, 16, or 32 bits wide.</p>
+    </Advanced>
     <Why
       problem="Programs need negative numbers, but the bits offer no symbol for a sign and we don’t want a second, separate subtractor."
       idea="Let the most significant bit carry a negative weight; then “flip and add one” negates, and ordinary binary addition handles mixed signs for free."
@@ -53,6 +62,10 @@ const description = 'A deep dive into how computers represent numbers: binary pl
     <p class="prose">For fractions and huge ranges, floating point borrows <b>scientific notation</b>: a sign, an <span class="hl">exponent</span> that slides the point, and a <b>mantissa</b> for the digits — plus a free leading <b>1</b> that normalized values assume but never store. Toggle the bits below — the same layout as a real 64-bit double, just smaller.</p>
     <FloatBits client:visible />
     <Takeaway>Floating point spends its bits on a sign, an exponent, and a mantissa, reaching from the tiny to the enormous — but only landing on a fixed set of values.</Takeaway>
+    <Advanced>
+      <p>A 64-bit <b>double</b> is 1 sign bit, 11 exponent bits, and 52 mantissa bits. The exponent is stored <b>biased</b> by 1023 (so it encodes negatives without its own sign), and normalized numbers carry that <b>implicit leading 1</b> — 53 significant bits from 52 stored.</p>
+      <p>The exponent's two extremes are reserved: all-zeros means <b>zero or a subnormal</b>; all-ones means <b>infinity</b> (mantissa 0) or <b>NaN</b> (mantissa ≠ 0). NaN is why <code>NaN !== NaN</code> is <i>true</i>, and how <code>0.0/0.0</code> or <code>sqrt(-1)</code> propagate an error through a calculation instead of crashing it.</p>
+    </Advanced>
     <Why
       problem="One fixed scale can’t cover both 0.000001 and 1,000,000 with useful precision."
       idea="Store a mantissa (the significant digits) and an exponent (where the point goes), so the same bits float across an enormous dynamic range."
@@ -65,6 +78,10 @@ const description = 'A deep dive into how computers represent numbers: binary pl
     <p class="prose">Because the exponent scales the <i>whole</i> number, the gap between neighbouring representable values <b>doubles every octave</b>: floats are dense near zero and sparse far from it. Any value that falls between two ticks is rounded to the nearer one.</p>
     <FloatGrid client:visible />
     <Takeaway>Floating-point precision isn’t uniform — the further from zero, the wider the gaps, so “how exact” depends entirely on how big the number is.</Takeaway>
+    <Advanced>
+      <p>The gap between one double and the next is its <b>ulp</b> (unit in the last place); it doubles each power of two, so precision is <i>relative</i>, not absolute. Right around zero a special trick fills the gap: <b>subnormals</b> drop the implicit leading 1 to represent values below the smallest normal, giving <i>gradual</i> underflow toward zero instead of an abrupt jump.</p>
+      <p>Rounding isn't truncation, either — IEEE-754 defaults to <b>round-half-to-even</b> ("banker's rounding"), which breaks ties toward the even last digit to avoid the upward bias that round-half-up would accumulate across millions of operations.</p>
+    </Advanced>
     <Why
       problem="We expect numbers to be equally precise everywhere, but a fixed mantissa can’t deliver that across a huge range."
       idea="Keep a constant number of significant bits and let the exponent place them, which means absolute precision shrinks near zero and coarsens far away."
@@ -77,6 +94,10 @@ const description = 'A deep dive into how computers represent numbers: binary pl
     <p class="prose">A tenth can't be written exactly in binary — like ⅓ in decimal, it repeats forever. So <code>0.1</code> and <code>0.2</code> each round to the nearest double, their sum rounds <i>again</i>, and it lands on a value just past <code>0.3</code> — which is itself a different double.</p>
     <FloatSum client:visible />
     <Takeaway>0.1 + 0.2 ≠ 0.3 isn’t a bug: it’s two unrepresentable decimals, each rounded, whose rounded sum simply doesn’t equal the rounded 0.3.</Takeaway>
+    <Advanced>
+      <p>The smallest gap near 1.0 is <b>machine epsilon</b> (~2.2×10⁻¹⁶ for a double) — the yardstick for "close enough." Since exact <code>===</code> is fragile, compare with a tolerance, and prefer a <b>relative</b> one (<code>|a−b| ≤ ε·max(|a|,|b|)</code>): an absolute tolerance that works near 1 is hopeless near 10⁹ or 10⁻⁹.</p>
+      <p>For exact money or counts, don't use floats at all — use integer cents or a decimal type. And when summing many values, naive addition lets rounding error pile up; <b>Kahan summation</b> carries the lost low-order bits forward to recover most of it. This is the practical toolkit the 0.1 + 0.2 surprise is really teaching.</p>
+    </Advanced>
     <Why
       problem="Decimal fractions like 0.1 look exact to us but have no finite binary form, so they can’t be stored precisely."
       idea="Round each to the nearest representable double; arithmetic then operates on those approximations and rounds the result too."

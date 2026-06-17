@@ -1028,15 +1028,21 @@ describe('quizzes (check-your-understanding integrity)', () => {
     const stackSlugs = new Set(stacks.map((s) => s.slug));
     for (const slug of slugs) expect(stackSlugs.has(slug), `quiz ${slug} has no stack`).toBe(true);
   });
-  it('each quiz has a question and exactly one correct option, with feedback on every option', () => {
+  it('every quiz question has text and exactly one correct option, with feedback on every option', () => {
     for (const slug of slugs) {
-      const q = quizzes[slug];
-      expect(typeof q.question, slug).toBe('string');
-      expect(q.options.length, slug).toBeGreaterThanOrEqual(2);
-      expect(q.options.filter((o) => o.correct).length, `${slug} must have exactly one correct`).toBe(1);
-      for (const o of q.options) {
-        expect(o.label, slug).toBeTruthy();
-        expect(o.why && o.why.length > 0, `${slug} option "${o.label}" needs a why`).toBe(true);
+      // a quiz is either a single question (legacy) or a list of tiered questions
+      const raw = quizzes[slug];
+      const questions = Array.isArray(raw) ? raw : [raw];
+      expect(questions.length, `${slug} has no questions`).toBeGreaterThanOrEqual(1);
+      for (const q of questions) {
+        const where = q.level ? `${slug}/${q.level}` : slug;
+        expect(typeof q.question, where).toBe('string');
+        expect(q.options.length, where).toBeGreaterThanOrEqual(2);
+        expect(q.options.filter((o) => o.correct).length, `${where} must have exactly one correct`).toBe(1);
+        for (const o of q.options) {
+          expect(o.label, where).toBeTruthy();
+          expect(o.why && o.why.length > 0, `${where} option "${o.label}" needs a why`).toBe(true);
+        }
       }
     }
   });
