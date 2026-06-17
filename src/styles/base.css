@@ -89,7 +89,7 @@
 
   /* ---------- HERO ---------- */
   header.hero{position:relative;z-index:2;padding:90px 24px 40px;max-width:1180px;margin:0 auto}
-  .kicker{font-family:var(--mono);font-size:12px;letter-spacing:.34em;text-transform:uppercase;color:var(--signal);
+  .kicker{font-family:var(--mono);font-size:13px;letter-spacing:.24em;text-transform:uppercase;color:var(--signal);
     display:flex;align-items:center;gap:12px}
   .kicker::before{content:"";width:34px;height:1px;background:var(--signal);box-shadow:0 0 8px var(--signal)}
   h1.title{font-family:var(--disp);font-weight:800;font-size:clamp(44px,9vw,108px);line-height:.92;margin:18px 0 0;
