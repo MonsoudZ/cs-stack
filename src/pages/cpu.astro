@@ -7,6 +7,7 @@ import AluUnit from '../components/AluUnit.svelte';
 import Pipeline from '../components/Pipeline.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
+import Advanced from '../components/Advanced.astro';
 import Quiz from '../components/Quiz.svelte';
 import PrevNext from '../components/PrevNext.astro';
 import SeeAlso from '../components/SeeAlso.astro';
@@ -25,6 +26,10 @@ const description = 'A deep dive into the processor: registers, the fetch-decode
   <LayerSection {...L.CP0}>
     <p class="prose">Main memory is far away in CPU time. So the processor keeps a handful of <b>registers</b> right on the chip — named slots it can read and write in a single cycle. The whole instruction cycle is really just shuffling values between registers, memory, and the <span class="hl">ALU</span>.</p>
     <Takeaway>Registers are the CPU’s working desk: a few values it can touch instantly, where nearly all the actual work happens.</Takeaway>
+    <Advanced>
+      <p>The handful of <i>architectural</i> registers an instruction set names is a fiction the hardware upholds. A modern out-of-order core has a much larger <b>physical register file</b> (often 100+ entries) and uses <b>register renaming</b> to map each write of, say, <code>rax</code> to a fresh physical register. This dissolves <i>false</i> dependencies — a later instruction reusing the same name doesn't have to wait on an unrelated earlier one (a write-after-write or write-after-read hazard).</p>
+      <p>This is also why <b>superscalar</b> CPUs can issue several instructions per cycle and run them <b>out of order</b>: with names decoupled from storage, the scheduler tracks only the real data dependencies and retires results in program order to preserve the illusion of sequential execution.</p>
+    </Advanced>
     <Why
       problem="The CPU computes far faster than it can reach memory, so working directly from RAM would leave it stalled almost all the time."
       idea="Keep a tiny set of on-chip registers — including the program counter — that read and write in a single cycle, and operate out of those."
@@ -37,6 +42,10 @@ const description = 'A deep dive into the processor: registers, the fetch-decode
     <p class="prose">The CPU repeats one loop forever: <b>fetch</b> the instruction the program counter points at, <b>decode</b> what it means, <b>execute</b> it, and advance. Each number in memory is treated as a command. Step the toy CPU below and watch the program counter and registers move.</p>
     <Cpu client:visible />
     <Takeaway>A CPU is just a loop that reads a number, treats it as a command, does it, and moves to the next — fast enough to look like magic.</Takeaway>
+    <Advanced>
+      <p>That instructions and data share one memory is the <b>von Neumann</b> design, and it makes the program counter just another value — which is exactly what enables self-modifying code, JITs, and (less happily) return-oriented exploits. The decode step also has to handle <b>variable-length</b> encodings on CISC machines like x86, where an instruction can be 1–15 bytes, so the CPU can't even know where the next one starts until it has partly decoded this one.</p>
+      <p>High-performance cores hide this by <b>predecoding</b> instructions into fixed-width internal <b>micro-ops</b> (µops) and caching them, so the messy front-end runs once and the back-end sees a clean, uniform stream.</p>
+    </Advanced>
     <Why
       problem="We want one reusable machine that runs any program, not a custom circuit per task."
       idea="Store instructions as numbers in memory and loop: fetch the one at the program counter, decode it, execute it, then point at the next."
@@ -50,6 +59,10 @@ const description = 'A deep dive into the processor: registers, the fetch-decode
     <AluUnit client:visible />
     <Takeaway>The ALU is one block that does all the arithmetic and logic; its flags are the breadcrumbs that let the CPU make decisions.</Takeaway>
     <SeeAlso slug="numbers" note="how these bit patterns become signed numbers, and why they overflow" />
+    <Advanced>
+      <p>The <b>C</b> and <b>V</b> flags answer different questions about the <i>same</i> addition. <b>C</b> is the literal carry out of the top bit — overflow if you read the operands as <b>unsigned</b>. <b>V</b> is <b>signed</b> overflow, and the ALU computes it as the XOR of the carry <i>into</i> the top bit and the carry <i>out</i> of it: equivalently, V is set when two same-signed inputs produce a result of the opposite sign.</p>
+      <p>This is why one adder serves both worlds: <code>0xFF + 0x01</code> sets C (unsigned 255+1 wrapped) but clears V (signed −1+1 = 0 is correct), whereas <code>0x7F + 0x01</code> clears C but sets V (signed 127+1 overflowed to −128). Conditional branches like "less than" pick which flags to test depending on whether the comparison was signed or unsigned.</p>
+    </Advanced>
     <Why
       problem="Execute has to perform many different operations — add, subtract, compare, mask bits — without a separate machine for each."
       idea="Build one ALU whose opcode selects the operation, and have it emit condition flags alongside the result so comparisons and branches are nearly free."
@@ -62,6 +75,10 @@ const description = 'A deep dive into the processor: registers, the fetch-decode
     <p class="prose">Each instruction passes through stages — fetch, decode, execute, memory, write-back. Run them one-at-a-time and most of the chip sits idle. <b>Pipelining</b> starts a new instruction every cycle, like an assembly line, so all five stages stay busy at once.</p>
     <Pipeline client:visible />
     <Takeaway>Pipelining doesn’t make one instruction faster — it overlaps many, so the CPU retires roughly one per cycle instead of one per five.</Takeaway>
+    <Advanced>
+      <p>Overlap creates three families of <b>hazards</b>. A <b>structural</b> hazard is two instructions wanting the same resource in the same cycle (one reason caches are split into separate instruction and data ports). A <b>data</b> hazard is one instruction needing a result another hasn't produced yet. A <b>control</b> hazard is not knowing which instruction comes next until a branch resolves.</p>
+      <p>The pipeline's win is also fragile: deeper pipelines allow higher clocks but make each flush more expensive, and the speedup never reaches the stage count because real code is full of these dependencies. This tension is what the whole next layer — and decades of microarchitecture — exists to manage.</p>
+    </Advanced>
     <Why
       problem="If an instruction must fully finish before the next begins, four-fifths of the processor is idle at any instant."
       idea="Split execution into stages and keep all of them working by feeding a new instruction into the front every cycle."
@@ -73,6 +90,10 @@ const description = 'A deep dive into the processor: registers, the fetch-decode
   <LayerSection {...L.CP4}>
     <p class="prose">The assembly line assumes instructions are independent. They often aren't: if <code>add</code> needs the result <code>sub</code> hasn't written back yet, that's a <b>data hazard</b>. The simplest fix is to <span class="hl">stall</span> — insert a bubble until the value is ready — and a smarter one is <b>forwarding</b>, routing the result straight from one stage to another before it's even saved.</p>
     <Takeaway>Hazards are the price of overlap: when instructions depend on each other, the pipeline must stall or forward, and a wrong branch guess throws away work in flight.</Takeaway>
+    <Advanced>
+      <p>Rather than stall on every branch, the CPU <b>predicts</b> it — modern predictors track per-branch history and correlations and hit well over 95% — and runs the guessed path <b>speculatively</b>, throwing the work away if the guess was wrong. To keep its units busy across a guessed branch it also executes <i>past</i> the branch <b>out of order</b>, retiring results only once they're confirmed correct.</p>
+      <p>That speculation is the root of the <b>Spectre</b> class of attacks: instructions on a mis-predicted path are architecturally discarded, but their <i>side effects</i> on the cache survive, and a timing measurement can read out secret data they speculatively touched. The leak isn't a logic bug — it's the performance trick itself, which is why mitigations cost real speed.</p>
+    </Advanced>
     <Why
       problem="Overlapping instructions can need a value that an earlier, not-yet-finished instruction is still computing."
       idea="Detect the dependency and either stall the pipeline a cycle (a bubble) or forward the result directly between stages so it arrives just in time."
@@ -85,6 +106,10 @@ const description = 'A deep dive into the processor: registers, the fetch-decode
     <p class="prose">Every stage advances on the tick of a <b>clock</b>. A faster clock means more cycles per second — so for decades, chips simply ran hotter and faster. Then they hit a <span class="hl">power wall</span>: past a few GHz, the heat became unmanageable. The answer wasn't faster, it was <b>wider</b> — more cores.</p>
     <Takeaway>The clock turned out to have a ceiling: when raw speed stopped scaling, the industry went parallel — which is exactly why concurrency became everyone’s problem.</Takeaway>
     <SeeAlso slug="concurrency" note="writing correct software for all those parallel cores" />
+    <Advanced>
+      <p>The power wall is physics: dynamic switching power scales roughly as <b>P ∝ C·V²·f</b>, and historically pushing frequency <i>f</i> higher also demanded higher voltage <i>V</i> — a cubic-ish blow-up in heat. For decades <b>Dennard scaling</b> let voltage fall as transistors shrank, keeping power density flat; when it broke down around 2005, clocks stalled near a few GHz even as transistor counts kept rising.</p>
+      <p>The escape was <b>parallelism over frequency</b>: more cores, wider vector units (SIMD), and a growing share of silicon left as <b>dark</b> — power-gated off because not all of it can be lit at once. Performance gains since then come from doing more <i>per</i> cycle and across cores, not from a faster tick.</p>
+    </Advanced>
     <Why
       problem="A single clocked core can only be pushed so fast before power and heat grow faster than the performance you buy."
       idea="Stop chasing GHz and replicate the core: put many CPUs on one chip and run work in parallel across them."

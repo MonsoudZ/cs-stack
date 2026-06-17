@@ -8,6 +8,7 @@ import Mosfet from '../components/Mosfet.svelte';
 import CmosInverter from '../components/CmosInverter.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
+import Advanced from '../components/Advanced.astro';
 import Quiz from '../components/Quiz.svelte';
 import PrevNext from '../components/PrevNext.astro';
 const L = Object.fromEntries(siliconLayers.map((l) => [l.id, l]));
@@ -25,6 +26,10 @@ const description = 'A deep dive into the physics under the stack: doping, the P
   <LayerSection {...L.SI0}>
     <p class="prose">Silicon sits in the periodic table's sweet spot: four outer electrons, every one locked into a bond with a neighbour in a tidy crystal. With no charge free to move, pure silicon is a <span class="hl">semiconductor</span> — not quite a conductor, not quite an insulator. That "almost" is the whole opportunity.</p>
     <Takeaway>Pure silicon barely conducts — and being right on the edge is exactly what lets a tiny change flip it between blocking and passing current.</Takeaway>
+    <Advanced>
+      <p>Silicon's near-insulating behaviour comes from its <b>band gap</b> — the ~1.12 eV energy step an electron must jump to become free to conduct. Insulators have a gap too wide to cross; metals have none; semiconductors sit in between, so warmth or light can lift a few electrons across and conductivity <i>rises</i> with temperature (the opposite of a metal).</p>
+      <p>Even undoped, the crystal carries a tiny <b>intrinsic</b> current: thermal energy frees a handful of electron–hole pairs. That sensitivity to heat is exactly why doping must overwhelm it with controlled carriers, and why leakage worsens as chips run hot.</p>
+    </Advanced>
     <Why
       problem="To build a switch we need a material we can push between two states — conducting and not — reliably, billions of times, in a space too small to see."
       idea="Use a semiconductor: a crystal whose conductivity sits on a knife’s edge, so a small, controllable nudge tips it one way or the other."
@@ -37,6 +42,10 @@ const description = 'A deep dive into the physics under the stack: doping, the P
     <p class="prose">Mix in a trace of another element and the crystal gains carriers. <b>Phosphorus</b> (five outer electrons) leaves a spare electron free to roam — <span class="hl">n-type</span>. <b>Boron</b> (three) leaves a missing bond, a <span class="hl">hole</span> that drifts like a positive charge — <span class="hl">p-type</span>.</p>
     <Doping client:visible />
     <Takeaway>Doping turns inert silicon into a conductor on demand: donors add free electrons (n-type), acceptors add holes (p-type).</Takeaway>
+    <Advanced>
+      <p>Doping is staggeringly dilute: a heavily doped region is roughly one dopant atom per ten thousand to one per ten million silicon atoms, yet it can raise conductivity by many orders of magnitude. The carriers a region <i>doesn't</i> rely on still exist — electrons in p-type, holes in n-type — as sparse <b>minority carriers</b>, and their behaviour governs leakage and junction physics.</p>
+      <p>Doping also shifts the <b>Fermi level</b> — the energy around which states are filled — toward the conduction band in n-type and the valence band in p-type. That offset is precisely what builds the internal field when the two are joined into a junction.</p>
+    </Advanced>
     <Why
       problem="A semiconductor on the edge is useless until we can decide which way it leans — and add charge carriers we control."
       idea="Substitute a few atoms with ones that have one more or one fewer outer electron, seeding the crystal with free electrons or holes."
@@ -49,6 +58,10 @@ const description = 'A deep dive into the physics under the stack: doping, the P
     <p class="prose">Join p-type and n-type material and something remarkable happens at the seam: electrons fill nearby holes, leaving a carrier-free <span class="hl">depletion region</span> that blocks current. Push from one side and it collapses (current flows); push from the other and it widens (blocked). A <b>one-way valve</b>.</p>
     <Diode client:visible />
     <Takeaway>A PN junction conducts in only one direction — the first real device, the diode, built purely from where two doped regions meet.</Takeaway>
+    <Advanced>
+      <p>The depletion region's width isn't fixed — it tracks the bias. A <b>reverse</b> bias pulls carriers away from the seam, <i>widening</i> the depletion zone and deepening the block; a <b>forward</b> bias pushes carriers in, <i>narrowing</i> it until, past the junction's <b>built-in potential</b> (~0.7 V for silicon), current flows freely.</p>
+      <p>Because that widening zone is a charge-free gap between two conductive regions, a reverse-biased junction behaves as a voltage-dependent <b>capacitor</b> — the basis of the varactor — and pushed hard enough into reverse it undergoes <b>avalanche</b> or <b>Zener breakdown</b>, conducting sharply at a precise voltage that the Zener diode exploits as a reference.</p>
+    </Advanced>
     <Why
       problem="Carriers alone don’t compute; we need a structure whose conduction we can steer with an applied voltage."
       idea="Abut p-type and n-type silicon so a depletion region forms, giving a junction that passes current one way and blocks the other."
@@ -61,6 +74,10 @@ const description = 'A deep dive into the physics under the stack: doping, the P
     <p class="prose">A <b>MOSFET</b> adds a control terminal: a metal <span class="hl">gate</span> sitting over an insulator above the silicon. Raise the gate voltage past a threshold and it pulls a conducting <b>channel</b> into existence between source and drain. One voltage decides whether another can flow — a switch with no moving parts.</p>
     <Mosfet client:visible />
     <Takeaway>The MOSFET is the payoff: a voltage on an isolated gate conjures or removes a channel, making a fast, tiny, electrically-controlled switch.</Takeaway>
+    <Advanced>
+      <p>The gate doesn't just need <i>any</i> voltage — it must exceed the <b>threshold voltage</b> (<code>V_th</code>). Below it the channel is empty; above it the field inverts the surface, pulling minority carriers into a thin <b>inversion layer</b> that becomes the channel (an n-channel device inverts a p-type body into an electron channel). Conduction depends on the <i>overdrive</i> <code>V_GS − V_th</code>, not the raw gate voltage.</p>
+      <p>The "MOS" names the stack: <b>metal</b> (now usually doped poly­silicon or a metal) over an <b>oxide</b> insulator over the <b>semiconductor</b>. As that oxide thinned to a few atomic layers, electrons began to <b>tunnel</b> straight through it — gate leakage — which forced the industry to swap silicon dioxide for thicker <b>high-κ</b> dielectrics like hafnium oxide.</p>
+    </Advanced>
     <Why
       problem="A diode conducts one way but can’t be turned on and off by a separate signal — computation needs a controllable switch."
       idea="Float a gate above the channel on a thin insulator; its voltage attracts carriers to form (or starve) a channel, switching current without touching it."
@@ -73,6 +90,10 @@ const description = 'A deep dive into the physics under the stack: doping, the P
     <p class="prose">Stack a p-type FET (which pulls the output up to HIGH) above an n-type FET (which pulls it down to LOW), tie their gates together, and you have a <b>CMOS inverter</b>: because a p-type FET conducts when its gate is LOW and an n-type when its gate is HIGH, the shared input switches exactly one of them on — so the output is always the <i>opposite</i> of the input. That's a <span class="hl">NOT</span> gate — and it sips almost no power while idle.</p>
     <CmosInverter client:visible />
     <Takeaway>Two complementary switches make a logic gate: the CMOS inverter is the bridge from silicon physics to Boolean logic — and the reason chips can pack billions of gates without melting.</Takeaway>
+    <Advanced>
+      <p>CMOS "sips almost no power while idle" because it burns energy mainly when it <i>switches</i>. Each transition charges and discharges the load capacitance, giving <b>dynamic power</b> ≈ <code>C·V²·f</code> — quadratic in supply voltage, which is why lowering <code>V</code> was the great lever for efficiency. A brief <b>short-circuit</b> current also flows while both transistors are momentarily partly on during a transition.</p>
+      <p>The catch is <b>static leakage</b>: even idle, sub-threshold conduction and gate tunnelling drain current. As transistors shrank, <code>V_th</code> had to drop alongside <code>V</code>, and sub-threshold leakage grows exponentially as <code>V_th</code> falls — so leakage went from negligible to a dominant share of a modern chip's power, ending the era of ever-rising clock speeds (the end of <b>Dennard scaling</b>).</p>
+    </Advanced>
     <Why
       problem="A lone transistor switches current, but logic needs gates that compute clean, restored HIGH/LOW outputs without wasting power."
       idea="Pair a pull-up (p-type) and pull-down (n-type) transistor so one is always off; the output is driven firmly to a rail and almost no current flows straight through."

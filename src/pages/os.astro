@@ -8,6 +8,7 @@ import PathResolve from '../components/PathResolve.svelte';
 import Journal from '../components/Journal.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
+import Advanced from '../components/Advanced.astro';
 import Quiz from '../components/Quiz.svelte';
 import PrevNext from '../components/PrevNext.astro';
 import SeeAlso from '../components/SeeAlso.astro';
@@ -26,6 +27,10 @@ const description = 'A deep dive into the operating system: processes, the sched
   <LayerSection {...L.O0}>
     <p class="prose">A program on disk is inert text. A <b>process</b> is that program <i>running</i>: its machine code, plus live <span class="hl">state</span> — registers, a program counter, a stack, and its own private slice of memory the OS hands it.</p>
     <Takeaway>A process is a program in motion — code plus the running state and isolated memory the OS gives it.</Takeaway>
+    <Advanced>
+      <p>The process is the unit of <b>isolation</b>, but it isn't what the scheduler actually runs — a <b>thread</b> is. A process owns the address space and resources; the threads inside it are the schedulable streams of execution, each with its own stack and registers but sharing that one address space.</p>
+      <p>Creating a process is cheap on Linux because <code>fork()</code> uses <b>copy-on-write</b>: the child shares the parent's physical pages read-only, and a page is only duplicated when one side first writes to it. That's why <code>fork()</code> immediately followed by <code>exec()</code> barely copies anything at all.</p>
+    </Advanced>
     <Why
       problem="A machine runs many programs, and each must believe it has the CPU and memory to itself without seeing the others."
       idea="Wrap each running program in a process: a bundle of execution state and a private address space the OS owns and protects."
@@ -39,6 +44,10 @@ const description = 'A deep dive into the operating system: processes, the sched
     <Scheduler client:visible />
     <Takeaway>The scheduler fakes "everything at once" by giving each process a quick turn in a relentless rotation.</Takeaway>
     <SeeAlso slug="concurrency" note="that mid-instruction pausing is exactly what makes race conditions possible" />
+    <Advanced>
+      <p>Modern kernels are <b>preemptive</b>: the timer interrupt lets the scheduler forcibly take the CPU back, so one runaway thread can't freeze the system. Older <b>cooperative</b> schedulers relied on each task voluntarily yielding — simpler, but one stuck task hangs everything.</p>
+      <p>Picking who runs next is a fairness problem. Linux's <b>CFS</b> tracks each thread's accumulated runtime and always favors the one that has run least, weighted by priority (<b>nice</b> value), which approximates giving every thread its fair share. Pure fixed priorities are simpler but risk <b>starvation</b> — a low-priority thread that never runs because higher ones always exist.</p>
+    </Advanced>
     <Why
       problem="One CPU can run only one instruction stream at a time, yet a dozen programs all want to make progress now."
       idea="Slice time into small quanta and rotate the ready processes through the CPU, parking any that block on I/O until they’re ready again."
@@ -50,6 +59,10 @@ const description = 'A deep dive into the operating system: processes, the sched
   <LayerSection {...L.O2}>
     <p class="prose">To pause process A and run B, the OS performs a <b>context switch</b>: it copies A's live registers and program counter into A's saved state, then loads B's back into the CPU. The hardware can't tell — B simply resumes as if it never stopped.</p>
     <Takeaway>A context switch is save-A's-registers, load-B's: the CPU is reused, the illusion of continuity preserved.</Takeaway>
+    <Advanced>
+      <p>Not all switches cost the same. Switching between <b>threads of the same process</b> only swaps registers and the stack pointer — the address space is shared, so the page tables stay put. Switching to a <i>different process</i> also reloads the page-table base register, which on most x86 hardware <b>flushes the TLB</b> (the cache of virtual-to-physical translations).</p>
+      <p>That TLB flush is the hidden expense: the new process starts with cold address translations and takes a burst of <b>TLB misses</b> before it's back up to speed. <b>Tagged TLBs</b> (via a per-address-space ID, like x86 PCID) avoid the full flush, which is why thread switches and PCID-aware process switches are so much cheaper than a naive one.</p>
+    </Advanced>
     <Why
       problem="The CPU has exactly one set of registers, but a paused process must later resume exactly where it left off."
       idea="Snapshot the outgoing process’s register state into memory and restore the incoming one’s, so each picks up mid-thought."
@@ -62,6 +75,10 @@ const description = 'A deep dive into the operating system: processes, the sched
     <p class="prose">A program can't touch the disk or network itself — that's privileged. So <code>read()</code> is really a <b>trap</b>: it switches the CPU into <span class="hl">kernel mode</span>, runs the kernel's handler, and returns. The boundary is what makes sharing safe.</p>
     <Syscall client:visible />
     <Takeaway>A system call is a guarded doorway: user code traps into the kernel, which does the privileged work and hands control back.</Takeaway>
+    <Advanced>
+      <p>A syscall isn't a normal call — it's a <b>trap</b> through a dedicated instruction (<code>syscall</code> on x86-64), which switches to kernel mode and jumps to one fixed entry point. The user side can't pick which kernel code runs; it passes a <b>syscall number</b> in a register and the kernel dispatches on it.</p>
+      <p>How arguments travel is fixed by the <b>ABI</b>, not the language: x86-64 Linux puts the number in <code>rax</code> and arguments in <code>rdi, rsi, rdx, r10, r8, r9</code> — deliberately not the normal C call registers, since the kernel can't trust the user stack. The kernel must treat every argument as hostile, copying user buffers in carefully and validating each pointer before it dereferences it.</p>
+    </Advanced>
     <Why
       problem="If any program could drive the hardware directly, one bug or one bad actor could corrupt the disk, spy on others, or crash the machine."
       idea="Run user code in an unprivileged mode and force every privileged request through a trap into the kernel, which checks it before acting."
@@ -73,6 +90,10 @@ const description = 'A deep dive into the operating system: processes, the sched
   <LayerSection {...L.O4}>
     <p class="prose">An <b>interrupt</b> is the hardware yanking the CPU's attention: a key is pressed, a packet lands, or — crucially — a <span class="hl">timer</span> fires. The CPU drops what it's doing, jumps to the kernel's handler, and the kernel decides what happens next.</p>
     <Takeaway>Interrupts let hardware (especially the timer) seize the CPU, so the OS never has to trust a program to give it back.</Takeaway>
+    <Advanced>
+      <p>Interrupts are the alternative to <b>polling</b> — spinning in a loop asking "ready yet?" Polling wastes cycles when events are rare but wins when they're constant and latency is critical, which is why high-throughput drivers (and Linux's <b>NAPI</b> for networking) switch from interrupts to polling under heavy load to avoid an interrupt storm.</p>
+      <p>A handler must finish fast because it runs with interrupts disabled, so the kernel splits the work in two: the <b>top half</b> (the interrupt handler proper) does the bare minimum — acknowledge the device, stash the data — and schedules a <b>bottom half</b> (a softirq, tasklet, or workqueue) to do the heavier processing later with interrupts re-enabled.</p>
+    </Advanced>
     <Why
       problem="A program stuck in a tight loop would hold the CPU forever, and waiting on devices by constantly polling them would waste it."
       idea="Let devices raise interrupts that force control into the kernel, and have a periodic timer interrupt guarantee the OS regains control."
@@ -86,6 +107,10 @@ const description = 'A deep dive into the operating system: processes, the sched
     <PathResolve client:visible />
     <Takeaway>A filesystem is a naming layer over raw blocks: directories map names to inodes, inodes point at scattered blocks — so you say a path and never touch a block number.</Takeaway>
     <SeeAlso slug="memory" note="the allocator does the same blocks-and-fragmentation dance for the heap" />
+    <Advanced>
+      <p>An inode can't hold an unbounded block list inline, so it uses a few <b>direct</b> block pointers plus <b>indirect</b> ones: a single-indirect pointer points at a block <i>full of</i> pointers, double-indirect adds another level, and so on. Small files are reached in one hop; huge files cost an extra read or two to walk the indirection tree.</p>
+      <p>Note that a file's <i>name</i> lives in its directory entry, not its inode — the inode is the file. That's why a <b>hard link</b> is just a second directory entry pointing at the same inode, the file's data isn't freed until its link count hits zero, and renaming within a filesystem only rewrites directory entries, never the data blocks.</p>
+    </Advanced>
     <Why
       problem="Storage hardware only offers numbered blocks, but humans and programs need named, growable files arranged in folders."
       idea="Add a layer of indirection: inodes describe files and where their blocks are; directories are just files that map names to inode numbers, so a path resolves by walking them."
@@ -99,6 +124,10 @@ const description = 'A deep dive into the operating system: processes, the sched
     <Journal client:visible />
     <Takeaway>Journaling makes multi-step disk updates atomic: write the intent ahead of the change, so after a crash the filesystem is always either fully updated or untouched — never half-written.</Takeaway>
     <SeeAlso slug="database" note="the exact same write-ahead-log idea that makes database commits durable" />
+    <Advanced>
+      <p>Journaling has levels that trade safety for speed. <b>Journal</b> mode logs both metadata <i>and</i> file data — safest, but every byte is written twice. <b>Ordered</b> mode (the common default) journals only metadata but forces the data blocks to disk <i>before</i> the metadata commit, so a recovered file never points at someone else's stale blocks. <b>Writeback</b> mode journals metadata with no ordering guarantee — fastest, but a crash can expose garbage in just-extended files.</p>
+      <p>The commit itself relies on a <b>barrier</b>: the journal entry and its commit marker must be durably on the platter before the in-place update begins, or a drive's write cache could reorder them and defeat the whole scheme. This is the same <b>write-ahead logging</b> principle databases use for durable commits.</p>
+    </Advanced>
     <Why
       problem="A single logical change (link a file) is several physical writes, and power can die between them, corrupting the filesystem."
       idea="Write-ahead the change to a journal and mark it committed before touching the real structures; on restart, replay committed entries and drop incomplete ones."
@@ -110,6 +139,10 @@ const description = 'A deep dive into the operating system: processes, the sched
   <LayerSection {...L.O7}>
     <p class="prose">One tick, end to end: a process is running, the <b>timer interrupt</b> fires, control traps into the kernel, the kernel <b>context-switches</b> the running process out, the <b>scheduler</b> picks the next one, and a return-from-trap resumes it — over and over, thousands of times a second, while the filesystem keeps everyone's data straight underneath.</p>
     <Takeaway>The OS stays in charge through one repeating loop — interrupt, save, choose, restore — and owns the storage every program reads and writes: the referee and the record-keeper at once.</Takeaway>
+    <Advanced>
+      <p>The "thousands of times a second" is the kernel's <b>tick</b> rate (historically the <code>HZ</code> setting), but a fixed tick wastes power waking an idle CPU just to do nothing. Modern <b>tickless</b> kernels stop the periodic timer when a core is idle or running a single task, and program a <b>one-shot</b> timer only for the next deadline that actually matters.</p>
+      <p>Not every return from the kernel resumes the <i>same</i> thread: each trap or interrupt is a chance to reschedule. The kernel checks a "need-resched" flag on the way back to user mode, and if it's set — a higher-priority thread woke, or this one's quantum expired — it context-switches instead of returning, which is how the loop stays responsive between ticks.</p>
+    </Advanced>
     <Why
       problem="The illusion that many programs run at once, safely and fairly, with durable data, has to be maintained continuously without any program’s cooperation."
       idea="Drive scheduling from the timer interrupt so control always returns to the kernel, and mediate every disk access through the filesystem so data stays named and consistent."

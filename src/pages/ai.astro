@@ -12,6 +12,7 @@ import Training from '../components/Training.svelte';
 import Rag from '../components/Rag.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
+import Advanced from '../components/Advanced.astro';
 import SeeAlso from '../components/SeeAlso.astro';
 import Quiz from '../components/Quiz.svelte';
 import PrevNext from '../components/PrevNext.astro';
@@ -32,6 +33,10 @@ const description = 'A deep dive into how AI works, from the bottom up: the neur
     <Neuron client:visible />
     <Takeaway>A neuron is a weighted sum plus a threshold — literally a tunable logic gate. Its “knowledge” is nothing but its weights.</Takeaway>
     <SeeAlso slug="logic" note="a fixed-weight version of this is exactly a logic gate — here the weights are learned" />
+    <Advanced>
+      <p>A whole layer of neurons is really one <b>matrix multiply</b> plus a bias vector, then the activation applied elementwise — which is why GPUs (and tensor cores) are so well suited to it. The <b>nonlinearity</b> is the crucial part: stack linear layers without one and they collapse algebraically into a single linear map, so the network could never learn a curved boundary no matter how deep.</p>
+      <p>Modern transformers don't use a hard threshold or even plain ReLU everywhere — their feed-forward blocks favor smooth gated variants like <b>GELU</b> or <b>SwiGLU</b>, which keep small gradients flowing so deep stacks stay trainable.</p>
+    </Advanced>
     <Why
       problem="We want a single, uniform building block that can represent any decision, yet be adjusted by a machine rather than wired by hand."
       idea="Make the block a weighted sum + activation: changing the weights changes the decision, so a learning process can shape it."
@@ -44,6 +49,10 @@ const description = 'A deep dive into how AI works, from the bottom up: the neur
     <p class="prose">Nobody hand-sets billions of weights. Instead the model <b>learns</b>: measure how wrong it is (the <span class="hl">loss</span>), compute which way each weight should move to shrink that error (the <b>gradient</b>), and nudge every weight a little downhill. Repeat. That loop is all training is.</p>
     <GradientDescent client:visible />
     <Takeaway>Training is gradient descent: follow the slope of the loss downhill, one small step at a time, until the predictions fit — scaled to billions of weights over oceans of data.</Takeaway>
+    <Advanced>
+      <p>The gradient for every weight is computed by <b>backpropagation</b> — the chain rule run backward through the network, reusing each layer's stored activations so the whole pass costs about as much as one forward pass. Training never uses the full dataset at once: it estimates the gradient from a <b>mini-batch</b> (stochastic gradient descent), and optimizers like <b>Adam</b> adapt a per-weight step size using running averages of past gradients.</p>
+      <p>At LLM scale the model won't fit on one chip, so the same loop is split across thousands of accelerators with <b>data, tensor, and pipeline parallelism</b>, and the <b>learning rate</b> is warmed up then decayed — getting that schedule wrong is a common way for a giant run to diverge.</p>
+    </Advanced>
     <Why
       problem="A neuron is only useful with the right weights, and there are far too many to set by hand or guess."
       idea="Define a loss that measures error, use calculus to find the downhill direction for each weight, and step that way repeatedly — gradient descent."
@@ -56,6 +65,10 @@ const description = 'A deep dive into how AI works, from the bottom up: the neur
     <p class="prose">A model doesn't read words — it reads <b>tokens</b>: chunks from a fixed vocabulary, where common words are one token and rarer ones split into <span class="hl">subwords</span>. Each token is just an id. It's also why a model that only sees “straw”+“berry” can fumble the letters in “strawberry”.</p>
     <Tokenize client:visible />
     <Takeaway>Text is broken into subword tokens — ids from a fixed vocabulary — before anything else happens. The model never sees letters or words, only token ids.</Takeaway>
+    <Advanced>
+      <p>The usual algorithm is <b>byte-pair encoding</b> (BPE): start from raw bytes and greedily merge the most frequent adjacent pair over and over, building a vocabulary (typically ~50k–200k tokens) where common strings become single tokens and rare ones stay split. Operating on bytes means <i>any</i> input — emoji, code, unseen languages — is always representable, never out-of-vocabulary.</p>
+      <p>This is the root of two famous weaknesses. The model sees token ids, not characters, so <b>spelling</b> tasks ("how many r's in strawberry") and <b>arithmetic</b> are hard — a number like <code>1234</code> may tokenize as one chunk in one context and split oddly in another, so digit positions don't line up. It's also why the same text costs different token counts across models, and why non-English text often uses more tokens for the same meaning.</p>
+    </Advanced>
     <Why
       problem="A neural net needs a fixed, finite set of input symbols, but language has unlimited words, typos, and names."
       idea="Learn a vocabulary of subword pieces so any text splits into known tokens — frequent words stay whole, rare ones break into parts, nothing is unrepresentable."
@@ -69,6 +82,10 @@ const description = 'A deep dive into how AI works, from the bottom up: the neur
     <Embeddings client:visible />
     <Takeaway>Embeddings turn symbols into vectors where closeness means relatedness — so the model can do arithmetic on meaning, not just match characters.</Takeaway>
     <SeeAlso slug="numbers" note="it’s all floating-point vectors underneath — meaning, encoded as numbers" />
+    <Advanced>
+      <p>The embedding is a learned lookup table — one row per vocabulary token, of width <i>d</i> (the model dimension, often a few thousand) — and in most LLMs the same matrix is <b>tied</b> to the output layer that turns the final hidden state back into token scores. These are <b>context-free</b> at the input: every occurrence of a token starts from the identical vector, and it's the attention and feed-forward layers above that make the representation contextual.</p>
+      <p>That's the key difference from older <b>word2vec/GloVe</b> embeddings, which were the model's whole output; here they're just layer zero. Similarity is usually measured by <b>cosine</b> (the angle), and famous "king − man + woman ≈ queen" analogies are a property of the geometry, not something the model was explicitly told.</p>
+    </Advanced>
     <Why
       problem="Words are discrete symbols with no inherent notion of “similar,” but a model needs a smooth, numeric space to compute over."
       idea="Learn a vector per token so that semantic relationships show up as geometric ones — distance and direction encode meaning."
@@ -81,6 +98,10 @@ const description = 'A deep dive into how AI works, from the bottom up: the neur
     <p class="prose">A word's meaning depends on the words around it. <b>Attention</b> — the engine of the transformer — lets every token <span class="hl">look at</span> the others and pull in what's relevant. Each token casts three vectors: a <b>query</b>, a <b>key</b>, and a <b>value</b>. How aligned one token's query is with another's key sets the weight, and it's the <i>values</i> that get blended into the new representation (not the same vectors that did the scoring). Two practical notes: attention itself ignores word order, so position is mixed in separately (a <span class="hl">positional encoding</span>); and in a text-<i>generating</i> model each token may only look back at earlier ones (<span class="hl">causal masking</span>), never ahead.</p>
     <Attention client:visible />
     <Takeaway>Attention lets each token gather context from the whole sequence — the mechanism that finally let models handle long-range meaning, and the heart of every transformer.</Takeaway>
+    <Advanced>
+      <p>The exact operation is <b>scaled dot-product attention</b>: <code>softmax(QKᵀ / √d) · V</code>, where dividing by √d keeps the scores from saturating the softmax. <b>Multi-head</b> attention runs many of these in parallel on slices of the vector, so different heads can specialize — one tracking syntax, another coreference — and their outputs are concatenated. Causal masking is implemented by setting the future positions' scores to −∞ <i>before</i> the softmax, so they contribute zero.</p>
+      <p>Because attention is order-agnostic, position must be injected. Many current models use <b>RoPE</b> (rotary position embeddings), which rotates Q and K by an angle proportional to position, so the dot product depends only on <i>relative</i> distance — which generalizes to longer sequences better than the original fixed sinusoids. To tame the quadratic cost, production models also lean on tricks like <b>grouped-query attention</b> and <b>FlashAttention</b> (a memory-efficient kernel), and sometimes sliding-window or sparse attention.</p>
+    </Advanced>
     <Why
       problem="A fixed embedding can’t tell which “bank” you mean, or what “it” refers to — meaning is contextual, and earlier models lost track over distance."
       idea="Let every token compute attention weights over all the others (softmax of vector alignments) and mix their values accordingly, so context flows in directly."
@@ -93,6 +114,10 @@ const description = 'A deep dive into how AI works, from the bottom up: the neur
     <p class="prose">For all its scale, a large language model does one thing: <b>predict the next token</b>. Given the text so far, it outputs a score for every possible next token; <span class="hl">softmax</span> turns those into probabilities, <b>temperature</b> tunes the randomness, and it samples one — then feeds it back and repeats.</p>
     <NextToken client:visible />
     <Takeaway>An LLM is a next-token predictor in a loop: a probability over what comes next, sample, append, repeat. Everything else — the apparent reasoning — emerges from doing that at enormous scale.</Takeaway>
+    <Advanced>
+      <p>The raw outputs are <b>logits</b>; <b>temperature</b> divides them before softmax (lower = sharper and more deterministic, higher = flatter and more random), and then a <b>sampling</b> rule picks one. <b>Top-k</b> keeps only the k highest-probability tokens; <b>top-p</b> (nucleus) keeps the smallest set whose probability mass exceeds p — adapting how many candidates survive to how confident the model is. Setting temperature to 0 collapses this to greedy/argmax decoding.</p>
+      <p>Generation is made incremental by the <b>KV cache</b>: since each new token attends to all previous ones, the model stores every past token's keys and values and reuses them, so each step is one token's worth of work instead of re-encoding the whole prefix. That cache grows linearly with sequence length and, alongside attention's quadratic cost, is a real reason the <b>context window</b> is bounded — long contexts are expensive in memory, not just compute.</p>
+    </Advanced>
     <Why
       problem="“Understand language and respond” is far too vague to optimize; you need a concrete, measurable objective to train against."
       idea="Reduce it to next-token prediction over mountains of text — a simple loss, yet learning it well demands grammar, facts, and reasoning-like structure."
@@ -105,6 +130,10 @@ const description = 'A deep dive into how AI works, from the bottom up: the neur
     <p class="prose">A freshly pretrained model is a brilliant <b>autocompleter</b>, not an assistant — ask it a question and it might just continue with more questions. Two more phases fix that: <b>supervised fine-tuning</b> on curated instruction→answer pairs teaches it to respond, and <b>preference tuning</b> (RLHF) — learning from humans ranking its outputs — makes it helpful and safe.</p>
     <Training client:visible />
     <Takeaway>Pretraining gives the model language and knowledge; fine-tuning and RLHF align it into something that follows instructions and feels like an assistant.</Takeaway>
+    <Advanced>
+      <p>The three phases differ enormously in scale. <b>Pretraining</b> burns the vast majority of the compute on trillions of tokens of self-supervised next-token prediction; <b>supervised fine-tuning</b> uses a far smaller, curated set of instruction→response demonstrations; <b>preference tuning</b> then optimizes against human (or AI) rankings. Classic <b>RLHF</b> trains a separate reward model from those rankings and improves the policy with PPO, while <b>RLAIF</b> replaces much of the human labeling with an AI judge guided by written principles (constitutional AI).</p>
+      <p>Newer pipelines often skip the explicit reward model with methods like <b>DPO</b>, which optimizes the preference objective directly. A recurring hazard is <b>reward hacking</b> — the model learns to please the reward signal (verbose, sycophantic, over-hedged answers) rather than genuinely improve — and a <b>KL penalty</b> against the reference model is used to keep it from drifting too far and degrading.</p>
+    </Advanced>
     <Why
       problem="Predicting likely internet text isn’t the same as being helpful — a pretrained model will happily ramble, refuse nothing, and mimic any style."
       idea="Keep the pretrained knowledge, then fine-tune on examples of good responses and on human preferences, steering behavior without retraining from scratch."
@@ -118,6 +147,10 @@ const description = 'A deep dive into how AI works, from the bottom up: the neur
     <Rag client:visible />
     <Takeaway>RAG grounds the model by retrieving relevant text into its context; tools let it act. Both work around a frozen, sometimes-hallucinating model by feeding it real, current information.</Takeaway>
     <SeeAlso slug="structures" note="retrieval is nearest-neighbour search over embedding vectors — the similarity from earlier, at scale" />
+    <Advanced>
+      <p>Under RAG, documents are chunked and embedded into a <b>vector index</b> queried by approximate nearest neighbour (HNSW and friends), often blended with classic keyword search (<b>hybrid retrieval</b>) and a <b>reranker</b> that re-scores the top candidates before they're pasted into the prompt. Retrieval quality dominates: irrelevant or contradictory chunks reliably produce wrong answers, and chunking strategy (size, overlap) quietly decides what's findable.</p>
+      <p>Tool use is exposed as <b>function calling</b> — the model emits a structured request (a name plus JSON arguments), the host runs the real function, and the result is fed back as another turn. Standards like <b>MCP</b> formalize how tools and data sources are described to the model, and chaining retrieval, tools, and multi-step planning is the basis of today's <b>agents</b> — which also widen the attack surface to <b>prompt injection</b> hidden inside retrieved or tool-returned content.</p>
+    </Advanced>
     <Why
       problem="A model can’t know what happened after training or what’s in your private documents, yet it will answer anyway — fluently and wrongly."
       idea="Retrieve relevant text at query time and put it in the context (RAG), and let the model call tools for live data or exact computation, then condition its answer on what came back."
@@ -130,6 +163,10 @@ const description = 'A deep dive into how AI works, from the bottom up: the neur
     <p class="prose">Put it together: a <b>neuron</b> is a weighted sum; stack millions and tune them by <b>gradient descent</b>; chop text into <b>tokens</b> and turn each into an <b>embedding</b> so meaning is geometry; let <b>attention</b> mix in context; train the whole thing to <b>predict the next token</b>, then <b>fine-tune</b> it into an assistant and <b>ground</b> it with retrieval. Run that loop and it writes. No magic — just the stack, all the way up.</p>
     <Takeaway>AI isn’t a new kind of machine — it’s the same one. Floating-point math on a CPU/GPU, fed by memory, scaled across the cloud: a weighted sum, repeated until it speaks.</Takeaway>
     <SeeAlso slug="cloud" note="training and serving these models is what fills the data centers the cloud stack describes" />
+    <Advanced>
+      <p>The whole climb is one architecture: a <b>decoder-only transformer</b>, which is just dozens of identical blocks — attention then a feed-forward network, each wrapped with a residual connection and normalization — stacked on top of the embedding and below the output head. Almost everything that scaled it came from making that block cheaper or wider, not from new kinds of parts.</p>
+      <p>Two ideas tie the stack to the rest of computing. The <b>scaling laws</b> say loss falls predictably as parameters, data, and compute grow together (Chinchilla-style balance), which is why frontier models are so resource-hungry. And the capabilities that feel like reasoning — chain-of-thought, in-context learning — are <b>emergent</b> consequences of next-token prediction at scale, running as floating-point matrix math on the GPUs, memory, and data centers every layer below provides.</p>
+    </Advanced>
     <Why
       problem="AI is easy to mystify, which makes it hard to reason about — what it can do, where it fails, and why."
       idea="See it as a stack of simple, inspectable parts: weighted sums, a learning loop, vectors, attention, and next-token sampling — each one pokeable here."

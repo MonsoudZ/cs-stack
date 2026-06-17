@@ -13,6 +13,7 @@ import Scopes from '../components/Scopes.svelte';
 import Why from '../components/Why.astro';
 import SeeAlso from '../components/SeeAlso.astro';
 import Takeaway from '../components/Takeaway.astro';
+import Advanced from '../components/Advanced.astro';
 import Quiz from '../components/Quiz.svelte';
 import PrevNext from '../components/PrevNext.astro';
 const L = Object.fromEntries(compilerLayers.map((l) => [l.id, l]));
@@ -30,6 +31,10 @@ const description = 'A deep dive into how code stops being text: lexing into tok
   <LayerSection {...L.K0}>
     <p class="prose">Source code is a <b>human</b> artifact: names, indentation, comments, infix math like <code>3 + 4 * 2</code>. The machine cares about none of it — to run, the text has to be taken apart and rebuilt as operations.</p>
     <Takeaway>Source is for people; everything below this layer exists to translate it into something a CPU can execute.</Takeaway>
+    <Advanced>
+      <p>Real pipelines aren't one straight shot from text to machine code — they pass through one or more <b>intermediate representations (IRs)</b>. A typical compiler lowers source to a high-level IR, then a mid-level one (LLVM's <code>IR</code>, GCC's <code>GIMPLE</code>), then a low-level, target-shaped one before emitting assembly.</p>
+      <p>The payoff is the classic <b>front-end / back-end split</b>: <i>N</i> languages and <i>M</i> targets would naively need <i>N×M</i> compilers, but a shared IR turns that into <i>N</i> front ends plus <i>M</i> back ends. It's why <code>clang</code>, <code>rustc</code>, and <code>swiftc</code> can all reuse LLVM's optimizer and code generators.</p>
+    </Advanced>
     <Why
       problem="A CPU executes numbered instructions, but people write expressive text full of conventions a processor has no concept of."
       idea="Treat the source as input to a pipeline of transformations, each step a little closer to machine operations."
@@ -42,6 +47,10 @@ const description = 'A deep dive into how code stops being text: lexing into tok
     <p class="prose">The <b>scanner</b> (lexer) reads the characters left to right and groups them into <span class="hl">tokens</span> — a number, an operator — throwing away whitespace. It's the same idea as reading letters into words.</p>
     <Tokenizer client:visible />
     <Takeaway>Lexing turns a flat character stream into a clean stream of typed tokens the parser can reason about.</Takeaway>
+    <Advanced>
+      <p>Most token classes are <b>regular languages</b>, so a lexer is really a <b>deterministic finite automaton</b>: tools like <code>lex</code>/<code>flex</code> compile your regexes into one big DFA that reads each character once and changes state — which is why scanning is linear in the input size.</p>
+      <p>The hard parts are the edges. <b>Maximal munch</b> (always take the longest valid token) decides that <code>&gt;&gt;=</code> is one token, not three. Some languages also need <b>lexer/parser feedback</b> — C's famous "is <code>(T)</code> a cast or a call?" ambiguity needs the symbol table — and indentation-sensitive languages like Python have the lexer emit synthetic <code>INDENT</code>/<code>DEDENT</code> tokens.</p>
+    </Advanced>
     <Why
       problem="Working character by character is painful: the parser would constantly re-ask “is this a digit? a space? part of a number?”"
       idea="Do that classification once up front, producing tokens with a type and text, so later stages work with words instead of letters."
@@ -54,6 +63,10 @@ const description = 'A deep dive into how code stops being text: lexing into tok
     <p class="prose">The <b>parser</b> turns the token stream into a tree (an <span class="hl">AST</span>) that captures structure and <b>precedence</b>: because <code>×</code> binds tighter than <code>+</code>, the multiply sits deeper, so it's <span class="hl">evaluated first</span>. Step the parse to reduce it bottom-up — then flip to a naive left-to-right parse and watch the same tokens give a different answer.</p>
     <AstTree client:visible />
     <Takeaway>The AST is the program's meaning made explicit — grammar and precedence baked into the shape of a tree.</Takeaway>
+    <Advanced>
+      <p>Hand-written parsers are usually <b>recursive descent</b>: one function per grammar rule, calling each other to mirror the nesting. It's clear, but encoding a dozen precedence levels as a separate function each (<code>parseAdditive</code> calls <code>parseMultiplicative</code> calls …) is tedious, and naive left recursion like <code>expr → expr + term</code> loops forever.</p>
+      <p><b>Pratt parsing</b> (precedence climbing) fixes both: it attaches a binding power to each operator token and parses expressions with a single loop, only recursing while the next operator binds tighter than the current level. One compact routine handles every precedence and associativity — which is why it's the go-to for expression grammars in tools like <code>clang</code> and many language servers.</p>
+    </Advanced>
     <Why
       problem="Tokens in a row are ambiguous: does 3 + 4 * 2 mean (3 + 4) * 2 or 3 + (4 * 2)? Order changes the answer."
       idea="Parse the tokens against the language's grammar into a tree where nesting encodes precedence and associativity — no ambiguity left."
@@ -68,6 +81,10 @@ const description = 'A deep dive into how code stops being text: lexing into tok
     <p class="prose">Before it can check types, semantic analysis has to <b>resolve names</b>: when you write <code>x</code>, <i>which</i> declaration is that? The resolver keeps a <span class="hl">symbol table</span> per scope and walks <b>outward</b> through enclosing scopes until one matches — so an inner name <span class="hl">shadows</span> an outer one, and a name found nowhere is an error. Step through a few references below.</p>
     <Scopes client:visible />
     <Takeaway>Type checking is the compiler reading for <i>meaning</i>, not just grammar — resolving every name to its declaration and rejecting programs that would misbehave, before a single instruction is generated.</Takeaway>
+    <Advanced>
+      <p>Many functional languages don't make you annotate types — they <b>infer</b> them. <b>Hindley–Milner</b> inference assigns each subexpression a type variable, generates equations from how values are used, and <b>unifies</b> them: solving for a consistent assignment, or reporting a conflict. It even generalizes unconstrained variables into <b>polymorphism</b>, so <code>id x = x</code> is inferred as <code>∀a. a → a</code> with no annotation written.</p>
+      <p>Name resolution underneath has its own subtlety: a single flat symbol table isn't enough, because the same name can mean different things in different <b>namespaces</b> (types vs values vs labels) and scopes. Compilers typically build a chain of scopes and, for forward references like mutually recursive functions, resolve in <b>two passes</b> — collect declarations first, then check bodies.</p>
+    </Advanced>
     <Why
       problem="A grammatically valid program can still be nonsense — adding a number to a function, calling an undefined name — and running it would crash or corrupt data."
       idea="Walk the AST inferring and checking types (and scopes), so whole classes of bugs are caught at compile time instead of at runtime."
@@ -81,6 +98,10 @@ const description = 'A deep dive into how code stops being text: lexing into tok
     <BytecodeVm client:visible />
     <Takeaway>Lowering turns the tree into a linear instruction stream — the bridge from "structure" to "operations a machine runs."</Takeaway>
     <SeeAlso slug="cpu" note="the fetch-decode-execute loop that actually runs this bytecode" />
+    <Advanced>
+      <p>The widget shows a <b>stack machine</b> (operands pushed and popped, like the JVM or CPython), which is compact and trivial to generate. <b>Register VMs</b> (Lua 5, Android's Dalvik) instead name virtual registers, so <code>a = b + c</code> is one instruction instead of push-push-add-store — fewer dispatches per program, at the cost of bigger instructions and a register allocator.</p>
+      <p>When lowering targets real hardware rather than a VM, the generated code must obey the platform's <b>ABI / calling convention</b>: which registers carry the first arguments, who saves which registers across a call (<b>caller-saved</b> vs <b>callee-saved</b>), how the stack is aligned, and where the return value lands. Following it exactly is what lets code from different compilers — and the OS — link and call into each other.</p>
+    </Advanced>
     <Why
       problem="A tree is convenient to reason about but not to execute; hardware and VMs run a linear sequence of simple operations."
       idea="Traverse the AST and emit stack-machine (or register) instructions, so evaluation becomes a tight loop over a flat program."
@@ -93,6 +114,10 @@ const description = 'A deep dive into how code stops being text: lexing into tok
     <p class="prose">Before running, the compiler rewrites the program to do <b>less work for the same result</b>. <code>4 * 2</code> is constant, so <span class="hl">fold</span> it to <code>8</code> at compile time; <code>+ 0</code> simplifies away; a value computed twice is reused; unreachable branches are dropped as dead code. Step the passes and watch a small program collapse to a single constant.</p>
     <Optimize client:visible />
     <Takeaway>Optimization is a search for a cheaper program that computes the identical answer — the user never sees the difference, except in speed.</Takeaway>
+    <Advanced>
+      <p>Most passes run on an <b>SSA</b>-form IR, where each variable is assigned exactly once. Single definitions make <b>constant propagation</b> and <b>dead-code elimination</b> almost trivial — a value's one definition is right there to fold or delete — and where control flow merges, a <code>φ</code> (phi) node picks the value from whichever predecessor block ran.</p>
+      <p>Passes also <b>enable each other</b>, which is why compilers iterate to a fixpoint: <b>inlining</b> a function exposes its arguments as constants, which lets constant folding fire, which makes a branch unreachable, which lets dead-code elimination delete it. The flip side is the <b>phase-ordering problem</b> — there's no universally optimal sequence, so optimizers run carefully tuned, sometimes repeated, pass pipelines.</p>
+    </Advanced>
     <Why
       problem="Straightforward code generation is correct but wasteful: redundant computation, values recomputed, branches that can never run."
       idea="Apply meaning-preserving rewrites — constant folding, dead-code elimination, inlining, common-subexpression elimination — guided by what the IR proves is safe."
@@ -106,6 +131,10 @@ const description = 'A deep dive into how code stops being text: lexing into tok
     <Registers client:visible />
     <Takeaway>Register allocation maps a program's unlimited values onto a fixed, tiny set of registers — and when they don't fit, spills the overflow to the stack. Scarcer registers mean more spills and slower code.</Takeaway>
     <SeeAlso slug="cpu" note="the registers being fought over here — the CPU's fastest, scarcest storage" />
+    <Advanced>
+      <p>Classic allocation is posed as <b>graph colouring</b>: build an <b>interference graph</b> whose nodes are live ranges and whose edges join any two values live at the same time, then colour it with <i>k</i> colours (one per machine register) so no edge connects two same-coloured nodes. Chaitin's algorithm simplifies the graph by repeatedly removing low-degree nodes; if it gets stuck, it picks a victim to <b>spill</b> to a stack slot and tries again.</p>
+      <p>Good allocators don't spill blindly — they weight each candidate by use frequency to avoid spilling a value used inside a hot loop. JITs that can't afford <i>k</i>-colouring instead use <b>linear-scan</b> allocation, which sweeps the sorted live ranges once; it's far faster to run and only a little worse, which is exactly the trade a just-in-time compiler wants.</p>
+    </Advanced>
     <Why
       problem="A program names as many values as it likes, but the CPU has only a handful of registers, and memory is an order of magnitude slower to touch."
       idea="Compute each value's live range (easy once in SSA), then assign registers so values live at the same time never share one — spilling the rare overflow to a stack slot."
@@ -119,6 +148,10 @@ const description = 'A deep dive into how code stops being text: lexing into tok
     <Runtimes client:visible />
     <Takeaway>Interpret, compile ahead of time, or JIT — the same pipeline, differing only in when (and whether) bytecode becomes machine code.</Takeaway>
     <SeeAlso slug="languages" note="which real languages (C, Rust, Go, Python, JS) pick each of these strategies" />
+    <Advanced>
+      <p>Production JITs (V8, the JVM's HotSpot) are <b>tiered</b>: code starts in a fast-to-emit baseline tier that also <b>profiles</b> — counting calls, recording which types actually flow through. When a method gets hot, an optimizing tier recompiles it using that profile, making <b>speculative</b> assumptions a static compiler can't, like "this dynamically-typed variable has always been an integer."</p>
+      <p>Those bets need an escape hatch. The JIT plants <b>guards</b> that check the assumption; if one fails — a new type shows up — it <b>deoptimizes</b>, discarding the specialized code and falling back to the interpreter mid-execution, reconstructing the interpreter's stack frame on the spot. This is how managed languages reach near-native speed while staying correct when the program does something the profile never saw.</p>
+    </Advanced>
     <Why
       problem="Producing operations isn't enough — they have to execute, and the right strategy depends on startup time, peak speed, and portability."
       idea="Pick where on the spectrum to sit: interpret bytecode directly, compile it all up front, or compile just the parts that run hot, just in time."
@@ -130,6 +163,10 @@ const description = 'A deep dive into how code stops being text: lexing into tok
   <LayerSection {...L.K7}>
     <p class="prose">End to end: <b>source</b> text is <b>scanned</b> into tokens, <b>parsed</b> into a tree that fixes precedence, <b>type-checked</b> for meaning, <b>lowered</b> into linear bytecode, <b>optimized</b> to do less, <b>allocated</b> into the CPU's registers, and finally <b>run</b> — interpreted or compiled down to the numbered instructions the CPU obeys.</p>
     <Takeaway>"Running a program" is this entire pipeline — most of it usually finished before your code ever executes a line.</Takeaway>
+    <Advanced>
+      <p>The stages aren't always run by one program ahead of time. A <b>separate-compilation</b> model compiles each source file to an object file independently, then a <b>linker</b> stitches them together — resolving cross-file symbols and relocations — which is what makes incremental builds and shared libraries possible. The same pipeline can also run <i>during</i> execution (a JIT) or even at <b>build time as macros</b> that generate AST before the main passes.</p>
+      <p>The deepest reason every stage can trust the next is a chain of <b>semantic preservation</b>: each lowering must keep the program's observable behaviour identical. When that's proven rather than merely tested, you get a <b>verified compiler</b> like <code>CompCert</code>, whose machine-checked proof guarantees the emitted assembly behaves exactly as the C source specifies.</p>
+    </Advanced>
     <Why
       problem="It's easy to think of code as something the computer just reads and does; the gap between text and execution is invisible until it breaks."
       idea="Each stage hands a cleaner, lower-level representation to the next — characters to tokens to tree to operations to machine code."

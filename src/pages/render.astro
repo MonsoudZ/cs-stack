@@ -9,6 +9,7 @@ import BrowserUi from '../components/BrowserUi.astro';
 import Why from '../components/Why.astro';
 import SeeAlso from '../components/SeeAlso.astro';
 import Takeaway from '../components/Takeaway.astro';
+import Advanced from '../components/Advanced.astro';
 import Quiz from '../components/Quiz.svelte';
 import PrevNext from '../components/PrevNext.astro';
 const L = Object.fromEntries(renderLayers.map((l) => [l.id, l]));
@@ -42,6 +43,10 @@ const description = 'A deep dive into how the browser turns code into pixels: th
       </div>
     </div>
     <Takeaway>The DOM is the browser's editable model of the page — a tree, not the text you typed.</Takeaway>
+    <Advanced>
+      <p>The parser doesn't wait for the whole document — it builds the DOM <b>incrementally</b> as bytes stream in, which is why a page can render before it's fully downloaded. Browsers also <b>speculatively scan</b> ahead to start fetching <code>&lt;img&gt;</code>, scripts, and stylesheets early, even while the main parse is blocked.</p>
+      <p>The render tree the pipeline actually uses isn't the DOM directly: it's a separate <b>render/box tree</b> that omits non-visual nodes (<code>&lt;head&gt;</code>, anything <code>display:none</code>) and that today is split into the <b>light DOM</b> plus any <b>shadow DOM</b> subtrees, which compose at render time but keep their styles and ids encapsulated.</p>
+    </Advanced>
     <Why
       problem="HTML is flat text, but styling, scripting, and rendering all need to know which element is inside which."
       idea="Parse the markup once into a tree of nodes, where nesting is explicit — every later stage operates on this structure."
@@ -53,6 +58,10 @@ const description = 'A deep dive into how the browser turns code into pixels: th
   <LayerSection {...L.R1}>
     <p class="prose">For every node, the browser resolves which CSS rules apply and who wins — that's the <b>cascade</b>: more specific selectors and later rules override earlier ones. The result is a fully computed style for each element.</p>
     <Takeaway>Style turns "here are some rules" into "here is exactly how this element looks," resolving every conflict by specificity and order.</Takeaway>
+    <Advanced>
+      <p>Style isn't free even when nothing moves: the <b>style recalc</b> stage runs right before layout, and a change that alters which rules match a node (toggling a class, editing the DOM) can force the browser to re-resolve selectors across a whole subtree. To keep that cheap, engines match selectors <b>right-to-left</b> and bucket rules by their rightmost key, so a deep descendant selector is dearer than it looks.</p>
+      <p>The cascade also resolves <b>inheritance</b> and units here — turning <code>em</code>, <code>%</code>, and <code>var(--x)</code> into used values — and modern <b>cascade layers</b> (<code>@layer</code>) sit above specificity in the ordering, letting you tame the <code>!important</code> wars rather than escalate them.</p>
+    </Advanced>
     <Why
       problem="Many rules can target the same element with conflicting values — there has to be one definite answer per property."
       idea="The cascade ranks declarations by origin, specificity, and source order, then computes one final value for every property on every node."
@@ -76,6 +85,10 @@ const description = 'A deep dive into how the browser turns code into pixels: th
       </div>
     </div>
     <Takeaway>Layout is geometry: turning "this element exists and is styled" into "it occupies exactly this rectangle."</Takeaway>
+    <Advanced>
+      <p>Layout is usually <b>batched</b>: the browser marks boxes dirty and recomputes geometry once before painting. But reading a geometric property — <code>offsetWidth</code>, <code>getBoundingClientRect()</code>, <code>scrollTop</code> — forces a <b>synchronous reflow</b> so the value is current. Interleaving reads and writes in a loop (write, read, write, read…) triggers <b>layout thrashing</b>: each read re-flushes the layout the previous write invalidated, turning one reflow into many.</p>
+      <p>The fix is to <b>batch reads, then writes</b> (or use <code>requestAnimationFrame</code> / <code>IntersectionObserver</code> / <code>ResizeObserver</code> instead of polling sizes). CSS <code>contain</code> and <code>content-visibility</code> also help by walling off a subtree so its layout can't ripple into the rest of the page.</p>
+    </Advanced>
     <Why
       problem="Pixels need coordinates, but CSS describes sizes relatively — percentages, flex, auto, content-driven heights."
       idea="Resolve all of that into concrete rectangles by walking the tree, sizing each box and positioning it relative to its neighbours and parent."
@@ -87,6 +100,10 @@ const description = 'A deep dive into how the browser turns code into pixels: th
   <LayerSection {...L.R3}>
     <p class="prose">Paint fills each box with actual pixels — text, colors, borders, shadows — often onto separate <span class="hl">layers</span>. The compositor then assembles those layers into the final frame, usually on the <b>GPU</b>.</p>
     <Takeaway>Paint rasterizes boxes into pixels; compositing stitches the layers into the frame you see.</Takeaway>
+    <Advanced>
+      <p>Paint records a list of drawing commands per layer; rasterization then turns those into pixels, often in <b>tiles</b> and on the compositor thread so the GPU can upload only what's visible. The compositor's job — transforming and stacking ready-made layers — runs <i>off the main thread</i>, which is exactly why <code>transform</code> and <code>opacity</code> can animate smoothly even while JavaScript is busy.</p>
+      <p>But every layer costs GPU memory and a composite step, so promotion isn't free. <code>will-change: transform</code> (or a 3D transform) hints the browser to pre-promote an element to its own layer, yet leaving it on permanently wastes memory and can <i>slow</i> things down — promote just before an animation, then drop the hint.</p>
+    </Advanced>
     <Why
       problem="A positioned box is still abstract — the screen needs concrete coloured pixels, assembled fast enough for smooth motion."
       idea="Rasterize content into layers, then let the compositor (often the GPU) transform and stack those layers into a frame."
@@ -99,6 +116,10 @@ const description = 'A deep dive into how the browser turns code into pixels: th
     <p class="prose">To paint the <i>first</i> frame, the browser needs both the <b>DOM</b> (from HTML) and the <b>CSSOM</b> (from CSS) — so <span class="hl">CSS is render-blocking</span>: nothing paints until it's parsed. Worse, a plain <code>&lt;script&gt;</code> <b>blocks the HTML parser</b> until it downloads and runs. Mark it <code>defer</code> and parsing continues — so first paint lands sooner.</p>
     <Crp client:visible />
     <Takeaway>The critical rendering path is the shortest route to first paint: HTML + render-blocking CSS, plus any parser-blocking script. Defer/async keep scripts off it.</Takeaway>
+    <Advanced>
+      <p><code>async</code> and <code>defer</code> both let parsing continue, but differ in timing: <b>async</b> runs the script the moment it arrives (order not guaranteed), while <b>defer</b> waits until the parse finishes and runs scripts <i>in order</i>, just before <code>DOMContentLoaded</code> — usually the safer default for app code. A native ES <code>type="module"</code> script is deferred automatically.</p>
+      <p>CSS blocks rendering but not parsing; it does block <i>script execution</i>, since a script might read computed styles. This is measured by lab metrics like <b>First Contentful Paint</b> and <b>Largest Contentful Paint</b>, which is why teams inline critical CSS, preload key fonts, and trim render-blocking bytes to move first paint earlier.</p>
+    </Advanced>
     <Why
       problem="A blank screen until everything loads feels broken; what matters is how fast something meaningful paints, and several resources can stall that."
       idea="Identify the critical path — the HTML, the render-blocking CSS, and any synchronous script — and shrink it: inline critical CSS, defer or async scripts, cut bytes."
@@ -111,6 +132,10 @@ const description = 'A deep dive into how the browser turns code into pixels: th
     <p class="prose">A style change doesn't always re-run everything. The browser first does a quick <b>style recalc</b> (working out which rules now apply), then re-runs only the stages below it that the change actually touches. Changing geometry (<code>width</code>) forces layout, paint, and composite. A color change skips layout. But <code>transform</code> and <code>opacity</code> only re-composite — the compositor just moves an existing layer.</p>
     <RenderInvalidation client:visible />
     <Takeaway>Animate transform and opacity, not width and top: the cheap properties skip layout and paint entirely.</Takeaway>
+    <Advanced>
+      <p>The distinction underneath is <b>reflow vs repaint</b>: changing geometry (<code>width</code>, <code>top</code>, <code>font-size</code>) invalidates layout and everything after it, while a pure appearance change (<code>color</code>, <code>background</code>, <code>box-shadow</code>) skips layout but still <b>repaints</b>. Only <code>transform</code> and <code>opacity</code> can skip both and stay on the compositor — and even they only stay cheap on an element that already has its own layer.</p>
+      <p>So "animate transform, not <code>top</code>" isn't style advice — it's the difference between re-running layout + paint + composite every frame and re-running composite alone. A subtle trap: triggering a forced reflow (reading layout mid-animation) collapses the cheap path right back to the expensive one.</p>
+    </Advanced>
     <Why
       problem="Janky pages usually come from doing too much per frame — recomputing layout and repainting when it wasn't necessary."
       idea="Know which stage each property invalidates: geometry → layout, appearance → paint, transform/opacity → composite only."
@@ -124,6 +149,10 @@ const description = 'A deep dive into how the browser turns code into pixels: th
     <EventLoop client:visible />
     <Takeaway>The event loop interleaves your JS with rendering on a single thread — microtasks before the next frame, rAF just before paint, and any long task stalls the whole thing.</Takeaway>
     <SeeAlso slug="os" note="how the OS shares the CPU too — but preemptively, so no single task can freeze it" />
+    <Advanced>
+      <p>The <b>microtask queue drains completely</b> between tasks — and before rendering — so every <code>.then()</code> and <code>await</code> continuation runs before the next frame can paint. A microtask that schedules more microtasks can therefore <i>starve</i> rendering indefinitely, whereas <code>setTimeout</code> queues a <i>macro</i>task that yields a turn to layout and paint.</p>
+      <p>For visual work, <code>requestAnimationFrame</code> fires right before paint and is throttled to the display's refresh rate (and paused in background tabs), so it's frame-aligned in a way <code>setTimeout(fn, 16)</code> never is. Heavy non-visual work belongs off the main thread entirely — a <b>Web Worker</b> — or sliced across frames so no single task overruns the ~16 ms (or less, on high-refresh displays) frame budget.</p>
+    </Advanced>
     <Why
       problem="JavaScript and rendering run on one thread, so they must take turns — and the order (and what blocks what) decides whether the UI stays smooth."
       idea="Run one task fully, drain all microtasks, then render at most once per frame; schedule visual work in requestAnimationFrame and defer heavy work off the critical path."
@@ -136,6 +165,10 @@ const description = 'A deep dive into how the browser turns code into pixels: th
     <p class="prose">End to end, every frame: HTML becomes the <b>DOM</b>, CSS computes <b>style</b>, the tree is laid out into boxes, the boxes are <b>painted</b>, and the layers are <b>composited</b> to the screen — then any change kicks off just the stages it touched, again and again.</p>
     <BrowserUi />
     <Takeaway>What you see is the last step of a pipeline the browser re-runs continuously — and the art is making each pass do as little as possible.</Takeaway>
+    <Advanced>
+      <p>Modern engines don't run these stages in lock-step on one thread. Chromium splits the work across a <b>main thread</b> (parse, style, layout, paint-record), a <b>compositor thread</b>, and <b>raster/GPU</b> threads, so scrolling and composited animations can keep moving even when JavaScript is busy. The pipeline is also <b>partial by design</b>: a change invalidates only the earliest stage it touches and everything downstream, never the whole tree.</p>
+      <p>This is why the deepest performance wins target the early stages — keep changes off layout and paint, cut the critical path, and never block the main thread — so the per-frame loop has the least possible to redo within its budget.</p>
+    </Advanced>
     <Why
       problem="Interfaces feel instantaneous, which hides how much repeated work stands between a state change and a pixel."
       idea="Treat rendering as a pipeline run per frame: build, style, layout, paint, composite — each stage handing structure to the next."

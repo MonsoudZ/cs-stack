@@ -7,6 +7,7 @@ import Deadlock from '../components/Deadlock.svelte';
 import Cas from '../components/Cas.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
+import Advanced from '../components/Advanced.astro';
 import Quiz from '../components/Quiz.svelte';
 import PrevNext from '../components/PrevNext.astro';
 import SeeAlso from '../components/SeeAlso.astro';
@@ -26,6 +27,10 @@ const description = 'A deep dive into concurrency: threads sharing memory, race 
     <p class="prose">A process can run several <b>threads</b> at once. Unlike separate processes, threads of one program <span class="hl">share the same memory</span> — the same variables, the same heap — while each keeps its own stack and registers. That shared memory is what makes them fast to coordinate, and exactly what makes them dangerous.</p>
     <Takeaway>Threads are runners inside one program that share its memory — cheap to communicate through, but with nothing protecting that shared state by default.</Takeaway>
     <SeeAlso slug="cpu" note="why one chip grew many cores for those threads to run on" />
+    <Advanced>
+      <p>Threads share the heap and globals, but each gets its <b>own stack</b> — which is why local variables are private and most data races are about <i>shared</i> heap or global state. Sharing is cheaper than process isolation precisely because there's no address-space swap and communication is just a memory write the other thread can read.</p>
+      <p>That cheapness has a sharp edge in the cache. Two unrelated variables that happen to land on the same <b>cache line</b> (typically 64 bytes) cause <b>false sharing</b>: one thread writing its variable invalidates the whole line in the other core's cache, so both pay coherence traffic as if they shared data even though they don't. Padding hot per-thread variables onto separate lines is a standard fix.</p>
+    </Advanced>
     <Why
       problem="A modern chip has many cores, and a program often has many things to do at once — serve requests, render, fetch — that shouldn’t each wait on the others."
       idea="Run multiple threads in one process, sharing its address space, so they can divide the work and communicate just by reading and writing the same memory."
@@ -38,6 +43,10 @@ const description = 'A deep dive into concurrency: threads sharing memory, race 
     <p class="prose">Even <code>counter += 1</code> isn't one step — it's <b>read, add, write</b>. If the scheduler pauses one thread mid-sequence — or, on a multi-core machine, two threads run the sequence at the very same instant — another can read the same old value, and one update is silently lost. A <span class="hl">lock</span> fixes it by letting only one thread into the critical section at a time. Toggle it below.</p>
     <RaceCondition client:visible />
     <Takeaway>A race condition is a bug that depends on timing; a lock serializes the read-modify-write so the interleaving can’t corrupt shared state.</Takeaway>
+    <Advanced>
+      <p>The bug is sharper than "the scheduler paused me." On a multi-core machine the two threads can execute the read-modify-write <i>truly simultaneously</i> on different cores, so no amount of staying-on-one-CPU helps — the fix has to make the update genuinely <b>atomic</b>, either with a lock or a single atomic instruction.</p>
+      <p>Lock <b>granularity</b> is the central tuning knob. One coarse lock around everything is easy to reason about but serializes threads that never actually conflict, killing throughput under <b>contention</b>; many fine-grained locks restore parallelism but multiply bookkeeping and the chance of acquiring two at once — which sets up the next failure, deadlock.</p>
+    </Advanced>
     <Why
       problem="A read-modify-write looks atomic in source code but compiles to several instructions, and a thread can be paused between any of them."
       idea="Wrap the critical section in a lock (or use an atomic instruction) so only one thread executes it at a time, making the update effectively indivisible."
@@ -50,6 +59,10 @@ const description = 'A deep dive into concurrency: threads sharing memory, race 
     <p class="prose">Locks fix races but introduce a new failure: if Thread A holds L1 and wants L2, while Thread B holds L2 and wants L1, neither can proceed and neither will let go. That's a <b>deadlock</b> — a circular wait. It can only happen when four things hold at once (the <b>Coffman conditions</b>): mutual exclusion, hold-and-wait, no preemption, and that circular wait — so breaking any one of them prevents it. The classic cure is a <span class="hl">lock ordering</span>: make every thread acquire locks in the same global order, which makes the circular wait impossible to form.</p>
     <Deadlock client:visible />
     <Takeaway>Deadlock is a circle of threads each waiting on a lock the next one holds; acquiring locks in a consistent global order makes that circle impossible to form.</Takeaway>
+    <Advanced>
+      <p>Deadlock isn't the only way to get stuck. In <b>livelock</b> the threads <i>do</i> keep changing state — each politely backs off and retries in response to the other — yet make no progress, like two people sidestepping the same way in a hallway forever. It burns CPU instead of hanging, which can make it harder to spot.</p>
+      <p>Beyond lock ordering, deadlock can be avoided dynamically. The <b>banker's algorithm</b> grants a lock only if the system can prove a <i>safe sequence</i> still exists in which every thread can eventually finish, refusing any request that might lead to an unrecoverable circular wait. It's powerful but needs every thread to declare its maximum resource needs up front, so in practice a simple global lock ordering is far more common.</p>
+    </Advanced>
     <Why
       problem="With several locks, two threads can each hold what the other needs next, freezing both — and the program just hangs, with no crash to point at."
       idea="Impose a total order on locks and require every thread to acquire them in that order, so a cycle of ‘waiting on each other’ can never arise."
@@ -62,6 +75,10 @@ const description = 'A deep dive into concurrency: threads sharing memory, race 
     <p class="prose">Some hardware instructions are <b>atomic</b> — indivisible by construction. <span class="hl">Compare-and-swap</span> writes a new value only if the old one is unchanged, in one uninterruptible step. You can build a counter with no lock at all: read, try to swap, and if you lost the race, just retry. Atomics (and locks) also force the write to be <i>visible</i> to other cores and in the right <b>order</b> — without that, each core can keep working from a stale cached copy.</p>
     <Cas client:visible />
     <Takeaway>Atomic compare-and-swap lets threads update shared state without a lock — losers simply retry — trading the risk of deadlock for the cost of occasional spins.</Takeaway>
+    <Advanced>
+      <p>CAS has a famous trap: the <b>ABA problem</b>. A thread reads value <code>A</code>, and before its compare-and-swap another thread changes it to <code>B</code> and back to <code>A</code>; the CAS sees <code>A</code>, assumes nothing happened, and succeeds — even though the world moved underneath it. Pointer-based lock-free structures hit this constantly, and the usual cure is a <b>version tag</b> bumped on every change so <code>A</code> the second time isn't bit-identical to <code>A</code> the first.</p>
+      <p>Some architectures sidestep ABA with a different primitive: <b>load-linked / store-conditional</b> (LL/SC, on ARM and RISC-V). LL reads an address and the store only succeeds if <i>nothing wrote that location at all</i> since the load — so an A→B→A round trip still fails the SC, catching what a plain value-comparing CAS would miss.</p>
+    </Advanced>
     <Why
       problem="Locks can deadlock, stall, and serialize; for simple updates we’d like correctness without ever blocking a thread."
       idea="Use an atomic compare-and-swap: read the value, compute the new one, and commit only if no one changed it meanwhile — otherwise loop and try again."
@@ -74,6 +91,10 @@ const description = 'A deep dive into concurrency: threads sharing memory, race 
     <p class="prose">The deep difficulty is <b>nondeterminism</b>: a concurrent program can interleave in astronomically many ways, and a bug may surface in only a few of them. It passes every test, runs fine under the debugger (which changes the timing), and fails only in production — a <span class="hl">Heisenbug</span> that vanishes when observed.</p>
     <Takeaway>Concurrency is hard because correctness depends on timings you don’t control and can’t easily reproduce — which is why higher-level tools exist to take the sharing away.</Takeaway>
     <SeeAlso slug="cloud" note="the same coordination problem, but spread across many machines" />
+    <Advanced>
+      <p>Part of why reasoning is so hard: the hardware doesn't run your code in program order. The intuitive model is <b>sequential consistency</b> — all threads see one interleaving of the program-order operations — but real CPUs and compilers reorder reads and writes for speed, so a thread can observe another's writes out of order unless you say otherwise.</p>
+      <p>That's what <b>memory barriers</b> and atomics buy you, and they enforce <i>two</i> distinct things: <b>ordering</b> (operations can't be reordered across the barrier) and <b>visibility</b> (a write is actually published to other cores, not left in a store buffer or stale cache). The common <b>acquire/release</b> discipline is the cheaper middle ground — a release write publishes everything before it, a matching acquire read sees all of it — giving the guarantee you need at a lock's edges without paying for full sequential consistency everywhere.</p>
+    </Advanced>
     <Why
       problem="A correct sequential program has one execution; a concurrent one has a combinatorial explosion of interleavings, and testing samples only a vanishing fraction."
       idea="Reason about all interleavings, not just the one you observed — or sidestep the problem with message passing, immutability, and higher-level primitives that don’t share mutable state."

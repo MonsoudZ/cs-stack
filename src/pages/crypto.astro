@@ -8,6 +8,7 @@ import Signature from '../components/Signature.svelte';
 import Merkle from '../components/Merkle.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
+import Advanced from '../components/Advanced.astro';
 import Quiz from '../components/Quiz.svelte';
 import PrevNext from '../components/PrevNext.astro';
 import SeeAlso from '../components/SeeAlso.astro';
@@ -27,6 +28,10 @@ const description = 'A deep dive into the crypto behind a secure connection: has
     <p class="prose">A <b>hash</b> turns any input into a fixed-size fingerprint. Two properties make it useful: it's <span class="hl">deterministic</span> (same input, same output) and it <b>avalanches</b> — change one character and the whole output scrambles, with no way to run it backwards.</p>
     <HashAvalanche client:visible />
     <Takeaway>A cryptographic hash is a one-way fingerprint: easy forward, infeasible backward, and wildly sensitive to its input.</Takeaway>
+    <Advanced>
+      <p>Not all "one-way" is equal — there are three distinct guarantees. <b>Preimage resistance</b>: given a digest, you can't find <i>any</i> input that hashes to it. <b>Second-preimage resistance</b>: given one input, you can't find a <i>different</i> one with the same digest. <b>Collision resistance</b>: you can't find <i>any</i> two inputs that collide — the weakest to break.</p>
+      <p>Collisions fall first because of the <b>birthday bound</b>: an <code>n</code>-bit hash needs only about <code>2^(n/2)</code> work to collide, not <code>2^n</code>. That's why a 128-bit hash gives only ~64 bits of collision security (MD5 and SHA-1 are now broken in practice), and why digests are sized generously — SHA-256 aims for 128-bit collision resistance.</p>
+    </Advanced>
     <Why
       problem="We constantly need to compare or verify data without storing or revealing the original — passwords, file integrity, signatures."
       idea="Run it through a one-way function that's fast to compute, fixed-size, and collision-resistant, so the digest stands in for the data."
@@ -38,6 +43,10 @@ const description = 'A deep dive into the crypto behind a secure connection: has
   <LayerSection {...L.X1}>
     <p class="prose">The oldest idea: one <b>shared key</b> both sides hold. Combine it with the message to encrypt (think XOR), do it again to decrypt. It's fast and the workhorse of bulk encryption — but both ends must already have the same secret.</p>
     <Takeaway>Symmetric encryption is fast and simple, but it only shifts the hard problem: how do two parties get the same key in the first place?</Takeaway>
+    <Advanced>
+      <p>Raw encryption hides content but doesn't prove it's <i>unaltered</i> — an attacker can flip ciphertext bits and silently corrupt the plaintext. The modern fix is <b>AEAD</b> (authenticated encryption with associated data), like <b>AES-GCM</b> or <b>ChaCha20-Poly1305</b>, which deliver confidentiality and integrity in one pass and reject any tampered ciphertext on decrypt.</p>
+      <p>AEAD's safety hinges on a unique <b>nonce</b> (IV) per key. Reusing a nonce under AES-GCM is <b>catastrophic</b>: it leaks the XOR of plaintexts and, worse, lets an attacker forge the authentication tag for that key. When integrity is needed without encryption, use <code>HMAC</code> — a keyed hash that only someone with the key can produce or verify.</p>
+    </Advanced>
     <Why
       problem="Two parties want to exchange private data, and the cipher itself is the easy part."
       idea="Use one secret key to both lock and unlock — modern symmetric ciphers (AES) are extremely fast and secure given a good key."
@@ -49,6 +58,10 @@ const description = 'A deep dive into the crypto behind a secure connection: has
   <LayerSection {...L.X2}>
     <p class="prose">Asymmetric crypto uses a <b>pair</b>: a <span class="hl">public</span> key you hand out freely and a <span class="hl">private</span> key you guard. What one locks, only the other unlocks — so anyone can encrypt <i>to</i> you, and only you can read it (or you sign, and anyone verifies).</p>
     <Takeaway>Public-key crypto splits the key in two, so a secret can travel safely without the recipient and sender ever having met.</Takeaway>
+    <Advanced>
+      <p><b>Textbook RSA</b> — just <code>m^e mod n</code> — is dangerously broken in practice: it's deterministic (so equal messages give equal ciphertexts) and <b>malleable</b>, and a naive "sign" is forgeable because the math is multiplicative. Real schemes never use it raw: encryption pads with <b>OAEP</b> and signatures with <b>PSS</b>, both adding randomized, structured padding that defeats these attacks.</p>
+      <p>And signing is <i>not</i> encryption run backwards, even if RSA's symmetry tempts that intuition. A signature proves origin and integrity with the <b>private</b> key and is checked with the public one; encryption hides data <i>to</i> a holder of the private key. Use separate keys and separate padding schemes for each — conflating them is a real-world vulnerability.</p>
+    </Advanced>
     <Why
       problem="Symmetric crypto needs a pre-shared secret, which strangers on the internet don't have."
       idea="Give everyone a public key for the world and a private key kept secret; the math links them so one reverses the other, but you can't derive the private from the public."
@@ -61,6 +74,10 @@ const description = 'A deep dive into the crypto behind a secure connection: has
     <p class="prose">Diffie–Hellman is the magic trick: Alice and Bob each keep a private number, swap public values computed from it, and — using modular exponentiation — both arrive at the <b>same</b> shared secret. An eavesdropper sees the public values and still can't compute it.</p>
     <DiffieHellman client:visible />
     <Takeaway>Two strangers can agree on a shared secret over a wire everyone is listening to — because reversing modular exponentiation (the discrete log) is infeasible.</Takeaway>
+    <Advanced>
+      <p>The real payoff of doing a fresh key exchange per session is <b>forward secrecy</b>: if each side's DH secret is <b>ephemeral</b> (thrown away after the handshake), then compromising the server's long-term private key <i>later</i> can't decrypt past recorded traffic — there's no stored key that unlocks it. This is why modern TLS uses <code>ECDHE</code> (ephemeral elliptic-curve DH) rather than RSA key transport.</p>
+      <p>In practice the discrete-log group is usually an <b>elliptic curve</b> (e.g. Curve25519), which gives equivalent security at far smaller key sizes than classic mod-<code>p</code> DH. Bare DH still authenticates nobody, so it must be combined with signatures or certificates to stop a <b>man-in-the-middle</b>.</p>
+    </Advanced>
     <Why
       problem="You want a shared symmetric key, but the only channel available is public and possibly watched."
       idea="Both sides combine a public base with their own private secret via modular exponentiation; the operations commute, so each computes the identical result."
@@ -72,6 +89,10 @@ const description = 'A deep dive into the crypto behind a secure connection: has
   <LayerSection {...L.X4}>
     <p class="prose">A public key alone is anonymous. A <b>certificate</b> is that key plus an identity, <span class="hl">signed</span> by a certificate authority your browser already trusts — and that CA may be vouched for by another, forming a chain back to a root.</p>
     <Takeaway>Certificates answer "is this really their key?" by chaining signatures up to a root your device trusts in advance.</Takeaway>
+    <Advanced>
+      <p>Certificates expire, but keys also get <i>stolen</i> before expiry, so PKI needs <b>revocation</b>. <b>CRLs</b> (certificate revocation lists) are bulky downloads; <b>OCSP</b> queries a responder per-certificate but leaks browsing and adds latency, so <b>OCSP stapling</b> has the server attach a fresh, signed proof during the handshake instead.</p>
+      <p>The deeper weakness is that <i>any</i> trusted CA can issue a certificate for <i>any</i> domain. <b>Certificate Transparency</b> answers this: every issued certificate must be logged in public, append-only logs (Merkle-tree backed), so a domain owner can detect a misissued certificate for their name even when the CA itself misbehaves.</p>
+    </Advanced>
     <Why
       problem="Key exchange gives you a secret channel, but not proof of who's on the other end — an attacker could substitute their own key."
       idea="Have trusted authorities sign certificates binding a key to an identity; verifying the signature chain up to a pre-installed root proves authenticity."
@@ -84,6 +105,10 @@ const description = 'A deep dive into the crypto behind a secure connection: has
     <p class="prose">A TLS handshake composes all of it: the server presents a <b>certificate</b> (verified up the chain), the two sides run a <b>key exchange</b> to agree on a session secret, and from then on they talk with fast <b>symmetric</b> encryption — with hashes checking integrity throughout.</p>
     <Takeaway>HTTPS is this stack run at the start of every connection: verify who, agree on a key, then encrypt fast — the padlock in one handshake.</Takeaway>
     <SeeAlso slug="network" note="the connection this handshake secures, packet by packet" />
+    <Advanced>
+      <p><b>TLS 1.3</b> streamlined the handshake to a single round-trip (<b>1-RTT</b>): the client guesses the server's key-exchange group and sends its ephemeral share immediately, so application data flows after just one round-trip. It also dropped legacy ciphers and made <b>forward-secret ECDHE</b> mandatory — static-RSA key transport is gone.</p>
+      <p>The optional <b>0-RTT</b> mode sends data on the very first message using a key resumed from a prior session — fast, but <i>replayable</i>: an attacker can resend that early data, so it's only safe for idempotent requests (a <code>GET</code>, never a payment). The cipher suite is also negotiated, so a flawed configuration or a downgrade attack can still weaken an otherwise sound handshake.</p>
+    </Advanced>
     <Why
       problem="A real connection needs privacy, integrity, and authenticity at once, and symmetric speed without a pre-shared key."
       idea="Use asymmetric crypto and certificates to authenticate and agree on a key, then switch to symmetric encryption for the actual data, with hashes guarding integrity."
@@ -99,6 +124,10 @@ const description = 'A deep dive into the crypto behind a secure connection: has
     <Merkle client:visible />
     <Takeaway>A signature binds a message to a key; a Merkle root binds a mountain of data to one hash. Together they're how systems prove <i>who said it</i> and <i>that nothing changed</i> — the backbone of content-addressing.</Takeaway>
     <SeeAlso slug="structures" note="the trees and hash maps these are built from" />
+    <Advanced>
+      <p>You never sign the raw message — you sign its <b>hash</b>, which is why signatures inherit the hash's collision resistance: if an attacker can find two messages with the same digest, one signature covers <i>both</i>, so a broken hash breaks the signature. Beyond RSA-PSS, elliptic-curve schemes (<code>ECDSA</code>, <code>Ed25519</code>) give short signatures, but ECDSA is brutally sensitive to its per-signature <b>nonce</b>: reuse or bias it and the private key can be recovered outright.</p>
+      <p>A Merkle tree's real power is the <b>proof of inclusion</b>: to prove one block belongs under a root, you supply only the sibling hashes along its path — <code>log n</code> hashes, not the whole dataset. That's how a light client verifies one transaction against a block, and how Git and content-addressed stores detect any tampering by comparing a single root.</p>
+    </Advanced>
     <Why
       problem="Secrecy isn't enough: you also need to know a message really came from who it claims, and that not a single byte was altered — at any scale, from one message to a whole filesystem."
       idea="Sign a hash with a private key so anyone can verify it with the public one, and chain hashes into a tree so the root certifies every block beneath it."

@@ -10,6 +10,7 @@ import Allocator from '../components/Allocator.svelte';
 import GarbageCollector from '../components/GarbageCollector.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
+import Advanced from '../components/Advanced.astro';
 import Quiz from '../components/Quiz.svelte';
 import PrevNext from '../components/PrevNext.astro';
 import SeeAlso from '../components/SeeAlso.astro';
@@ -28,6 +29,10 @@ const description = 'A deep dive into memory: the stack and heap, allocation and
   <LayerSection {...L.M0}>
     <p class="prose">At bottom, RAM is one enormous <b>array of bytes</b>, each with a numeric <span class="hl">address</span>. The CPU asks for an address and gets back the byte — that's the whole interface. Everything else is making that fast.</p>
     <Takeaway>Memory's interface is trivial — addressed bytes — so the entire stack above it exists to hide how slow reaching a far one really is.</Takeaway>
+    <Advanced>
+      <p>That uniform address space isn't all RAM. With <b>memory-mapped I/O</b>, ranges of addresses are wired to device registers instead of memory, so a plain load or store to the right address controls a disk, NIC, or GPU — which is why those regions must be marked <i>uncacheable</i> and why <code>volatile</code> exists in C.</p>
+      <p>And the CPU isn't the only thing that touches memory. <b>DMA</b> (direct memory access) lets a device read and write RAM on its own while the CPU does other work, signalling completion with an interrupt — essential for throughput, but the reason caches and devices need careful coherence so the CPU doesn't read stale bytes a device just overwrote.</p>
+    </Advanced>
     <Why
       problem="A program needs somewhere to keep values, and the CPU needs a uniform way to read and write them."
       idea="Expose memory as a flat, numbered array of bytes: give an address, get (or set) a byte."
@@ -40,6 +45,10 @@ const description = 'A deep dive into memory: the stack and heap, allocation and
     <p class="prose">A program carves its address space into two regions. The <b>stack</b> grows and shrinks automatically with function calls — each call pushes a frame of locals, each return pops it. The <b>heap</b> is for data that must outlive a call; you allocate from it by hand, and it stays until freed.</p>
     <StackHeap client:visible />
     <Takeaway>The stack is automatic and call-scoped; the heap is manual and long-lived — where a value lives is decided by how long it needs to survive.</Takeaway>
+    <Advanced>
+      <p>The two regions grow <i>toward</i> each other from opposite ends of the address space — the stack downward, the heap upward — historically so a single contiguous space could flex between them. The stack is cheap precisely because allocation is just adjusting one register, the <b>stack pointer</b>; the cost is that the OS can't grow it freely, so blowing past its limit (deep or infinite recursion) triggers a <b>stack overflow</b>, usually caught by an unmapped <b>guard page</b>.</p>
+      <p>This layout is also a security frontier: because return addresses live on the stack, overrunning a local buffer can overwrite them, which is why systems add stack <b>canaries</b>, non-executable stacks (<code>W^X</code>), and <b>ASLR</b> to randomize where everything lands.</p>
+    </Advanced>
     <Why
       problem="A program has short-lived locals tied to a function call and long-lived data that must outlast it — and these want opposite treatment."
       idea="Use a stack that pushes and pops frames automatically with calls, and a heap you allocate from explicitly for anything that must persist."
@@ -52,6 +61,10 @@ const description = 'A deep dive into memory: the stack and heap, allocation and
     <p class="prose">The heap is managed by an <b>allocator</b>. <code>malloc(n)</code> finds a run of <i>n</i> contiguous free cells; <code>free</code> returns a block to the pool. But freeing in any order leaves <span class="hl">holes</span> — and a request can fail even when enough total space is free, just because it's scattered. That's <b>external fragmentation</b>.</p>
     <Allocator client:visible />
     <Takeaway>An allocator hands out contiguous runs and reclaims them on free; the catch is fragmentation — free space that exists but is too broken up to use.</Takeaway>
+    <Advanced>
+      <p>There are two fragmentations. <b>External</b> is the scattered-gaps problem shown here; <b>internal</b> is the waste <i>inside</i> a block when the allocator rounds your request up to a fixed <b>size class</b>. Real allocators lean into the latter on purpose: <b>slab</b> and <b>segregated-free-list</b> designs keep separate pools per size, so a request of that size is an O(1) pop and same-sized frees coalesce trivially.</p>
+      <p>They also fight contention and locality: modern allocators (tcmalloc, jemalloc) give each thread its own <b>per-thread cache</b> to avoid a global lock, and the underlying memory comes from the OS in page-sized chunks via <code>mmap</code> or <code>sbrk</code> — so a <code>free</code> rarely returns memory to the OS, it just recycles it within the process.</p>
+    </Advanced>
     <Why
       problem="The heap serves allocations of all sizes in any order, and must find room for each without moving the ones already in use."
       idea="Track free space and fit each request into a gap (first-fit, best-fit, …), returning freed blocks to the pool for reuse."
@@ -64,6 +77,10 @@ const description = 'A deep dive into memory: the stack and heap, allocation and
     <p class="prose">Forgetting to <code>free</code> leaks memory; freeing too early corrupts it. So managed languages add a <b>garbage collector</b>: it treats your live variables as <span class="hl">roots</span>, follows every reference to find what's still reachable, and reclaims the rest. The classic algorithm is <b>mark and sweep</b>.</p>
     <GarbageCollector client:visible />
     <Takeaway>A garbage collector frees memory by reachability: anything you can still reach from a root is kept, everything else is collected — no manual free, at the cost of a tracing pause.</Takeaway>
+    <Advanced>
+      <p>Naive mark-and-sweep must pause the whole program and leaves the heap fragmented. Production collectors exploit the <b>generational hypothesis</b> — most objects die young — by collecting a small <b>nursery</b> often and the old generation rarely, which cuts the work dramatically. Many also <b>compact</b> survivors into one end of the heap, eliminating fragmentation and making allocation a pointer bump.</p>
+      <p>To collect <i>concurrently</i> without freezing the program, the GC needs a <b>write barrier</b>: a hook on every pointer store that tells the collector when mutation might hide a still-reachable object, the classic tri-color invariant. This is the deep trade-off versus manual management and <code>malloc</code> — you give up control of <i>when</i> work happens in exchange for safety.</p>
+    </Advanced>
     <Why
       problem="Manual memory management is a relentless source of bugs — leaks, double-frees, use-after-free — that are easy to introduce and hard to find."
       idea="Let a collector decide what’s garbage by tracing references from the roots; whatever it can’t reach can’t be used again, so it’s safe to reclaim."
@@ -76,6 +93,10 @@ const description = 'A deep dive into memory: the stack and heap, allocation and
     <p class="prose">A <b>cache</b> is a small, fast store near the CPU. A miss doesn't fetch one byte — it loads a whole <span class="hl">line</span> of neighbours, betting on <b>locality</b>: code usually touches nearby addresses next. Evict a line and touching it again misses anew.</p>
     <CacheSim client:visible />
     <Takeaway>Caches win on locality: one miss pulls in a line so the next several accesses hit — until that line gets evicted.</Takeaway>
+    <Advanced>
+      <p>A real cache isn't fully associative like the model here — checking every line per access is too expensive. Instead it's <b>set-associative</b>: an address's middle bits select one <i>set</i>, and a line may live in any of that set's few <b>ways</b> (8- or 16-way is typical). The catch is <b>conflict misses</b> — addresses that map to the same set evict each other even while the rest of the cache sits empty, which is why striding through memory at an unlucky power-of-two can crater performance.</p>
+      <p>Writes need a policy too. <b>Write-back</b> caches mark a line <i>dirty</i> and flush it only on eviction (fast, but RAM is temporarily stale); <b>write-through</b> updates RAM every time (simple, more traffic). And on a write miss, <b>write-allocate</b> first pulls the line in to modify it, versus write-no-allocate which writes straight past the cache.</p>
+    </Advanced>
     <Why
       problem="Main memory is hundreds of cycles away; reading it for every access would leave the CPU mostly idle."
       idea="Keep recently and nearby-used data in a small fast cache, fetching whole lines so spatial locality turns one slow miss into many fast hits."
@@ -88,6 +109,10 @@ const description = 'A deep dive into memory: the stack and heap, allocation and
     <p class="prose">No single memory is both huge and fast, so the machine stacks several: tiny fast registers, then L1/L2/L3 caches, then RAM, then disk — each step bigger, slower, and farther from the core.</p>
     <MemoryHierarchy />
     <Takeaway>The hierarchy is a speed-vs-size bargain: the closer to the CPU, the faster and smaller; the farther, the larger and slower.</Takeaway>
+    <Advanced>
+      <p>On a multi-core chip each core has private L1/L2 caches, so the same line can sit in several at once — and a write to one must not be invisible to the others. A <b>cache-coherence</b> protocol keeps them consistent; the classic is <b>MESI</b>, tagging every line <b>M</b>odified, <b>E</b>xclusive, <b>S</b>hared, or <b>I</b>nvalid. Before a core can write, it must gain exclusive ownership, invalidating every other copy.</p>
+      <p>That handshake is why <b>false sharing</b> hurts so much: two cores updating <i>different</i> variables that happen to share one 64-byte line ping-pong ownership back and forth, each invalidating the other, even though there's no real data dependency — a top cause of mysteriously slow parallel code.</p>
+    </Advanced>
     <Why
       problem="We want memory that is simultaneously enormous and single-cycle fast — physically impossible at any price."
       idea="Layer storage by speed: keep the hottest data in tiny fast levels and let it spill outward to larger, slower ones as it cools."
@@ -101,6 +126,10 @@ const description = 'A deep dive into memory: the stack and heap, allocation and
     <AddressTranslation client:visible />
     <Takeaway>Virtual memory gives every process a private address space; a page table maps its virtual pages to wherever they physically live.</Takeaway>
     <SeeAlso slug="os" note="the OS owns that page table, and uses it to isolate one process from another" />
+    <Advanced>
+      <p>A single flat page table for a 64-bit space would be astronomically large, so real systems use a <b>multi-level</b> (radix) table — x86-64 walks four levels, slicing the virtual address into 9-bit indexes that each select the next table down. Most of the tree is never allocated, so a sparse address space costs almost nothing; the price is that a miss now means up to four dependent memory reads to translate one address.</p>
+      <p><b>Huge pages</b> (2 MB or 1 GB instead of 4 KB) attack this directly: a larger page covers more memory per entry, so the walk is shorter and far fewer translations are needed — a big win for databases and VMs, at the cost of coarser granularity and more wasted memory when a page is only partly used.</p>
+    </Advanced>
     <Why
       problem="Many programs run at once and must not see or clobber each other's memory, yet each wants a simple contiguous space."
       idea="Give each process virtual addresses and translate them per-page to physical frames through a page table the OS controls — adding isolation and the freedom to relocate or page out memory."
@@ -112,6 +141,10 @@ const description = 'A deep dive into memory: the stack and heap, allocation and
   <LayerSection {...L.M7}>
     <p class="prose">Walking the page table on every access would be far too slow, so the MMU caches recent translations in the <span class="hl">TLB</span>. A hit skips the walk entirely; a miss pays for the walk once, then caches the result.</p>
     <Takeaway>The TLB is a cache for address translation — the same locality trick, applied to page lookups instead of data.</Takeaway>
+    <Advanced>
+      <p>The TLB is tiny — often only a few dozen to a few hundred entries — because it sits on the critical path of every access and is itself usually set-associative. Since one 4 KB entry covers just 4 KB, a working set spread over many pages can <b>thrash</b> the TLB even while the data caches hit fine; this is a major reason huge pages help, since one entry then covers 2 MB and stretches the same TLB over 512× the memory.</p>
+      <p>A naive <b>context switch</b> must flush the TLB, because the same virtual address means different physical memory in another process; modern CPUs avoid that by tagging entries with an <b>address-space ID</b> (ASID/PCID) so multiple processes' translations can coexist. On a miss, hardware (x86) or the OS (some RISC designs) performs the multi-level page-table walk and refills the entry.</p>
+    </Advanced>
     <Why
       problem="A page-table walk is itself several memory accesses; doing one per instruction would erase the benefit of virtual memory."
       idea="Cache the most recent virtual-page → physical-frame mappings in a tiny, fast TLB right in the MMU."
@@ -123,6 +156,10 @@ const description = 'A deep dive into memory: the stack and heap, allocation and
   <LayerSection {...L.M8}>
     <p class="prose">One load, end to end: the virtual address is translated (TLB, else a page-table walk), then the physical address is looked up in the caches (L1 → L2 → L3), and only on a full miss does it reach <b>RAM</b> — hundreds of cycles later.</p>
     <Takeaway>A single memory read is a gauntlet of caches and translations, all racing to avoid the long trip to RAM.</Takeaway>
+    <Advanced>
+      <p>When physical RAM fills, that final fallback gets a step uglier: the OS must <b>evict</b> a resident page to disk to make room. True <b>LRU</b> (least-recently-used) is too costly to track per access, so kernels approximate it with the <b>clock</b> algorithm — pages sit in a ring, each with a hardware-set <i>referenced</i> bit; a sweeping hand clears set bits and evicts the first page it finds already clear, giving recently-touched pages a second chance.</p>
+      <p>Pick badly and the system <b>thrashes</b>: it spends more time paging to and from disk than computing, because the working set simply doesn't fit. The whole gauntlet above — caches, TLB, page tables — is really one idea applied at every scale: keep the hot data close, and pay dearly only when the prediction is wrong.</p>
+    </Advanced>
     <Why
       problem="The flat ‘give address, get byte’ model hides translation, several cache levels, and a latency cliff — until performance depends on them."
       idea="Compose the pieces: translate the address, check each cache level in turn, and fall back to RAM (or disk) only when nothing closer has it."

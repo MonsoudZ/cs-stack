@@ -7,6 +7,7 @@ import Cloud from '../components/Cloud.svelte';
 import Replication from '../components/Replication.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
+import Advanced from '../components/Advanced.astro';
 import Quiz from '../components/Quiz.svelte';
 import PrevNext from '../components/PrevNext.astro';
 import SeeAlso from '../components/SeeAlso.astro';
@@ -25,6 +26,10 @@ const description = 'A deep dive into the cloud: scaling out, the load balancer 
   <LayerSection {...L.CD0}>
     <p class="prose">The first instinct is to <b>scale up</b>: a bigger machine, more RAM, faster cores. But there's a ceiling — and a single box is still a single point of failure. The cloud's answer is to <span class="hl">scale out</span>: many ordinary machines, working together, where any one can die without taking the system down.</p>
     <Takeaway>Scaling up hits a wall and leaves one fragile box; scaling out trades it for many cheap machines — and a pile of new coordination problems.</Takeaway>
+    <Advanced>
+      <p>Scaling out isn't free throughput: <b>Amdahl's law</b> caps speedup at the <i>serial</i> fraction of the work — if 5% must run sequentially, 20× is the ceiling no matter how many machines you add. <b>Universal Scalability</b> goes further, adding a <i>coherency</i> penalty (machines coordinating with each other) that can make throughput actually <i>fall</i> past some node count.</p>
+      <p>This is why genuinely <b>stateless, shareable</b> work scales near-linearly while anything needing cross-node agreement does not — and why "just add servers" stops helping long before you expect.</p>
+    </Advanced>
     <Why
       problem="Demand grows past what any single machine can serve, and that one machine failing takes everything with it."
       idea="Run many commodity machines in parallel so capacity is additive and the loss of any one is survivable."
@@ -37,6 +42,10 @@ const description = 'A deep dive into the cloud: scaling out, the load balancer 
     <p class="prose">A <b>load balancer</b> is the single public address that fans requests out across a pool of identical app servers — usually <span class="hl">round-robin</span>. It also runs <b>health checks</b>: when a server stops answering, the balancer quietly routes around it, so a dead machine drops zero requests.</p>
     <LoadBalancer client:visible />
     <Takeaway>The load balancer turns many servers into one address — spreading load evenly and steering traffic away from any server that fails.</Takeaway>
+    <Advanced>
+      <p>Balancers split by layer. An <b>L4</b> balancer routes on IP and TCP/UDP port alone — cheap and protocol-blind; an <b>L7</b> balancer parses HTTP, so it can route on path, host, or header, terminate TLS, and retry failed requests at the cost of more work per connection.</p>
+      <p>When the backends are themselves a cache or shard pool, plain hashing (<code>hash(key) % N</code>) is a trap: changing <code>N</code> remaps nearly <i>every</i> key. <b>Consistent hashing</b> places nodes and keys on a ring so adding or removing a node reshuffles only about <code>1/N</code> of keys, and <b>virtual nodes</b> spread each physical node around the ring to even out the load.</p>
+    </Advanced>
     <Why
       problem="With a pool of servers, something has to decide which one handles each request — and notice when one dies."
       idea="Put a load balancer out front: it distributes requests across healthy servers and uses health checks to remove and re-add machines automatically."
@@ -48,6 +57,10 @@ const description = 'A deep dive into the cloud: scaling out, the load balancer 
   <LayerSection {...L.CD2}>
     <p class="prose">Round-robin only works if requests don't care which server they hit. So app servers must be <b>stateless</b>: they keep no session data in local memory. Anything that must persist — sessions, uploads, carts — gets pushed out to a shared store. Then any server can serve any request, and you scale by simply <span class="hl">adding more</span>.</p>
     <Takeaway>Statelessness is the enabling trick of horizontal scaling: if servers hold nothing local, they’re interchangeable, and adding capacity is just adding boxes.</Takeaway>
+    <Advanced>
+      <p>Statelessness also makes <b>retries</b> safe — but only if the operation is <b>idempotent</b> (applying it twice equals applying it once). A timed-out "charge card" may have actually succeeded, so the client retries and double-charges. The fix is an <b>idempotency key</b>: the client sends a unique token, the server records it on first success and returns that same result for any retry with the key.</p>
+      <p><code>GET</code>, <code>PUT</code>, and <code>DELETE</code> are naturally idempotent; <code>POST</code> is not, which is exactly why payment and order APIs require the key. The flip side of being stateless is that the alternative — <b>sticky sessions</b> pinning a user to one server — quietly re-introduces a single point of failure and uneven load.</p>
+    </Advanced>
     <Why
       problem="If a server holds a user’s session in its own memory, only that server can serve them — and if it dies, their state is gone."
       idea="Keep app servers stateless and move shared state to a database, cache, or object store that all of them reach."
@@ -61,6 +74,10 @@ const description = 'A deep dive into the cloud: scaling out, the load balancer 
     <Cloud client:visible />
     <Takeaway>A cloud request is a tour of the repeated stack — balancer, app, cache, database, queue — each piece there to be fast, shared, or resilient.</Takeaway>
     <SeeAlso slug="network" note="the journey each request makes across the internet to reach these servers" />
+    <Advanced>
+      <p>A hot cache key that expires is dangerous: every concurrent request misses at once and stampedes the database to recompute the same value — the <b>thundering herd</b> (or cache stampede). The standard defenses are <b>request coalescing</b> (the first miss takes a lock and recomputes while the rest wait for its result) and <b>jittered TTLs</b> (randomizing expiry so a batch of keys written together doesn't all expire on the same tick).</p>
+      <p>Deciding what's authoritative matters too: <b>cache-aside</b> (the app reads the cache, then the DB on a miss, and writes the value back) is simplest, but a stale entry lingers until its TTL — so writes usually <b>invalidate</b> the key rather than trusting the cache to self-heal.</p>
+    </Advanced>
     <Why
       problem="A single request now touches many machines, and the slow or failure-prone parts can’t sit on the user’s critical path."
       idea="Layer the pieces: cache to skip the database, the database as the source of truth, and a queue to defer slow work asynchronously."
@@ -74,6 +91,10 @@ const description = 'A deep dive into the cloud: scaling out, the load balancer 
     <Replication client:visible />
     <Takeaway>Replicas scale reads by copying the primary — but replication lag means a read can briefly see the past, so the system is only eventually consistent.</Takeaway>
     <SeeAlso slug="database" note="replication and its consistency tradeoffs from inside the database itself" />
+    <Advanced>
+      <p>Leaderless stores (Dynamo-style) skip the single primary and write to several replicas at once, tuning consistency with <b>quorums</b>: require <code>W</code> replicas to ack a write and <code>R</code> to answer a read. When <b>R + W &gt; N</b>, every read set overlaps every write set, so a read is guaranteed to see at least one copy of the latest write — <i>without</i> contacting all <code>N</code>.</p>
+      <p>Stale replicas still exist, so reads use a version (vector clock or timestamp) to pick the newest copy and <b>read-repair</b> the laggards in the background. Tuning the knobs trades off: <code>W=N</code> is durable but write-fragile, <code>R=1, W=1</code> is fast but inconsistent, and balanced quorums sit in between.</p>
+    </Advanced>
     <Why
       problem="A single database caps your read throughput and is a single point of failure for the truth."
       idea="Copy the data to read replicas the primary streams updates to, so reads scale horizontally and a replica can be promoted if the primary dies."
@@ -86,6 +107,10 @@ const description = 'A deep dive into the cloud: scaling out, the load balancer 
     <p class="prose">When the network between machines <b>partitions</b> — and at scale it eventually will — a replica that can't reach the primary faces a forced choice: refuse the request to stay <span class="hl">consistent</span>, or answer with possibly-stale data to stay <span class="hl">available</span>. You can't have both during a partition — though when the network is healthy you can have both at once; the forced choice only appears during the split. That's <b>CAP</b>.</p>
     <Takeaway>CAP is the cloud’s law of physics: when the network splits, you must choose consistency or availability — every distributed system is really a stance on that tradeoff.</Takeaway>
     <SeeAlso slug="raft" note="how the replicas actually agree — electing a leader and committing one shared log" />
+    <Advanced>
+      <p>CAP only describes the partition case, which is misleadingly rare. <b>PACELC</b> completes it: <i>if Partitioned, choose Availability or Consistency; Else (the normal, healthy case) choose Latency or Consistency.</i> Even with a perfect network, keeping replicas in sync on every write costs round-trips, so you're <i>always</i> trading latency against consistency — not just during a split.</p>
+      <p>It also reframes the choice as a <b>spectrum</b>, not a binary. A system can be <code>PA/EL</code> (Dynamo, Cassandra — fast and available, eventually consistent) or <code>PC/EC</code> (a strict consensus store — correct but slower on every operation), which is a sharper way to classify a datastore than CAP alone.</p>
+    </Advanced>
     <Why
       problem="Networks between machines drop and split, and during a split two sides can’t both stay in sync and keep serving."
       idea="Decide in advance which to sacrifice under a partition — refuse writes to stay consistent (CP), or keep serving and reconcile later (AP)."

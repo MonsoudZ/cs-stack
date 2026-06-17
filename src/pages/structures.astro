@@ -10,6 +10,7 @@ import BTreeSearch from '../components/BTreeSearch.svelte';
 import Graph from '../components/Graph.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
+import Advanced from '../components/Advanced.astro';
 import Quiz from '../components/Quiz.svelte';
 import PrevNext from '../components/PrevNext.astro';
 import SeeAlso from '../components/SeeAlso.astro';
@@ -35,6 +36,10 @@ const bigo = [
   <LayerSection {...L.S0}>
     <p class="prose">An <b>array</b> is the simplest structure: a row of equal-sized slots in <span class="hl">contiguous</span> memory. Because slot <i>i</i> sits at <code>base + i × size</code>, the CPU reaches any element with one multiply-and-add — <b>O(1)</b>, no searching.</p>
     <Takeaway>An array trades flexibility for raw speed: instant indexed access and great cache locality, because neighbours really are neighbours in memory.</Takeaway>
+    <Advanced>
+      <p>The O(1) index formula <code>base + i × size</code> hides the real win on modern hardware: <b>cache locality</b>. The CPU loads memory in <b>cache lines</b> (typically 64 bytes), so reading one element drags its neighbours into fast cache for free. Walking an array therefore streams through cache and lets the <b>hardware prefetcher</b> predict and pre-load the next line — which is why a contiguous array can be an order of magnitude faster than a pointer-chasing list <i>with the same Big-O</i>.</p>
+      <p>This is also why <b>array-of-structs vs struct-of-arrays</b> matters: storing only the fields a loop touches contiguously (SoA) keeps every loaded line useful instead of dragging in unread fields, a staple of high-performance and data-oriented design.</p>
+    </Advanced>
     <Why
       problem="Programs constantly need a pile of same-typed values they can reach by position without hunting for each one."
       idea="Lay them out back-to-back in memory so any element’s address is pure arithmetic from its index."
@@ -47,6 +52,10 @@ const bigo = [
     <p class="prose">A <b>linked list</b> drops the contiguity. Each <span class="hl">node</span> sits anywhere in memory and holds a value plus a <b>pointer</b> to the next one — order comes from the links. Splicing a node in or out is just a couple of pointer writes, <b>O(1)</b> once you already hold the node — where an array would shift everything after it. (Finding that node first is still O(n): there's no random access.)</p>
     <LinkedList client:visible />
     <Takeaway>A linked list trades the array’s instant indexing for instant splicing: no random access, but inserting or removing at a known spot never shifts a thing.</Takeaway>
+    <Advanced>
+      <p>The list's O(1) splice is genuine, but its constant factor is brutal: each node is a <b>separate heap allocation</b> at an unpredictable address, so traversal is <b>pointer chasing</b> that the cache and prefetcher can't anticipate — every hop risks a cache miss. In practice a dynamic array often beats a linked list even for middle inserts, because shifting contiguous bytes is cache-friendly while chasing pointers is not.</p>
+      <p>Real systems lean on variants: a <b>doubly-linked list</b> stores a <code>prev</code> pointer too, making O(1) removal possible given just the node. <b>Intrusive</b> lists embed the link fields inside the payload struct (the Linux kernel's <code>list_head</code>), avoiding a separate allocation per node — which is exactly where linked lists earn their keep.</p>
+    </Advanced>
     <Why
       problem="Arrays make middle insertions and deletions expensive, because every later element has to move."
       idea="Give each element a pointer to the next, so order lives in the links — then inserting means allocating a node and redirecting two pointers."
@@ -59,6 +68,10 @@ const bigo = [
     <p class="prose">A <b>dynamic array</b> hides the fixed-size problem: it keeps spare capacity, and when it fills, it allocates a block <span class="hl">twice as big</span> and copies everything over. The doublings get rarer as it grows, so appends average out to <b>O(1)</b> — that's <i>amortized</i> cost.</p>
     <DynamicArray client:visible />
     <Takeaway>Growing by doubling makes most appends instant and the rare copy infrequent enough that, averaged out, appending stays O(1).</Takeaway>
+    <Advanced>
+      <p>"Amortized O(1)" has a proof. The <b>aggregate method</b> notes that growing to <i>n</i> elements does at most <code>n + n/2 + n/4 + … &lt; 2n</code> total copies, so the per-append average is a constant. The <b>potential method</b> is sharper: treat the unused-but-paid-for slack as stored "potential" — cheap appends bank credit, and the rare doubling spends exactly the credit saved since the last one, so no single append is charged more than O(1).</p>
+      <p>The <b>growth factor</b> is a real trade: doubling is simple but can waste ~50% of capacity, so some implementations use ~1.5× to reuse freed memory blocks more often. Crucially, amortized is <b>not worst-case</b> — one unlucky append still stalls for O(n), which is why latency-sensitive systems pre-<code>reserve</code> capacity to dodge the resize entirely.</p>
+    </Advanced>
     <Why
       problem="A plain array can’t grow, but you usually don’t know the final size up front."
       idea="Keep slack capacity and, when it runs out, double the block and copy — paying a big cost rarely instead of a small cost constantly."
@@ -71,6 +84,10 @@ const bigo = [
     <p class="prose">Sometimes the <i>restriction</i> is the feature. A <b>stack</b> only lets you add and remove at one end — <span class="hl">last in, first out</span> (think the call stack, or undo). A <b>queue</b> adds at the back and removes from the front — <span class="hl">first in, first out</span> (think a job queue). Same data, opposite order.</p>
     <StackQueue client:visible />
     <Takeaway>Stacks and queues are arrays or lists with deliberately narrow rules — LIFO and FIFO — and that narrowness is exactly what makes them useful.</Takeaway>
+    <Advanced>
+      <p>A queue on a plain array is a trap: dequeuing from the front by shifting every element is O(n). The fix is a <b>ring buffer</b> (circular buffer) — keep <code>head</code> and <code>tail</code> indices and wrap them with <code>% capacity</code>, so both ends are O(1) and no data ever moves. This is the standard backing for fixed-size queues, audio buffers, and OS I/O rings.</p>
+      <p>Generalize both ends and you get a <b>deque</b> (double-ended queue), which adds and removes at either side in O(1) and is what most languages' "stack" and "queue" types are really built on. The same restricted-access idea also underpins a <b>priority queue</b>, where "next out" is the smallest key rather than the oldest — usually implemented as a binary <b>heap</b> for O(log n) insert and extract.</p>
+    </Advanced>
     <Why
       problem="Many algorithms need to process things in a specific order — most-recent-first, or in arrival order — without re-sorting."
       idea="Restrict where you add and remove: one end for a stack (LIFO), opposite ends for a queue (FIFO), each O(1) on an array or linked list."
@@ -83,6 +100,10 @@ const bigo = [
     <p class="prose">A <b>hash map</b> turns a key into an array index by <span class="hl">hashing</span> it to a bucket. Lookup jumps straight to that bucket — no scanning. Two keys can hash to the same bucket (a <b>collision</b>), so each bucket holds a short chain you scan through. To keep those chains short as it fills up, the map tracks its <b>load factor</b> (entries ÷ buckets) and, once it crosses a threshold (often ~0.75), allocates a bigger bucket array and <span class="hl">rehashes</span> every key into it — which is what keeps lookups O(1) on average as <i>n</i> grows.</p>
     <HashMap client:visible />
     <Takeaway>A hash map buys near-instant lookup by key — at the cost of order, and of degrading to a scan when too many keys pile into one bucket.</Takeaway>
+    <Advanced>
+      <p>The widget shows <b>separate chaining</b> (a list per bucket), but most modern fast maps use <b>open addressing</b>: store entries inline in the array and, on a collision, <b>probe</b> for the next free slot. <b>Linear probing</b> keeps everything cache-contiguous; <b>Robin Hood</b> hashing evens out probe distances; Google's <code>SwissTable</code> scans metadata bytes with SIMD. The catch is that open addressing degrades sharply past a load factor of ~0.7–0.9, so the rehash threshold matters more.</p>
+      <p>There's also a <b>security</b> angle. If keys come from untrusted input and the hash is predictable, an attacker can craft keys that all collide into one bucket — a <b>hash-flooding DoS</b> that forces every lookup to O(n). The defense is <b>randomized, keyed hashing</b> like <b>SipHash</b>, seeded per-process so an attacker can't precompute collisions; it's now the default for hash tables in Python, Rust, and others.</p>
+    </Advanced>
     <Why
       problem="Arrays find things fast only by numeric position; we often want to find a value by an arbitrary key like a name."
       idea="Run the key through a hash function to compute a bucket index, turning a key lookup into an array access plus a tiny chain scan."
@@ -96,6 +117,10 @@ const bigo = [
     <BTreeSearch client:visible />
     <Takeaway>A search tree trades a hash map's flat speed for ordering: lookups are O(log n), but the data stays sorted, so ranges and "next-largest" come free.</Takeaway>
     <SeeAlso slug="database" note="B-tree indexes use exactly this to find rows without scanning the table" />
+    <Advanced>
+      <p>"Balanced" is the whole game — an unbalanced BST degrades to a linked list, O(n). In-memory trees enforce balance with rotations: an <b>AVL</b> tree keeps subtree heights within 1 (rigidly balanced, faster lookups), while a <b>red-black</b> tree allows a looser 2× height bound in exchange for fewer rotations on insert/delete, which is why C++ <code>std::map</code> and many language runtimes pick it.</p>
+      <p>On disk the constraint flips. A binary node per cache line wastes a costly I/O on one comparison, so <b>B-trees</b> pack <i>hundreds</i> of keys per node to maximize <b>fan-out</b>: a high branching factor crushes tree height, so finding a row among billions takes only 3–4 block reads. Matching node size to the page/cache-line size is exactly why databases and filesystems use B-trees (and B+-trees) instead of binary ones.</p>
+    </Advanced>
     <Why
       problem="Hash maps are fast but unordered — useless when you need sorted output, ranges, or the nearest key."
       idea="Arrange keys in a balanced tree so each comparison halves the search space and an in-order walk yields everything sorted."
@@ -108,6 +133,10 @@ const bigo = [
     <p class="prose">A <b>graph</b> is just <span class="hl">nodes</span> joined by <span class="hl">edges</span> — a tree without the no-cycles rule, which makes it the shape of almost everything connected: friend networks, roads, web links, dependencies. To explore one you visit a node and fan out; <b>breadth-first search</b> uses a <i>queue</i> to sweep level by level.</p>
     <Graph client:visible />
     <Takeaway>A graph models any web of relationships; traversals like BFS (powered by the very queue from earlier) turn “is everything connected?” and “what’s the shortest path?” into a systematic walk.</Takeaway>
+    <Advanced>
+      <p>How you store a graph decides its costs. An <b>adjacency matrix</b> (an <i>n×n</i> grid) tests "is there an edge u→v?" in O(1) but burns O(n²) memory regardless of edge count — fine for dense graphs. An <b>adjacency list</b> (per-node neighbour lists) uses O(n + e) space and iterates a node's neighbours efficiently, which is why it's the default for the <b>sparse</b> graphs real networks usually are.</p>
+      <p>The traversal choice carries real weight too: BFS on an <b>unweighted</b> graph finds genuine shortest paths because it expands strictly by distance, but the moment edges have weights you need <b>Dijkstra</b> (a priority-queue-driven BFS that always expands the cheapest frontier node) — the same heap from the queue layer, now ordering by total path cost.</p>
+    </Advanced>
     <Why
       problem="Real relationships aren’t neatly hierarchical — things connect to many other things, sometimes in cycles a tree can’t express."
       idea="Represent the data as nodes and edges, then explore it with a traversal — BFS for shortest hops, DFS for going deep — each tracking what’s already seen."
@@ -137,6 +166,10 @@ const bigo = [
       </table>
     </div>
     <Takeaway>Choosing a data structure is choosing your costs: there's no free lunch, only an honest trade between lookup, order, insertion, and memory.</Takeaway>
+    <Advanced>
+      <p>Big-O is an <b>asymptotic, worst-case</b> bound, and it hides three things that flip real-world winners. <b>Constant factors and cache behaviour</b>: an O(n) scan over a contiguous array routinely beats an O(log n) tree for small <i>n</i>, because the array never misses cache — which is why standard sorts switch to insertion sort below a size threshold. <b>Average vs worst case</b>: a hash map is O(1) average but O(n) worst, a quibble until an adversary or a pathological input triggers it.</p>
+      <p>It also says nothing about <b>which</b> resource. The same problem trades <b>time against space</b> (a precomputed lookup table buys O(1) at the cost of memory), and matters like <b>amortized vs latency</b> or persistence can dominate. The discipline is to know your access pattern and data size, pick by the operation you do most, then <b>measure</b> — the asymptotic winner is only a starting hypothesis.</p>
+    </Advanced>
     <Why
       problem="Every structure makes some operations fast and others slow, so a wrong fit can make correct code unusably slow."
       idea="Use Big-O to compare how each shape’s cost grows, then pick the one whose cheap operations are the ones your program does most."

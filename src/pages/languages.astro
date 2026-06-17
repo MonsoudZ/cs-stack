@@ -7,6 +7,7 @@ import LangRun from '../components/LangRun.svelte';
 import LangMemory from '../components/LangMemory.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
+import Advanced from '../components/Advanced.astro';
 import Quiz from '../components/Quiz.svelte';
 import PrevNext from '../components/PrevNext.astro';
 import SeeAlso from '../components/SeeAlso.astro';
@@ -25,6 +26,10 @@ const description = 'A deep dive into what separates C, Rust, Go, Python, and Ja
   <LayerSection {...L.LA0}>
     <p class="prose">A programming language is a <b>human surface</b> over the machine — a notation a compiler or interpreter turns into the instructions from the compiler and CPU stacks. Any language <i>can</i> express any computation (they're all Turing-complete), so a language isn't defined by what it can do, but by the <span class="hl">tradeoffs</span> it makes you take: safety vs control, speed vs flexibility, simplicity vs power.</p>
     <Takeaway>All languages bottom out at the same CPU, so the interesting differences aren't capability — they're the tradeoffs each one bakes in, on the very axes the rest of this stack is about.</Takeaway>
+    <Advanced>
+      <p>The cleanest evidence that languages share one machine is the <b>C ABI</b> — the application binary interface that fixes how arguments pass in registers and on the stack, how the stack is laid out, and how symbols are named. It has become the cross-language <i>lingua franca</i>: Python, Rust, Go, and JavaScript runtimes all reach other languages through C-compatible <b>FFI</b>, because nearly every platform speaks C at the binary level.</p>
+      <p>That's also why "is it compiled or interpreted?" is really a property of an <b>implementation</b>, not the language. C is usually compiled but has interpreters (cling); Python is usually bytecode-interpreted but has compilers and JITs. The language is a specification; how it reaches the CPU is a choice the toolchain makes.</p>
+    </Advanced>
     <Why
       problem="We need to tell a machine what to do, but raw instructions are unreadable and unsafe to write by hand at any scale."
       idea="Invent higher-level notations with their own rules, and lean on a compiler or interpreter to bridge them down to the machine — each language choosing a different balance of control and convenience."
@@ -38,6 +43,10 @@ const description = 'A deep dive into what separates C, Rust, Go, Python, and Ja
     <LangRun client:visible />
     <Takeaway>Compiled, interpreted, JIT: the same three execution strategies the compiler stack's "runtimes" layer showed — now you can see which real language sits where.</Takeaway>
     <SeeAlso slug="compiler" note="the interpret / AOT / JIT machinery, built up from bytecode and registers" />
+    <Advanced>
+      <p>A modern JIT (V8, the JVM's HotSpot) isn't one compiler but a <b>tiered</b> pipeline. Code starts in a fast interpreter or baseline compiler while a <b>profiler</b> watches which functions run hot and what types actually flow through them; only then does an optimizing tier recompile them with aggressive, <i>speculative</i> assumptions. This is the <b>warm-up</b> cost — peak speed arrives only after the hot paths have been observed.</p>
+      <p>Because those optimizations are speculative ("this variable has always been an integer"), the JIT must guard them and <b>deoptimize</b> — bail back to the interpreter and recompile — the moment an assumption breaks. A function repeatedly fed unexpected types can thrash between tiers, which is why <b>monomorphic</b>, type-stable code runs dramatically faster on a JIT than polymorphic code.</p>
+    </Advanced>
     <Why
       problem="Source code is text; the CPU runs numbered instructions — something has to bridge that, and when it happens (before or during the run) is a real choice."
       idea="Compile everything up front for speed, interpret bytecode for flexibility and portability, or JIT-compile the hot parts at runtime to get both."
@@ -50,6 +59,10 @@ const description = 'A deep dive into what separates C, Rust, Go, Python, and Ja
     <p class="prose"><b>Static</b> languages (C, Rust, Go) check types at <span class="hl">compile time</span>: every variable's type is known before the program runs, so whole classes of bugs are caught early and the compiler can optimize hard. <b>Dynamic</b> languages (Python, JS) check at <span class="hl">run time</span>: values carry their type, variables hold anything — quicker to write and bend, but a type error only surfaces when that line actually executes.</p>
     <Takeaway>Static vs dynamic is just <i>when</i> types are checked: before it runs (safer, faster, stricter) or as it runs (looser, faster to write, riskier).</Takeaway>
     <SeeAlso slug="compiler" note="the type-checking pass that does this for a statically-typed language" />
+    <Advanced>
+      <p>Static types raise a hard question once you add <b>generics</b>: how do you compile one <code>List&lt;T&gt;</code> for many <code>T</code>? Two answers dominate. <b>Monomorphization</b> (C++ templates, Rust) stamps out a separate specialized copy per concrete type — fast, fully inlinable code, but <b>code bloat</b> and longer compiles. <b>Type erasure</b> (Java) compiles one shared version and discards the type parameters at runtime, keeping binaries small at the cost of boxing and lost type info (so you can't ask a <code>List</code> what its element type was).</p>
+      <p>Static typing also pays off below the type checker. Knowing every type at compile time lets the optimizer pick concrete machine instructions, lay out structs tightly, and <b>devirtualize</b> calls — which is a large part of why statically-typed languages tend to run faster than dynamic ones doing the same work.</p>
+    </Advanced>
     <Why
       problem="A program constantly assumes a value is a number, a string, a list — and being wrong is a bug; the question is when you find out."
       idea="Check types ahead of time against declarations (static) for early errors and speed, or attach types to values and check them as operations happen (dynamic) for flexibility."
@@ -63,6 +76,10 @@ const description = 'A deep dive into what separates C, Rust, Go, Python, and Ja
     <LangMemory client:visible />
     <Takeaway>Manual, ownership, or GC: total control with the bug risk, compiler-proven safety with the strictness, or hands-off convenience with the unpredictable pause — there's no free lunch on the heap.</Takeaway>
     <SeeAlso slug="memory" note="the heap, allocation, and how garbage collection actually reclaims it" />
+    <Advanced>
+      <p>"Every program allocates on the heap" is truer in source than in the final binary. Compilers run <b>escape analysis</b>: if an object provably never <i>escapes</i> the function that creates it — never returned, never stored somewhere outliving the call — it can be <b>stack-allocated</b> (or its fields kept in registers) instead, sidestepping the allocator and the collector entirely. Go and the JVM lean on this heavily, which is why idiomatic code allocates far less than it looks like it should.</p>
+      <p>The three models also differ in <i>how</i> they reclaim. Rust's ownership compiles down to deterministic <code>free</code> calls (essentially automatic <b>RAII</b>), so there's no runtime pause; reference counting (Python's primary scheme, Swift) frees promptly but can't break <b>cycles</b> without a backup collector; and tracing GCs (Go, the JVM) periodically find unreachable objects, trading those pauses for not having to think about lifetimes at all.</p>
+    </Advanced>
     <Why
       problem="Heap memory has to be returned, and getting it wrong is catastrophic: leaks exhaust memory, double-frees and use-after-frees corrupt or get exploited."
       idea="Pick who's responsible: the programmer (manual), the compiler via ownership rules (Rust), or a runtime garbage collector (Go/Python/JS)."
@@ -75,6 +92,10 @@ const description = 'A deep dive into what separates C, Rust, Go, Python, and Ja
     <p class="prose">Finally, <b>concurrency</b>. C and Rust hand you real <span class="hl">OS threads</span> (Rust adds compile-time guarantees against data races — "fearless concurrency"). Go gives you cheap <span class="hl">goroutines</span> over a built-in scheduler, so a program can run millions. Python has threads but a <span class="hl">GIL</span> that lets only one run Python at a time (so it leans on async or multiple processes). JavaScript is <span class="hl">single-threaded</span> with an event loop — concurrency without parallelism.</p>
     <Takeaway>From OS threads to goroutines to a single event loop, each language picks a different point on the "how do we do many things at once" spectrum — the concurrency stack's problems, with different defaults.</Takeaway>
     <SeeAlso slug="concurrency" note="threads, races, and the locks/atomics underneath all of these models" />
+    <Advanced>
+      <p>The <b>GIL</b> isn't laziness — it's a global lock that lets only one thread execute Python bytecode at a time, which makes the interpreter's reference counting safe without per-object locking. The cost is that CPU-bound Python threads can't use multiple cores (I/O-bound ones still help, since the lock is released during blocking calls). The long-running <b>no-GIL</b> effort (PEP 703, shipping experimentally in 3.13+) removes it in favor of fine-grained locking, at some single-thread overhead.</p>
+      <p>Goroutines and <code>async</code>/<code>await</code> are both <b>M:N</b> scheduling — many logical tasks multiplexed onto few OS threads — but they differ in how a task yields. Goroutines are <i>stackful</i> and the runtime can preempt them; async tasks are <i>stackless</i> <b>cooperative</b> coroutines driven by an <b>event loop</b> that runs the next ready task whenever one awaits I/O. Both make a million concurrent waiters cheap; neither, by itself, parallelizes CPU work the way real threads do.</p>
+    </Advanced>
     <Why
       problem="Modern machines have many cores and programs wait on I/O constantly, so doing one thing at a time leaves performance (and responsiveness) on the table."
       idea="Expose a concurrency model: OS threads for raw parallelism, lightweight green threads (goroutines) scheduled in userspace, or a single-threaded event loop that interleaves I/O without shared-memory hazards."
@@ -105,6 +126,10 @@ const description = 'A deep dive into what separates C, Rust, Go, Python, and Ja
     </div>
     <Takeaway>A language isn't its syntax — it's the bundle of tradeoffs it picks on execution, types, memory, and concurrency. Learn the axes and any new language is just a new combination of them.</Takeaway>
     <SeeAlso slug="compiler" note="how any of these source languages becomes the instructions the CPU runs" />
+    <Advanced>
+      <p>The four columns aren't independent — picking one cell constrains the others. A <b>tracing GC</b> wants to move and scan objects freely, which is hard to reconcile with C-style raw pointers, so GC'd languages tend toward managed references. Rust's <b>ownership</b> is the mechanism behind <i>both</i> its memory safety <i>and</i> its "fearless concurrency": the same borrow checker that prevents use-after-free also forbids two threads from mutably sharing data, eliminating data races at compile time.</p>
+      <p>This is why a language is best read as a <b>coherent bundle</b>, not a checklist. C pairs manual memory with raw threads because both flow from "trust the programmer"; Python pairs dynamic typing, a GIL, and reference counting because all three flow from a simple, fast-to-write interpreter. Learn the axes and a new language is mostly a new <i>combination</i> of positions you already understand.</p>
+    </Advanced>
     <Why
       problem="“Which language should I use?” has no universal answer, and syntax comparisons miss what actually differs."
       idea="Read each language as a point in a space of tradeoffs — execution model, type discipline, memory management, concurrency — so the choice becomes about which costs you can accept for which job."

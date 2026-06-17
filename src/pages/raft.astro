@@ -6,6 +6,7 @@ import RaftElection from '../components/RaftElection.svelte';
 import RaftLog from '../components/RaftLog.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
+import Advanced from '../components/Advanced.astro';
 import Quiz from '../components/Quiz.svelte';
 import PrevNext from '../components/PrevNext.astro';
 import SeeAlso from '../components/SeeAlso.astro';
@@ -24,6 +25,10 @@ const description = 'A deep dive into distributed consensus through Raft: replic
   <LayerSection {...L.RF0}>
     <p class="prose">Replicate a service for fault tolerance and a new problem appears: the copies must agree on <b>what happened, and in what order</b>. Model each replica as a <span class="hl">state machine</span> — feed every copy the same commands in the same sequence and they stay identical. The whole game is agreeing on that one sequence. The danger is <b>split-brain</b>: two replicas each believing they're in charge, accepting conflicting writes.</p>
     <Takeaway>Consensus = getting many machines to agree on one ordered log of commands, despite crashes and an unreliable network — so each replicated state machine ends up in the same place.</Takeaway>
+    <Advanced>
+      <p>Raft is one of two famous answers here; the other is <b>(multi-)Paxos</b>. They prove the same safety guarantees and need the same majority quorums, but Paxos describes consensus on a <i>single value</i> and leaves the messy "now do that for a whole log, with a stable leader" part underspecified — which is why real systems grew incompatible variants. Raft was designed for <b>understandability</b>: a strong leader and an append-only log mean entries only ever flow leader→follower, and the algorithm is a few well-defined RPCs.</p>
+      <p>Consensus also can't beat the <b>FLP</b> result — no deterministic protocol can guarantee progress in a fully asynchronous network with even one crash. Raft sidesteps this in practice with <b>randomized timeouts</b>: it never sacrifices safety, only liveness, and the randomness makes a permanent livelock of split votes vanishingly unlikely.</p>
+    </Advanced>
     <Why
       problem="A single server is a single point of failure, but the moment you replicate it the copies can disagree — and two servers both acting as the authority corrupt the data."
       idea="Have the cluster agree on a single, ordered log of commands and apply it identically everywhere, so the replicas are deterministic copies of one state machine."
@@ -36,6 +41,10 @@ const description = 'A deep dive into distributed consensus through Raft: replic
     <p class="prose">Raft makes one server the <b>leader</b>; everyone else follows. Time is divided into numbered <span class="hl">terms</span>. A follower that hears no heartbeat times out, becomes a <b>candidate</b>, increments the term, votes for itself, and asks the rest. Each server grants at most <b>one vote per term</b>, so only a candidate with a <b>majority</b> can win — which makes two leaders in the same term impossible.</p>
     <RaftElection client:visible />
     <Takeaway>Leader election is just terms + majority voting: bump the term, ask for votes, and one-vote-per-term guarantees at most one winner — no split-brain.</Takeaway>
+    <Advanced>
+      <p>The <b>term</b> is Raft's logical clock. Every RPC carries the sender's term; a server that sees a higher term immediately steps down to follower and adopts it, while a message from a <i>stale</i> term is rejected outright. That single rule is what neutralizes a partitioned old leader: when it reconnects, its <code>AppendEntries</code> are refused because the cluster has already moved to a newer term.</p>
+      <p>A subtle hazard is the <b>disruptive rejoin</b> — a partitioned node that kept timing out arrives with an inflated term and forces a needless election. Production Raft adds a <b>pre-vote</b> phase: a candidate first checks whether it could actually win <i>before</i> incrementing its term, so a node that can't reach a majority never disturbs a healthy leader.</p>
+    </Advanced>
     <Why
       problem="If any server could accept writes, conflicting decisions would diverge the replicas; but a fixed leader can also crash, so leadership must be reassignable."
       idea="Elect a leader by majority vote within a numbered term, with each server voting only once per term, so exactly one leader can emerge and a new term can elect a fresh one."
@@ -48,6 +57,10 @@ const description = 'A deep dive into distributed consensus through Raft: replic
     <p class="prose">The leader is the only server that takes writes. Each client command is <b>appended</b> to the leader's log, then pushed to followers with <code>AppendEntries</code>. Once a <b>majority</b> have stored an entry, the leader <span class="hl">commits</span> it — applies it to its state machine and tells the followers to apply it too. Same commands, same order, everywhere.</p>
     <RaftLog client:visible />
     <Takeaway>One log, one writer: the leader replicates each entry and only commits once a majority hold it, so every replica applies an identical sequence of commands.</Takeaway>
+    <Advanced>
+      <p>What keeps logs aligned is the <b>Log Matching Property</b>: if two logs hold an entry with the same <b>index and term</b>, then those entries are identical <i>and</i> every entry before them is identical too. <code>AppendEntries</code> enforces this with a <b>consistency check</b> — each request names the index and term of the entry just before the new ones, and a follower whose log doesn't match there rejects it. The leader then walks <code>nextIndex</code> backward until it finds the last point of agreement and overwrites the follower's divergent tail from there.</p>
+      <p>A log never grows unbounded, so Raft also needs <b>compaction</b>: each node periodically takes a <b>snapshot</b> of its applied state machine and discards the log prefix it covers. A follower that has fallen so far behind that the leader has already trimmed the entries it needs is caught up with an <code>InstallSnapshot</code> RPC instead of entry-by-entry replication.</p>
+    </Advanced>
     <Why
       problem="Even with one leader, a copy could be missing entries or apply them out of order, which would silently diverge the replicas."
       idea="Funnel all writes through the leader’s ordered log, replicate entries by index, and commit only after a majority store them — then apply in log order on every node."
@@ -59,6 +72,10 @@ const description = 'A deep dive into distributed consensus through Raft: replic
   <LayerSection {...L.RF3}>
     <p class="prose">Commitment rests on one fact about <b>majorities</b>: any two of them overlap in at least one server. So a committed entry — stored on a majority — is guaranteed to appear in the next leader's election majority, and can never be lost. Raft enforces this with an <span class="hl">election restriction</span>: a server only grants its vote to a candidate whose log is at least as <b>up to date</b> as its own, so a candidate missing committed entries can't win.</p>
     <Takeaway>Two majorities always overlap, so a committed entry survives every future election — and the “vote only for an up-to-date log” rule keeps a leader from ever erasing committed history.</Takeaway>
+    <Advanced>
+      <p>The up-to-date rule isn't quite enough on its own — the famous <b>Figure 8</b> scenario shows that an entry replicated to a majority can still be <i>overwritten</i> if a later leader commits it only because it inherited that entry from a previous term. Raft's fix is a sharp restriction: a leader may only <b>directly commit an entry from its own current term</b> by counting replicas. Entries left over from <b>prior terms</b> are never committed by majority count alone.</p>
+      <p>Instead, an old entry is committed <i>indirectly</i> — once a current-term entry sitting on top of it is committed, the Log Matching Property carries everything beneath it along for free. This is why a new leader typically appends a <b>no-op entry</b> immediately on election: committing that fresh entry retroactively pins down all the inherited ones.</p>
+    </Advanced>
     <Why
       problem="A naïve leader change could elect a server that’s missing already-committed entries, which would roll back acknowledged writes — the one thing a consensus system must never do."
       idea="Define commit as majority-stored, and forbid voting for a candidate with a less-up-to-date log, so every new leader necessarily already holds every committed entry."
@@ -71,6 +88,10 @@ const description = 'A deep dive into distributed consensus through Raft: replic
     <p class="prose">When the leader crashes, its heartbeats stop and a follower times out — exactly the election from layer 01, now in a <b>higher term</b>. The new leader wins only if its log is up to date, so no committed entry is lost. It then brings stragglers back into line: followers accept the leader's log as authoritative, <span class="hl">overwriting</span> any uncommitted entries that conflict. The cluster reconverges on its own.</p>
     <Takeaway>A crash costs one election timeout: a higher term elects a new (sufficiently up-to-date) leader, and conflicting uncommitted tails get overwritten — automatic recovery, no operator needed.</Takeaway>
     <SeeAlso slug="cloud" note="the replica set this is keeping consistent in the first place" />
+    <Advanced>
+      <p>A crash isn't the only way to change leaders. Live clusters also need <b>membership changes</b> — adding or replacing servers — and naively swapping the configuration can split the cluster into two disjoint majorities that elect <i>two</i> leaders at once. Raft avoids this with <b>joint consensus</b>: it commits an intermediate <b>C-old,new</b> configuration that requires agreement from majorities of <i>both</i> the old and new sets, so no single decision is ever made under one config alone.</p>
+      <p>Recovery speed also depends on <b>durability</b>: a server must <code>fsync</code> its <code>currentTerm</code>, vote, and log to stable storage before replying, or a crash-and-restart could let it vote twice in a term or resurrect discarded entries. The pause writers feel is one <b>election timeout</b> (typically tens to a few hundred ms), tuned well above normal network round-trips so transient delays don't trigger spurious elections.</p>
+    </Advanced>
     <Why
       problem="Leaders fail, and a new one may inherit followers whose logs disagree about the most recent, uncommitted entries."
       idea="Use a higher term to supersede the dead leader, elect only an up-to-date candidate, and let the new leader force its log onto followers to resolve conflicts."
@@ -83,6 +104,10 @@ const description = 'A deep dive into distributed consensus through Raft: replic
     <p class="prose">Raft is just those three pieces composed: <b>leader election</b> picks one server to order writes, <b>log replication</b> commits an entry once a majority store it, and the <b>safety</b> rules guarantee a committed entry is never lost across leader changes. That’s strong consistency — the “C” the cloud layer gave up under CAP — bought with a majority of healthy, reachable nodes.</p>
     <Takeaway>Election + replication + safety = a cluster that behaves like one reliable machine: it tolerates a minority failing, never loses committed data, and heals itself — as long as a majority can still talk.</Takeaway>
     <SeeAlso slug="cloud" note="where this plugs in: the CAP tradeoff Raft resolves toward consistency" />
+    <Advanced>
+      <p>One last subtlety: a <b>read</b> must be linearizable too, and serving it from just any replica can return stale data, since a follower may be behind or a deposed leader may not yet know it's been replaced. The cheap-but-wrong fix is to read from the leader's memory directly. The correct ones are the <b>read-index</b> trick — the leader confirms it's still leader by exchanging a heartbeat round with a majority before answering — or a <b>leader lease</b>, where a time-bounded guarantee lets the leader answer locally without a round-trip, at the price of trusting bounded clock drift.</p>
+      <p>This is also why Raft underpins real coordinators — <b>etcd</b>, <b>Consul</b>, and TiKV all run it, and ZooKeeper's <b>Zab</b> is a close cousin. They keep clusters small (typically <b>3 or 5</b> nodes): a majority of 5 still tolerates 2 failures, but every added voter widens the quorum every write must reach, so more nodes buy fault tolerance at the cost of latency.</p>
+    </Advanced>
     <Why
       problem="Real systems need a single source of truth that survives crashes and network faults — the guarantee a lone server and eventually-consistent replicas can’t give."
       idea="Compose a majority-elected leader, a majority-committed log, and an up-to-date-log voting rule into one algorithm that’s consistent and partition-tolerant."

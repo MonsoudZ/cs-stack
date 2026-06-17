@@ -8,6 +8,7 @@ import DbTransaction from '../components/DbTransaction.svelte';
 import Isolation from '../components/Isolation.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
+import Advanced from '../components/Advanced.astro';
 import Quiz from '../components/Quiz.svelte';
 import PrevNext from '../components/PrevNext.astro';
 import SeeAlso from '../components/SeeAlso.astro';
@@ -26,6 +27,10 @@ const description = 'A deep dive into a database: rows in pages, B-tree indexes,
   <LayerSection {...L.D0}>
     <p class="prose">At the bottom a table is just <b>rows</b> packed into fixed-size <span class="hl">pages</span> on disk — a heap of records. Finding one means, by default, reading them all: a full scan.</p>
     <Takeaway>Storage is the easy part; a table is rows in pages, and without help, finding a row means reading every row.</Takeaway>
+    <Advanced>
+      <p>Page size is chosen to match the unit the OS and disk move anyway — typically <b>8 KB</b> in Postgres, <b>16 KB</b> in InnoDB — so one logical read is one physical I/O. The engine caches hot pages in a <b>buffer pool</b>, and the real cost model is pages touched, not rows: a "full scan" is expensive because it drags every page through that pool.</p>
+      <p>How rows map to pages defines the storage engine. A <b>heap</b> keeps rows in insertion order and points indexes at them by physical address; a <b>clustered</b> (index-organized) table — InnoDB's default — stores the rows <i>inside</i> the primary-key B-tree, so the table <i>is</i> its primary index and secondary indexes point at the key, not the disk location.</p>
+    </Advanced>
     <Why
       problem="Programs need durable, shared state that outlives a process and survives a crash — more than a file blob."
       idea="Store rows in fixed-size pages the engine can cache and write back efficiently, tracking which page holds what."
@@ -39,6 +44,10 @@ const description = 'A deep dive into a database: rows in pages, B-tree indexes,
     <BTreeSearch client:visible />
     <Takeaway>An index trades some write cost and space for lookups that go from O(n) scans to O(log n) tree descents.</Takeaway>
     <SeeAlso slug="structures" note="the B-tree this index is built on, and how a search descends it" />
+    <Advanced>
+      <p>Databases actually use a <b>B+tree</b>, not a plain B-tree: all values live in the <i>leaves</i> and the leaves are <b>linked</b> in sorted order. That linked list is what makes a <b>range scan</b> (<code>WHERE age BETWEEN 20 AND 30</code>, or any <code>ORDER BY</code>) cheap — descend once, then walk leaf to leaf — whereas a plain B-tree stores values at interior nodes and would have to hop around the tree.</p>
+      <p>A <b>composite</b> index on <code>(a, b, c)</code> is sorted by <code>a</code>, then <code>b</code>, then <code>c</code>, so it only helps queries using a <b>leftmost prefix</b> — it serves <code>WHERE a = ?</code> or <code>a = ? AND b = ?</code>, but not <code>b</code> alone. A <b>covering</b> index includes every column a query needs, letting the engine answer from the index alone — an <i>index-only scan</i> that never touches the table's pages.</p>
+    </Advanced>
     <Why
       problem="Scanning every row to answer a query is fine for ten rows and ruinous for ten million."
       idea="Keep keys in a balanced tree (or hash) so a lookup follows a short path from root to leaf, touching a handful of pages."
@@ -50,6 +59,10 @@ const description = 'A deep dive into a database: rows in pages, B-tree indexes,
   <LayerSection {...L.D2}>
     <p class="prose">You write <b>what</b> you want — <code>SELECT … WHERE … ORDER BY …</code> — and the <span class="hl">planner</span> decides <b>how</b>: which index to use, whether to scan, in what order to join. Declarative on top, cost-based underneath.</p>
     <Takeaway>SQL says what you want; the planner estimates costs and picks how — index seek vs. scan, join order, sort strategy.</Takeaway>
+    <Advanced>
+      <p>The optimizer is <b>cost-based</b>: it estimates how many rows each step will produce (its <b>selectivity</b>) from <b>statistics</b> — histograms of column value distributions and counts of distinct values — gathered by <code>ANALYZE</code>. From those estimates it scores candidate plans and picks the cheapest, which is why <i>stale</i> statistics are a leading cause of sudden slow queries: the planner mis-estimates row counts and chooses a scan where a seek would win.</p>
+      <p>Counter-intuitively, a <b>full scan can beat an index</b> when a query returns a large fraction of the table — random index lookups each fetch a page, while a sequential scan reads pages in order far faster. <code>EXPLAIN ANALYZE</code> exposes the gap between <i>estimated</i> and <i>actual</i> rows, which is the first thing to check when a plan goes wrong.</p>
+    </Advanced>
     <Why
       problem="There are many ways to compute the same result, with wildly different costs, and you don't want to hand-code the fastest one each time."
       idea="Let the query describe the result declaratively, and have a cost-based optimizer use statistics to choose an execution plan."
@@ -63,6 +76,10 @@ const description = 'A deep dive into a database: rows in pages, B-tree indexes,
     <Join client:visible />
     <Takeaway>A join recombines normalized tables on a matching key; an inner join keeps only the rows that pair up — and done naively it costs n×m comparisons.</Takeaway>
     <SeeAlso slug="structures" note="a hash join builds a hash map on one table so the other just probes it — O(n+m)" />
+    <Advanced>
+      <p>The planner picks among three physical joins by data shape. <b>Nested-loop</b> (ideally <i>index</i>-nested-loop, looking the key up rather than scanning) wins when one side is small or the join key is indexed; <b>hash join</b> builds a hash table on the smaller side and probes it, ideal for large unindexed equality joins; <b>merge join</b> walks two already-sorted inputs in lockstep, cheap when the rows arrive sorted (often from a B+tree) and the only option for non-equality range joins.</p>
+      <p>Hash join is equality-only and wants the build side to fit in memory — if it spills to disk it degrades, which is exactly the case a bad row estimate triggers. With many tables, <b>join order</b> matters as much as method, since the optimizer's search space grows factorially and it prunes heuristically.</p>
+    </Advanced>
     <Why
       problem="Normalizing data across tables avoids duplication, but answering real questions means recombining it — and the obvious nested loop is quadratic."
       idea="Match rows on a key. Speed it up with the index from earlier (index-nested-loop: look the key up instead of scanning) or a hash join (build a hash table on one side, probe with the other)."
@@ -75,6 +92,10 @@ const description = 'A deep dive into a database: rows in pages, B-tree indexes,
     <p class="prose">A <b>transaction</b> groups changes so they're <span class="hl">all-or-nothing</span>. Transfer money and crash halfway, and a transaction rolls back to a consistent state — without one, the debit sticks and money vanishes.</p>
     <DbTransaction client:visible />
     <Takeaway>Transactions give you ACID — here, atomicity: the transfer happens completely or not at all, even across a crash.</Takeaway>
+    <Advanced>
+      <p>Atomicity within one database is easy; spanning <i>two</i> (a transfer between separate services) needs <b>two-phase commit</b>. A coordinator first sends <b>prepare</b> — each participant durably promises it <i>can</i> commit and locks the rows — and only if all vote yes does it send <b>commit</b>; any "no" triggers a global abort. The agreement is real, but the protocol is <b>blocking</b>: if the coordinator crashes after participants have voted yes, they sit holding locks, unable to commit or abort until it returns.</p>
+      <p>That single point of failure is why distributed systems often avoid 2PC, preferring a <b>saga</b> — a chain of local transactions with <i>compensating</i> undo steps — which trades strict atomicity for availability and never blocks on a coordinator.</p>
+    </Advanced>
     <Why
       problem="Real updates touch multiple rows, and a failure partway through can leave the data in an impossible state — money debited but never credited."
       idea="Wrap related changes in a transaction that commits as a unit or rolls back entirely, with isolation so concurrent transactions don't corrupt each other."
@@ -87,6 +108,10 @@ const description = 'A deep dive into a database: rows in pages, B-tree indexes,
     <p class="prose">Atomicity is the <i>A</i> of ACID; <b>isolation</b> is the <i>I</i>. When transactions run concurrently, one can glimpse another's half-finished work — a <span class="hl">dirty read</span> — or watch a value change underneath it — a <span class="hl">non-repeatable read</span>. The isolation level sets how much interference is allowed; <b>MVCC</b> gives each transaction a stable snapshot.</p>
     <Isolation client:visible />
     <Takeaway>Isolation levels trade safety for speed: weaker levels are faster but let transactions see each other’s mess; a snapshot (MVCC) makes a transaction’s reads stable and consistent.</Takeaway>
+    <Advanced>
+      <p>Each level bans one more anomaly: <i>read committed</i> stops dirty reads, <i>repeatable read</i> stops non-repeatable reads, and <b>serializable</b> stops <b>phantoms</b> — rows that <i>appear</i> when a range is re-queried because another transaction inserted into it. Row locks can't prevent a phantom because the offending row didn't exist to lock; the fix is locking the <i>gap</i>, with <b>predicate</b> or <b>next-key locks</b> that cover the range a query matched, not just the rows it found.</p>
+      <p><b>MVCC</b> sidesteps most of this for readers — each transaction reads a consistent snapshot and never blocks writers — but it doesn't make writes serializable on its own. Postgres adds <b>SSI</b>, tracking read/write dependencies and aborting one transaction if a non-serializable cycle would form, so "serializable" can mean true locking (2PL) or optimistic detection depending on the engine.</p>
+    </Advanced>
     <Why
       problem="Many transactions run at once on the same rows, and a naïvely-interleaved read can see uncommitted or shifting data — corrupting decisions made on it."
       idea="Define isolation levels (read uncommitted → committed → repeatable read → serializable) and enforce them, often by keeping multiple row versions so readers get a consistent snapshot (MVCC)."
@@ -98,6 +123,10 @@ const description = 'A deep dive into a database: rows in pages, B-tree indexes,
   <LayerSection {...L.D6}>
     <p class="prose">Before changing the data pages, the engine appends the change to a <span class="hl">write-ahead log</span> and flushes that. If the power dies, replaying the log on restart redoes committed work and undoes the rest — so a commit is truly durable.</p>
     <Takeaway>Durability comes from logging the intent first: a committed transaction survives a crash because the log can replay it.</Takeaway>
+    <Advanced>
+      <p>The canonical scheme is <b>ARIES</b>, and recovery runs in three phases. <b>Analysis</b> scans forward from the last <b>checkpoint</b> to find which transactions and pages were in flight; <b>redo</b> replays <i>every</i> logged change (even uncommitted ones) to rebuild the exact pre-crash state; then <b>undo</b> rolls back the transactions that never committed. The rule of thumb: <b>redo committed, undo uncommitted</b>.</p>
+      <p>Two invariants make this work. <b>Write-ahead logging</b> requires a record's log entry hit durable storage <i>before</i> its data page does, and each page stamps the <b>LSN</b> (log sequence number) of its last change, so redo can tell which logged changes a page already reflects and skip them — making recovery <b>idempotent</b> even if it crashes again mid-recovery.</p>
+    </Advanced>
     <Why
       problem="Writing data pages in place is slow and unsafe — a crash mid-write can corrupt them, and a “committed” change could be lost."
       idea="Append the change to a sequential write-ahead log and fsync it before touching the real pages; on restart, replay the log to recover."
@@ -110,6 +139,10 @@ const description = 'A deep dive into a database: rows in pages, B-tree indexes,
     <p class="prose">A single server is a single point of failure. <b>Replication</b> streams the log to replica machines: reads can spread across them, and if the primary dies, a replica is promoted to take over.</p>
     <Takeaway>Replication copies the database across machines so reads scale and a failure doesn't lose the data — at the cost of consistency tradeoffs.</Takeaway>
     <SeeAlso slug="cloud" note="how this scales reads across a fleet, and the CAP tradeoff it forces" />
+    <Advanced>
+      <p>Replication can ship the log at different granularities: <b>physical</b> (the raw page/WAL bytes, fastest and what streaming replicas use) or <b>logical</b> (the row changes, which can cross versions and feed other systems). The durability knob is when the primary considers a write done — <b>asynchronous</b> acks immediately and risks losing the last few transactions on failover, while <b>synchronous</b> waits for a replica to confirm, trading latency for no data loss.</p>
+      <p>Promoting a replica reveals two more hazards. A reader pinned to a lagging replica can suffer <b>read-your-writes</b> failures — it writes to the primary, then can't see its own change — and a sloppy failover can elect two primaries at once, a <b>split-brain</b> that diverges both copies. Both are why production failover leans on a consensus protocol to pick exactly one leader.</p>
+    </Advanced>
     <Why
       problem="If everything lives on one machine, its failure is the database's failure, and all reads contend for it."
       idea="Stream the write-ahead log to replicas that stay in sync; serve reads from them and fail over to one if the primary dies."

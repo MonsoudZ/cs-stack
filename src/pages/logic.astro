@@ -8,6 +8,7 @@ import Mux from '../components/Mux.svelte';
 import Adder from '../components/Adder.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
+import Advanced from '../components/Advanced.astro';
 import Quiz from '../components/Quiz.svelte';
 import PrevNext from '../components/PrevNext.astro';
 import SeeAlso from '../components/SeeAlso.astro';
@@ -26,6 +27,10 @@ const description = 'A deep dive into the logic between a transistor and a CPU: 
   <LayerSection {...L.LG0}>
     <p class="prose">Strip arithmetic down to two values — <b>true</b> and <b>false</b>, 1 and 0 — and you get <span class="hl">boolean algebra</span>: a tiny system with just three core operators. <code>AND</code> is true only if both inputs are; <code>OR</code> if either is; <code>NOT</code> flips a value. Every decision a computer makes is built from these.</p>
     <Takeaway>Boolean algebra is the whole vocabulary of computation: two values and three operators, from which every logical decision is composed.</Takeaway>
+    <Advanced>
+      <p>Those three operators are more than enough — but they're also more than necessary. <b>De Morgan's laws</b> show AND and OR are duals: <code>NOT(a AND b) = (NOT a) OR (NOT b)</code>, and vice versa. So with NOT in hand you can throw away either AND <i>or</i> OR and still express everything, which is why hardware freely swaps one for the other to save gates.</p>
+      <p>Boolean algebra also obeys its own arithmetic-like laws — distribution, absorption, identity — but with a twist: there's no subtraction or division, only idempotent operations where <code>a OR a = a</code>. These identities are the rules a tool follows when it <b>simplifies</b> a logic expression before building it in silicon.</p>
+    </Advanced>
     <Why
       problem="A transistor can only be on or off, so whatever we build on it must reduce to two-valued, yes/no reasoning."
       idea="Use boolean algebra: treat on/off as true/false and combine them with AND, OR, and NOT, which together can express any logical rule."
@@ -39,6 +44,10 @@ const description = 'A deep dive into the logic between a transistor and a CPU: 
     <LogicGate client:visible />
     <Takeaway>A gate is a truth table you can hold: the same AND/OR/NOT from boolean algebra, now a circuit that computes its output from its inputs in a fixed time.</Takeaway>
     <SeeAlso slug="silicon" note="how a pair of transistors becomes one gate (the CMOS inverter)" />
+    <Advanced>
+      <p>A truth table captures <i>what</i> a gate computes but not <i>when</i>: every real gate has a <b>propagation delay</b>, the lag between an input changing and the output settling. Because different paths through a circuit have different delays, an output can briefly flicker through a wrong value before settling — a <b>glitch</b> or <b>hazard</b> — even though the final, steady-state answer is correct.</p>
+      <p>Gates are also limited in how many inputs they can drive: each downstream gate adds capacitance, so <b>fan-out</b> is capped, and exceeding it slows the edges and corrupts logic levels. Pushing a signal further means inserting buffers — gates whose only job is to restore a clean, strong copy.</p>
+    </Advanced>
     <Why
       problem="Boolean operators are just rules on paper; computation needs them realized as something physical that runs."
       idea="Wire transistors so the output voltage follows a boolean function of the input voltages — one gate per operator (AND, OR, NOT, XOR…)."
@@ -51,6 +60,10 @@ const description = 'A deep dive into the logic between a transistor and a CPU: 
     <p class="prose">Remarkably, a single gate is <span class="hl">universal</span>: <b>NAND</b> (NOT-AND) alone can build every other gate, and therefore any circuit at all. Pick a gate below and watch it reconstructed from NANDs — and proven, row by row, to behave identically.</p>
     <Universal client:visible />
     <Takeaway>NAND is functionally complete: with enough of one gate you can build NOT, AND, OR — and from those, any logic a computer needs. Manufacturing one gate well is enough.</Takeaway>
+    <Advanced>
+      <p>NAND isn't special — <b>NOR</b> (NOT-OR) is equally universal, and by De Morgan duality the two are mirror images of each other. They're the <i>only</i> two-input gates that are universal alone; AND, OR, and even XOR cannot build NOT by themselves, so none of them is functionally complete on its own.</p>
+      <p>The reason CMOS favours NAND and NOR over AND and OR is physical: a CMOS gate's natural pull-down/pull-up structure <b>inverts</b>, so a bare NAND or NOR is cheaper than an AND or OR (which is a NAND/NOR followed by an extra inverter). Universality plus that built-in inversion is why these inverting gates are the staple cells of real chips.</p>
+    </Advanced>
     <Why
       problem="Designing and fabricating many distinct gate types is costly, and we’d like a minimal, uniform building block."
       idea="Lean on functional completeness: NAND (or NOR) alone can express every boolean function, so a chip can be a sea of one repeated gate."
@@ -63,6 +76,10 @@ const description = 'A deep dive into the logic between a transistor and a CPU: 
     <p class="prose">Gates don't just compute — wired together they <b>choose</b>. A <span class="hl">multiplexer</span> takes two data inputs and a <i>select</i> line, and routes one of them through: <code>out = (a AND NOT s) OR (b AND s)</code>. This is how hardware picks a register, a path, a branch.</p>
     <Mux client:visible />
     <Takeaway>A multiplexer is selection built from pure logic — the gate-level root of every “choose between options” a processor makes, including which way a branch goes.</Takeaway>
+    <Advanced>
+      <p>The mux formula <code>(a AND NOT s) OR (b AND s)</code> is a textbook <b>sum-of-products</b> (SOP): OR together one AND term per row of the truth table where the output is 1. Any boolean function has such a form, and a <b>Karnaugh map</b> arranges the truth table so adjacent 1-cells can be visually grouped and merged — eliminating variables to reach a minimal SOP with fewer gates.</p>
+      <p>There's a second way to "choose": a <b>tri-state buffer</b> has an enable that, when off, disconnects its output entirely into a high-impedance (<b>Hi-Z</b>) state — neither 0 nor 1. Wiring many tri-state outputs together lets one drive a <b>shared bus</b> at a time, the trick behind buses where many devices take turns on the same wires.</p>
+    </Advanced>
     <Why
       problem="Computation isn’t only arithmetic — constantly the machine must pick one value or path over another, driven by some control bit."
       idea="Combine AND/OR/NOT into a multiplexer: a select line gates one input through and blocks the other, choosing purely with logic."
@@ -76,6 +93,10 @@ const description = 'A deep dive into the logic between a transistor and a CPU: 
     <Adder client:visible />
     <Takeaway>An adder is just gates: XOR makes the sum bit, AND/OR make the carry, and chaining them turns boolean logic into binary arithmetic.</Takeaway>
     <SeeAlso slug="numbers" note="what those bit patterns mean as numbers — and how negatives ride the same adder" />
+    <Advanced>
+      <p>An adder is purely <b>combinational</b>: its output depends only on the current inputs, with no memory of the past. But a computer must also <i>hold</i> values — and that needs <b>sequential</b> logic, built by feeding a gate's output back into its input. A cross-coupled pair of NOR or NAND gates forms a <b>latch</b> that stays put after the inputs release, the first circuit that remembers a bit.</p>
+      <p>Add a clock and an edge-triggered <b>flip-flop</b> samples its input only on a clock edge, keeping state stable between ticks. This split — combinational logic computing between clock edges, flip-flops latching the result on each edge — is the foundation of every register, counter, and pipeline in a processor.</p>
+    </Advanced>
     <Why
       problem="The machine must do arithmetic, but all it has are switches and boolean gates — no built-in notion of ‘plus’."
       idea="Express addition in boolean terms: sum = a XOR b XOR carry, carry-out from the ANDs/ORs — a full adder, replicated per bit."
@@ -88,6 +109,10 @@ const description = 'A deep dive into the logic between a transistor and a CPU: 
     <p class="prose">Put it together: gates make choices (the multiplexer) and arithmetic (the adder). Bundle several arithmetic and logic operations behind a multiplexer that an <i>opcode</i> selects, and you've built the <b>ALU</b> — the calculator at the core of every processor. From two-valued logic, a machine that computes.</p>
     <Takeaway>A CPU’s arithmetic-logic unit is nothing but adders and gates behind a multiplexer — the whole climb from a single switch to “a machine that computes” is just logic, stacked.</Takeaway>
     <SeeAlso slug="cpu" note="the ALU these gates build, and the fetch-decode-execute loop around it" />
+    <Advanced>
+      <p>Running every operation in parallel and selecting one with a mux is wasteful, so real ALUs share hardware: a single adder does subtraction by feeding it the <b>two's-complement</b> of the second operand (invert the bits, force carry-in to 1), and the same adder handles increment and compare. The opcode mostly steers that one datapath rather than picking among many separate circuits.</p>
+      <p>An ALU also emits <b>status flags</b> alongside its result — zero, carry, sign, and overflow — derived from the output and the adder's carry chain. Those flags are what conditional branches read, so the ALU doesn't just compute values; it produces the evidence the control logic uses to <i>decide</i>.</p>
+    </Advanced>
     <Why
       problem="Individual gates, muxes, and adders are useful, but a processor needs one block that can perform whichever operation an instruction asks for."
       idea="Wire the arithmetic and logic circuits in parallel and use a multiplexer, driven by the opcode, to select which result comes out — that’s an ALU."
