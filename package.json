@@ -22,7 +22,7 @@
     "@fontsource-variable/bricolage-grotesque": "^5.2.10",
     "@fontsource/jetbrains-mono": "^5.2.8",
     "@fontsource/spline-sans": "^5.2.8",
-    "astro": "^6.4.3",
+    "astro": "^6.4.8",
     "svelte": "^5.56.1"
   },
   "devDependencies": {
