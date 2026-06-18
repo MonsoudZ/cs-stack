@@ -80,7 +80,7 @@ const description = 'A deep dive into how AI works, from the bottom up: the neur
   <LayerSection {...L.AI3}>
     <p class="prose">A network only speaks numbers, so each <b>token</b> is mapped to a <b>vector</b> — an <span class="hl">embedding</span>. The trick: training arranges them so that <i>meaning becomes geometry</i>. Related words end up pointing the same way, and similarity is just the angle between them.</p>
     <Embeddings client:visible />
-    <Takeaway>Embeddings turn symbols into vectors where closeness means relatedness — so the model can do arithmetic on meaning, not just match characters.</Takeaway>
+    <Takeaway>Embeddings turn symbols into vectors where closeness means relatedness — so the model compares meaning by direction (the angle between vectors), not just matching characters.</Takeaway>
     <SeeAlso slug="numbers" note="it’s all floating-point vectors underneath — meaning, encoded as numbers" />
     <Advanced>
       <p>The embedding is a learned lookup table — one row per vocabulary token, of width <i>d</i> (the model dimension, often a few thousand) — and in most LLMs the same matrix is <b>tied</b> to the output layer that turns the final hidden state back into token scores. These are <b>context-free</b> at the input: every occurrence of a token starts from the identical vector, and it's the attention and feed-forward layers above that make the representation contextual.</p>

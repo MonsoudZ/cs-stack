@@ -1263,10 +1263,12 @@ describe('nearestWords (embeddings)', () => {
 });
 
 describe('buildAttention (transformer attention)', () => {
-  it('the query "it" attends most strongly to "cat"', () => {
+  it('the query "it" attends clearly (not narrowly) to "cat"', () => {
     const { weights } = buildAttention({ query: 'it' });
-    const top = [...weights].sort((a, b) => b.weight - a.weight)[0];
-    expect(top.token).toBe('cat');
+    const sorted = [...weights].sort((a, b) => b.weight - a.weight);
+    expect(sorted[0].token).toBe('cat');
+    expect(sorted[0].weight).toBeGreaterThan(0.4); // dominant, not a near-tie
+    expect(sorted[0].weight).toBeGreaterThan(2 * sorted[1].weight);
   });
   it('the weights are a distribution (sum ≈ 1)', () => {
     const { weights } = buildAttention({ query: 'it' });
