@@ -146,12 +146,12 @@ test('Cross-stack footer: lists every deep dive on home, omits the current one o
   // home: every deep dive is linked, no "back to full stack" (we're home)
   await page.goto('/');
   const homeNav = page.locator('.stacknav');
-  await expect(homeNav.locator('.stacknav-link')).toHaveCount(17);
+  await expect(homeNav.locator('.stacknav-link')).toHaveCount(18);
   await expect(homeNav.locator('.stacknav-home')).toHaveCount(0);
   // a deep dive: the current stack is omitted (the rest) and home link returns
   await page.goto('/memory');
   const sibNav = page.locator('.stacknav');
-  await expect(sibNav.locator('.stacknav-link')).toHaveCount(16);
+  await expect(sibNav.locator('.stacknav-link')).toHaveCount(17);
   await expect(sibNav.getByRole('link', { name: /the Memory stack/i })).toHaveCount(0);
   // the links actually navigate to a sibling explorable
   await sibNav.getByRole('link', { name: /the Crypto stack/i }).click();
@@ -225,8 +225,8 @@ test('Prev/next: deep dives chain through the curriculum order', async ({ page }
 test('Guided path: /learn lists the curriculum, tracks progress, and resumes', async ({ page }) => {
   await page.goto('/learn');
   await expect(page.locator('h1.title')).toContainText('LEARN');
-  // 18 lessons: the full-stack overview + 17 deep dives
-  await expect(page.locator('.path-item')).toHaveCount(18);
+  // 19 lessons: the full-stack overview + 18 deep dives
+  await expect(page.locator('.path-item')).toHaveCount(19);
   // homepage CTA points here
   await page.goto('/');
   await expect(page.locator('.hero-path')).toHaveAttribute('href', '/learn');
@@ -237,12 +237,12 @@ test('Guided path: /learn lists the curriculum, tracks progress, and resumes', a
     await first.click();
     await expect(first).toHaveAttribute('aria-pressed', 'true', { timeout: 400 });
   }).toPass({ timeout: 8000 });
-  await expect(page.locator('#pathCount')).toContainText('1 of 18 done');
+  await expect(page.locator('#pathCount')).toContainText('1 of 19 done');
   await expect(page.locator('#pathResume')).toContainText('Resume');
   // survives a reload
   await page.reload();
   await expect(page.locator('.path-item').first().locator('.path-done')).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.locator('#pathCount')).toContainText('1 of 18 done');
+  await expect(page.locator('#pathCount')).toContainText('1 of 19 done');
 });
 
 test('Quiz: wrong answer gives feedback, correct answer marks the lesson done on the path', async ({ page }) => {
@@ -349,6 +349,30 @@ test('Languages page: own nav, the run-model widget reveals JIT, the memory widg
   await expect(mem.locator('.lm-block.leaked')).toBeVisible();
   // the capstone comparison table lists all five languages
   await expect(page.locator('#LA5 .lang-tbl tbody tr')).toHaveCount(5);
+});
+
+test('DevOps page: own nav, a CI gate fails and blocks the commit, a canary deploy rolls back', async ({ page }) => {
+  await page.goto('/devops');
+  await expect(page.locator('h1.title')).toContainText('DEVOPS');
+  await expect(page.locator('.spine .rung')).toHaveCount(6);
+  // CI pipeline (DV1): stepping reaches a failed gate that blocks the commit
+  const ci = page.locator('#DV1');
+  await ci.scrollIntoViewIfNeeded();
+  for (let i = 0; i < 8; i++) {
+    await ci.locator('.cpu-ctrl button').first().click();
+    if (await ci.locator('.ci-stage.fail').count()) break;
+    await page.waitForTimeout(40);
+  }
+  await expect(ci.locator('.ci-stage.fail')).toBeVisible();
+  // canary deploy (DV2): stepping reaches the auto-rollback after the error spike
+  const dp = page.locator('#DV2');
+  await dp.scrollIntoViewIfNeeded();
+  for (let i = 0; i < 10; i++) {
+    await dp.locator('.cpu-ctrl button').first().click();
+    if (await dp.locator('.dp-flag.bad').count()) break;
+    await page.waitForTimeout(40);
+  }
+  await expect(dp.locator('.dp-flag.bad')).toBeVisible();
 });
 
 test('Concurrency page: own nav, two locks deadlock, compare-and-swap stays correct', async ({ page }) => {
@@ -876,8 +900,8 @@ test('Top nav: lists every stack, marks the current one, and links across', asyn
   await page.goto('/compiler');
   const nav = page.locator('nav.topnav');
   await expect(nav).toBeVisible();
-  // one pill per stack (17), plus the brand link home
-  await expect(nav.locator('.topnav-pill')).toHaveCount(17);
+  // one pill per stack (18), plus the brand link home
+  await expect(nav.locator('.topnav-pill')).toHaveCount(18);
   await expect(nav.locator('.topnav-brand')).toHaveAttribute('href', '/');
   // the current stack's pill is highlighted
   const current = nav.locator('.topnav-pill[aria-current="page"]');

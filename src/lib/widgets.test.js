@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { quizzes } from '../data/quizzes.js';
 import { stacks } from '../data/stacks.js';
-import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, RSA, buildSignature, buildMerkle, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum, DOPING, buildDiode, cmosInverter, nand, buildUniversal, mux2, ALU_OPS, computeAlu, PIPE_STAGES, buildPipeline, buildDeadlock, buildCas, buildLoadBalancer, buildReplication, buildRaftElection, buildRaftLog, LANGS, buildLangRun, buildLangMemory, buildLinkedList, buildStackQueue, GRAPH, buildGraphTraversal, buildStackHeap, buildAllocator, buildGc, ISOLATION_LEVELS, buildIsolation, buildTypeCheck, buildEventLoop, buildCrp, FS, buildPathResolve, buildJournal, buildSockets, buildHttp, buildTcp, buildJoin,
+import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, RSA, buildSignature, buildMerkle, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum, DOPING, buildDiode, cmosInverter, nand, buildUniversal, mux2, ALU_OPS, computeAlu, PIPE_STAGES, buildPipeline, buildDeadlock, buildCas, buildLoadBalancer, buildReplication, buildRaftElection, buildRaftLog, LANGS, buildLangRun, buildLangMemory, CI_STAGES, buildCiPipeline, buildDeploy, buildLinkedList, buildStackQueue, GRAPH, buildGraphTraversal, buildStackHeap, buildAllocator, buildGc, ISOLATION_LEVELS, buildIsolation, buildTypeCheck, buildEventLoop, buildCrp, FS, buildPathResolve, buildJournal, buildSockets, buildHttp, buildTcp, buildJoin,
   computeNeuron, buildGradientDescent, EMBEDDINGS, nearestWords, cosineSim, buildAttention, softmaxTemp, nextTokenDist,
   tokenize, TOK_VOCAB, buildTraining, buildRag, RAG_DOCS, buildOptimize, buildAst, buildRuntimes, buildRegisters, REG_COUNT, buildScopes } from './widgets.js';
 
@@ -857,6 +857,45 @@ describe('buildLangMemory (manual / ownership / GC)', () => {
   });
   it('is deterministic', () => {
     expect(buildLangMemory()).toEqual(buildLangMemory());
+  });
+});
+
+describe('buildCiPipeline (continuous integration)', () => {
+  const steps = buildCiPipeline();
+  it('halts on a failed gate, blocking the commit', () => {
+    const failStep = steps.find((s) => s.failed);
+    expect(failStep).toBeTruthy();
+    expect(failStep.verdict).toBe('blocked');
+    expect(failStep.stages.some((g) => g.status === 'fail')).toBe(true);
+  });
+  it('a fixed run passes every gate and is deployable', () => {
+    const last = steps.at(-1);
+    expect(last.verdict).toBe('deployable');
+    expect(last.stages.every((g) => g.status === 'pass')).toBe(true);
+    expect(last.stages.map((g) => g.name)).toEqual(CI_STAGES);
+  });
+  it('is deterministic', () => {
+    expect(buildCiPipeline()).toEqual(buildCiPipeline());
+  });
+});
+
+describe('buildDeploy (canary rollout + rollback)', () => {
+  const steps = buildDeploy();
+  it('always splits 100% of traffic between the two versions', () => {
+    for (const s of steps) expect(s.v1 + s.v2).toBe(100);
+  });
+  it('rolls back to v1 when the canary errors, then ramps a fixed v2 to 100%', () => {
+    const bad = steps.find((s) => s.health === 'bad');
+    expect(bad).toBeTruthy();
+    const rb = steps.find((s) => s.rolledBack);
+    expect(rb).toBeTruthy();
+    expect(rb.v1).toBe(100); // all traffic back on the safe version
+    const last = steps.at(-1);
+    expect(last.v2).toBe(100);
+    expect(last.phase).toBe('live');
+  });
+  it('is deterministic', () => {
+    expect(buildDeploy()).toEqual(buildDeploy());
   });
 });
 

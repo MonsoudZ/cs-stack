@@ -1,0 +1,127 @@
+---
+import Base from '../layouts/Base.astro';
+import LayerSection from '../components/LayerSection.astro';
+import { devopsLayers } from '../data/devopsLayers.js';
+import CiPipeline from '../components/CiPipeline.svelte';
+import Deploy from '../components/Deploy.svelte';
+import Why from '../components/Why.astro';
+import Takeaway from '../components/Takeaway.astro';
+import Advanced from '../components/Advanced.astro';
+import Quiz from '../components/Quiz.svelte';
+import PrevNext from '../components/PrevNext.astro';
+import SeeAlso from '../components/SeeAlso.astro';
+const L = Object.fromEntries(devopsLayers.map((l) => [l.id, l]));
+const title = 'THE STACK — DevOps';
+const description = 'A deep dive into how software is shipped and operated: continuous integration, continuous delivery with canary rollouts and rollback, infrastructure as code, observability, and the deploy → observe → iterate loop — including how AI reshapes it (MLOps / LLMOps).';
+---
+<Base {title} {description} layers={devopsLayers}>
+  <div slot="hero">
+    <div class="kicker">A branch off layer 17 — the cloud</div>
+    <h1 class="title">THE <em>DEVOPS</em><br />STACK</h1>
+    <p class="lede">The rest of the stack builds the machine; this one is about <i>shipping and running</i> what you build on it. Writing code is half the job — the other half is getting every change into production safely, watching it once it's there, and feeding what you learn back into the next change. In the AI era, that loop matters more than ever.</p>
+    <div class="hero-meta"><a class="back-link" href="/">← back to the full stack</a> · the gap → integration → delivery → infra as code → observability → the loop &amp; AI</div>
+  </div>
+
+  <LayerSection {...L.DV0}>
+    <p class="prose">For most of computing's history there was a chasm between "it works on my machine" and "it works in production." Code was integrated in big painful merges and deployed by hand, rarely, at night — so releases were slow, scary, and easy to get wrong. <b>DevOps</b> is the answer: make shipping a change <span class="hl">small, automated, and routine</span> so it stops being an event.</p>
+    <Takeaway>DevOps closes the gap between writing code and running it — by making integration and deployment continuous and automatic, you ship smaller changes far more often, and each one is far less risky.</Takeaway>
+    <Advanced>
+      <p>The counterintuitive finding (from the long-running <b>DORA</b> research) is that <i>speed and stability go together</i>, not against each other. Teams that deploy more frequently also have <b>lower</b> change-failure rates and recover faster — because small, frequent changes are easier to test, reason about, and roll back than rare giant ones.</p>
+      <p>The four DORA metrics make this measurable: <b>deployment frequency</b>, <b>lead time</b> (commit → production), <b>change-failure rate</b>, and <b>mean time to recovery</b>. They're the scoreboard everything in this stack is trying to move.</p>
+    </Advanced>
+    <Why
+      problem="A change isn't valuable until it's running in production, but manual integration and deployment make that slow and dangerous — so teams ship rarely and dread it."
+      idea="Automate the path from commit to production and shrink each change, so deploying becomes a frequent, low-stakes, reversible non-event."
+      tradeoff="The automation, tests, and infrastructure are real up-front investment, and a fast pipeline that ships bad changes fast is worse than no pipeline — the safety gates matter as much as the speed."
+      next="The first automated gate runs the moment you push a commit."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.DV1}>
+    <p class="prose"><b>Continuous integration</b> means every commit is automatically built and tested against the same gates, on a clean machine, within minutes. Integrating constantly in tiny increments kills the old "merge hell," and the test suite catches a regression while it's one small diff — long before it can reach a user. A red pipeline blocks the change; a green one is a build you can trust.</p>
+    <CiPipeline client:visible />
+    <Takeaway>CI turns "did I break anything?" from a hope into an automated answer on every push — catching regressions in minutes, while the change is still small and fresh in your head.</Takeaway>
+    <SeeAlso slug="compiler" note="the build/test steps a pipeline automates, from source to a runnable artifact" />
+    <Advanced>
+      <p>A pipeline's value is bounded by its <b>weakest gate and its slowest one</b>. Flaky tests (pass/fail nondeterministically) are corrosive: they train everyone to ignore red, defeating the whole point — so they get quarantined or fixed, not re-run. And a 40-minute pipeline silently discourages small commits, so teams parallelize stages, cache dependencies, and run only the tests a change could affect.</p>
+      <p>This is also where <b>shift-left</b> lives: linting, type-checking, security/dependency scanning, and license checks run in CI so problems surface at the cheapest possible moment — the keystroke, not the incident.</p>
+    </Advanced>
+    <Why
+      problem="When developers integrate rarely, their branches drift apart and merging becomes a high-risk archaeology project, with bugs found late and expensively."
+      idea="Integrate every commit into a shared mainline and run an automated build + test suite on each one, so conflicts and regressions are caught immediately and locally-scoped."
+      tradeoff="You must invest in a fast, reliable, comprehensive test suite — and keep it green — or the signal becomes noise the team learns to ignore."
+      next="A green build is trustworthy — now how do you get it to users without holding your breath?"
+    />
+  </LayerSection>
+
+  <LayerSection {...L.DV2}>
+    <p class="prose">Once a build is trustworthy, <b>continuous delivery</b> automates getting it to production — but the smart part is <i>how</i>. Instead of flipping all traffic to the new version at once, a <span class="hl">canary</span> release sends a small slice (say 5%) to the new version and watches its error rate. Healthy? Ramp up. Spiking? <span class="hl">Roll back</span> automatically, having exposed almost no one. Blue-green and rolling deploys are variations on the same idea: never bet everyone at once.</p>
+    <Deploy client:visible />
+    <Takeaway>Safe delivery is about blast radius: roll a new version out to a sliver of traffic, watch it, and ramp or roll back — so a bad deploy hurts 5% of users for 30 seconds, not everyone for an hour.</Takeaway>
+    <SeeAlso slug="cloud" note="the load balancer and stateless servers that make shifting traffic between versions possible" />
+    <Advanced>
+      <p>Gradual rollout only works if you can <b>cleanly run two versions at once</b>, which forces discipline: deploys must be <b>backward-compatible</b>, and database <b>migrations</b> have to be split into expand-then-contract steps (add the new column, deploy code that writes both, backfill, then drop the old) so neither version ever sees a schema it can't handle.</p>
+      <p>It also separates two ideas often conflated: <b>deploy</b> (ship the code to production, dark) vs <b>release</b> (turn it on for users). <b>Feature flags</b> decouple them — you can deploy code continuously but flip features on per-user, instantly off if something breaks, without another deploy.</p>
+    </Advanced>
+    <Why
+      problem="Even a fully-tested build can fail in production in ways tests never reproduce — real traffic, real data, real scale — and an all-at-once deploy exposes every user to that risk simultaneously."
+      idea="Roll out progressively (canary / blue-green / rolling), monitor the new version on a small slice of real traffic, and automate rollback the instant its health degrades."
+      tradeoff="Running two versions side by side demands backward compatibility and careful data migrations, and good automated rollback needs trustworthy health signals — which is the next layer."
+      next="Both the pipeline and the servers it deploys to need to be defined somewhere reproducible."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.DV3}>
+    <p class="prose">If your servers are configured by hand, they drift, they can't be reproduced, and rebuilding after a failure is archaeology. <b>Infrastructure as code</b> fixes this: the servers, networks, and config are written in <span class="hl">declarative</span> files (Terraform, etc.), checked into version control, and applied by a tool. You describe the <i>desired state</i>; the tool makes reality match it. The same inputs always produce the same environment.</p>
+    <Takeaway>Infrastructure as code makes environments reproducible and reviewable: the same files build staging and production identically, changes go through code review, and a wiped server is one <code>apply</code> away from rebuilt.</Takeaway>
+    <SeeAlso slug="cloud" note="the scaled-out machines and load balancers this code provisions" />
+    <Advanced>
+      <p>The key property is <b>idempotency</b>: applying the same declaration twice changes nothing the second time, because the tool reconciles current state against desired state rather than running imperative steps. That's what makes IaC safe to re-run and lets it <i>detect drift</i> (someone clicked a button in the console) and correct it.</p>
+      <p>The same idea scales up to <b>GitOps</b>, where a cluster's desired state lives in a Git repo and a controller (e.g. on Kubernetes) continuously pulls and reconciles it — so the repo <i>is</i> the source of truth, every change is a reviewed commit, and a rollback is a <code>git revert</code>. Containers underpin all of this: they package an app with its dependencies so "the environment" travels with the code.</p>
+    </Advanced>
+    <Why
+      problem="Hand-configured infrastructure is a unique snowflake — undocumented, un-reproducible, and impossible to review or recover reliably."
+      idea="Declare the desired infrastructure in version-controlled files and let a tool reconcile reality to match, so environments are reproducible, diffable, and rebuildable on demand."
+      tradeoff="There's a real learning curve and the declarations are themselves software to maintain and test; a bad apply can now break infrastructure at scale, so the same gates and reviews apply to it."
+      next="Reproducible infra and safe deploys still leave one question: once it's running, how do you know it's actually OK?"
+    />
+  </LayerSection>
+
+  <LayerSection {...L.DV4}>
+    <p class="prose">A deployed system is a black box until you instrument it. <b>Observability</b> is the three signals that let you see inside: <span class="hl">logs</span> (what happened), <span class="hl">metrics</span> (how much / how fast, over time), and <span class="hl">traces</span> (one request's path across services). Together they let you not just detect that something is wrong but ask <i>why</i> — including questions you didn't know to ask in advance.</p>
+    <Takeaway>You can't operate what you can't see: logs, metrics, and traces turn a running system from a black box into something you can diagnose — and they're what make automated rollback and alerting possible at all.</Takeaway>
+    <Advanced>
+      <p>Mature teams don't alert on raw metrics; they define <b>SLOs</b> (service-level objectives — e.g. "99.9% of requests under 300ms") and alert on the <b>error budget</b> burning down. That converts a vague "is it healthy?" into a precise, blameless threshold, and even governs releases: blow the budget and you freeze risky deploys until reliability recovers.</p>
+      <p>The discipline that closes the loop is the <b>blameless postmortem</b> — after an incident, document the timeline and contributing causes and fix the <i>system</i> (add the missing alert, the missing test, the missing guardrail), not the person. That's how an outage becomes a permanent improvement instead of a repeat.</p>
+    </Advanced>
+    <Why
+      problem="Once code is running on many machines serving real traffic, failures are emergent and intermittent — you can't step through them in a debugger, and you can't fix what you can't observe."
+      idea="Emit structured logs, time-series metrics, and distributed traces so the live system is queryable, and define SLOs so 'healthy' is a precise, alertable target."
+      tradeoff="Instrumentation costs performance, storage, and money, and too many noisy alerts cause fatigue that hides the real one — so what you measure and when you page is itself a design problem."
+      next="Put it all together and DevOps is one loop — which is exactly the shape AI systems now run on too."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.DV5}>
+    <p class="prose">Every layer here is one arc of a single loop: <b>code → integrate → deliver → observe → learn → code</b>. Tightening that loop is the whole game. And it's now the loop <b>AI</b> runs on, twice over. AI is reshaping the <i>authoring</i> side — assistants write and review code, generate tests, and triage incidents. And shipping AI itself — <b>MLOps / LLMOps</b> — is this exact stack with the hardest parts amplified.</p>
+    <Takeaway>DevOps is the feedback loop that turns code into a running, observed, improving system — and deploying AI is the same loop where the artifact is a model, "tests" become evals, and "observability" must watch for drift and bad outputs, not just errors and latency.</Takeaway>
+    <SeeAlso slug="ai" note="the models, training, and RAG systems this loop has to ship and keep healthy" />
+    <Advanced>
+      <p>Shipping a model breaks comforting assumptions. A model is <b>non-deterministic</b> and its quality is fuzzy, so unit tests become <b>evals</b> — graded suites (often LLM-as-judge) run as a CI gate, and a regression is a <i>quality</i> drop, not a stack trace. The "artifact" is now code <i>plus</i> weights <i>plus</i> data, so reproducibility means versioning all three, and the same canary/rollback discipline applies to a new model or prompt.</p>
+      <p>Observability changes too: you watch for <b>drift</b> (the live data drifting from training data), hallucinations, latency and <i>token cost</i>, and you capture real traffic to build the next eval set — closing the loop. RAG and agent systems add retrieval quality and tool-call correctness as things to test and monitor. It's DevOps, with correctness itself turned into a continuously-measured, never-quite-settled signal.</p>
+    </Advanced>
+    <Why
+      problem="Software (and especially AI) is never 'done' — it lives in production, where reality keeps changing, so a one-way build-and-ship process is structurally inadequate."
+      idea="Run a continuous loop — deploy, observe, learn, and feed it back into the next change — and apply it to models too, with evals as tests and drift/cost/quality as first-class signals."
+      tradeoff="A tight loop demands real investment in automation, testing, and observability, and for AI the feedback signals are fuzzier and the failure modes subtler — but the alternative is shipping blind."
+      next="Zoom back out: this loop is how everything in the stack above actually reaches, and stays working for, real people."
+    />
+  </LayerSection>
+
+  <Quiz slug="devops" client:visible />
+  <PrevNext slug="devops" />
+</Base>
+
+<style>
+  .back-link{color:var(--accent,var(--signal))}
+</style>

@@ -79,6 +79,7 @@ src/
     cpu.astro             a /cpu deep-dive (registers → cycle → ALU → pipelining → hazards → the clock)
     concurrency.astro     a /concurrency deep-dive (threads → races → deadlock → atomics → why it's hard)
     cloud.astro           a /cloud deep-dive (scale out → load balancer → stateless → request → replication → CAP)
+    devops.astro          a /devops deep-dive (the dev→prod gap → CI → delivery/canary → infra as code → observability → the loop & AI)
     raft.astro            a /raft deep-dive — consensus (the problem → election → log replication → safety → crash → all at once)
     silicon.astro         a /silicon deep-dive (crystal → doping → PN junction → MOSFET → CMOS inverter)
     ai.astro              an /ai deep-dive — the app on top (neuron → learning → tokens → embeddings → attention → LLM → training → RAG)

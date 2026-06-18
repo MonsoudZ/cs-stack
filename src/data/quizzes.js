@@ -421,4 +421,36 @@ export const quizzes = {
       { label: 'A majority of an old term is not a majority of the new term', why: 'Quorum size doesn’t change with the term in a fixed-membership cluster; the hazard is overwrite by a later leader, which majority-counting alone doesn’t prevent.' },
     ] },
   ],
+  devops: [
+    {
+      level: 'easy',
+      question: 'What does continuous integration (CI) actually do on every commit?',
+      options: [
+        { label: 'Automatically builds the code and runs the test suite, so breakage is caught in minutes', correct: true, why: 'CI runs the same gates on every push, so a regression surfaces while the change is small and fresh — not days later in production.' },
+        { label: 'Deploys the commit straight to production', why: 'That’s (continuous) delivery/deployment; CI’s job is to build and verify first — a red build should never reach production.' },
+        { label: 'Merges everyone’s branches once a week', why: 'CI encourages the opposite — integrate every commit continuously, so branches never drift far enough to cause merge hell.' },
+        { label: 'Writes the tests for you', why: 'CI runs the tests you wrote; it doesn’t author them (though AI assistants increasingly help draft them — separately).' },
+      ],
+    },
+    {
+      level: 'medium',
+      question: 'A canary deploy sends 5% of traffic to the new version before ramping up. What is the main thing this buys you?',
+      options: [
+        { label: 'A small blast radius — a bad release hurts a few percent of users briefly, and you can roll back before it spreads', correct: true, why: 'Watching real traffic on a slice lets you catch failures production-only conditions cause, while almost no one is exposed, then auto-roll-back.' },
+        { label: 'Faster response times for everyone', why: 'Canarying is about safety, not latency; if anything the new version is the unknown until it’s proven on the canary slice.' },
+        { label: 'Eliminating the need for tests, since prod traffic finds the bugs', why: 'Canary is a last line of defense, not a replacement for CI — you still test first; canary catches what tests can’t reproduce.' },
+        { label: 'Running one version at a time, so there’s nothing to reconcile', why: 'It’s the opposite — canary runs old and new together, which is why backward-compatible changes and migrations matter.' },
+      ],
+    },
+    {
+      level: 'hard',
+      question: 'Shipping an LLM feature, why don’t ordinary unit tests suffice as the CI gate — and what replaces them?',
+      options: [
+        { label: 'The model is non-deterministic and its quality is fuzzy, so you gate on evals — graded suites (often LLM-as-judge) where a regression is a quality drop, not a stack trace', correct: true, why: 'There’s rarely one correct string, so you score outputs against rubrics/datasets and fail the build on a quality regression; you also version code + weights + data for reproducibility.' },
+        { label: 'Nothing replaces them — you just run the same unit tests against the model', why: 'Exact-match assertions break on a system with many acceptable outputs; you need graded evaluation, not pass/fail string equality.' },
+        { label: 'You skip testing entirely because models can’t be tested', why: 'Models very much can be evaluated — that’s the whole point of evals and offline benchmarks before (and monitoring after) release.' },
+        { label: 'You only need to watch latency and error rate in production', why: 'Those matter, but they miss quality regressions, drift, and hallucinations — which is why offline evals gate releases and output monitoring watches them live.' },
+      ],
+    },
+  ],
 };

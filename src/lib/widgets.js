@@ -1459,6 +1459,59 @@ export function buildLangMemory() {
   return out;
 }
 
+// --- DEVOPS STACK (/devops) ---
+
+// Continuous integration: every pushed commit runs the same gates automatically,
+// so breakage is caught in minutes rather than in production. The trace shows a
+// commit that fails its tests (pipeline halts — nothing ships), then a fix that
+// passes every gate and becomes a deployable artifact.
+export const CI_STAGES = ['checkout', 'install', 'build', 'unit tests', 'audit', 'e2e'];
+export function buildCiPipeline() {
+  const out = [];
+  let commit = 'a1b2c3', verdict = null;
+  let stages = CI_STAGES.map((name) => ({ name, status: 'idle' }));
+  const snap = (note, o = {}) => out.push({ commit, stages: stages.map((s) => ({ ...s })), verdict, note, failed: !!o.failed });
+  snap('A commit is pushed → CI triggers automatically. Every commit runs the same gates, so a regression is caught in minutes, not by a user.');
+  // run 1 — breaks at the unit tests
+  for (const name of CI_STAGES) {
+    const st = stages.find((s) => s.name === name);
+    if (name === 'unit tests') {
+      st.status = 'fail'; verdict = 'blocked';
+      snap('“unit tests” FAILED — a regression slipped in. The pipeline stops here: this commit cannot ship.', { failed: true });
+      break;
+    }
+    st.status = 'pass';
+    snap(name + ' passed ✓ — on to the next gate.');
+  }
+  // run 2 — fix, all gates green
+  commit = 'd4e5f6'; verdict = null; stages = CI_STAGES.map((name) => ({ name, status: 'idle' }));
+  snap('The developer pushes a fix (' + commit + ') → CI re-runs from a clean checkout.');
+  for (const name of CI_STAGES) { stages.find((s) => s.name === name).status = 'pass'; snap(name + ' passed ✓'); }
+  verdict = 'deployable';
+  snap('Every gate green → the build is a trustworthy, deployable artifact. That green check is the entire point of CI.');
+  return out;
+}
+
+// Continuous delivery with a canary rollout: instead of flipping all traffic to
+// a new version at once, shift a small slice first and watch its error rate —
+// catch a bad release on 5–25% of users and auto-roll-back, then ramp a fixed
+// version to 100%. Returns the step trace (traffic split + health per step).
+export function buildDeploy() {
+  const out = [];
+  let v1 = 100, v2 = 0, health = 'ok', phase = 'steady', rolledBack = false;
+  const snap = (note) => out.push({ v1, v2, health, phase, rolledBack, note });
+  snap('v1 is live, serving 100% of traffic. v2 is built and ready — but flipping everyone to it at once would expose every user to any bug.');
+  phase = 'canary'; v1 = 95; v2 = 5; snap('Canary: route just 5% of traffic to v2 and watch its error rate.');
+  snap('v2 is healthy at 5% — error rate normal. Ramp it up.');
+  v1 = 75; v2 = 25; snap('25% of traffic on v2…');
+  health = 'bad'; phase = 'alert'; snap('v2’s error rate SPIKES — it has a bug, but only 25% of users were ever exposed.');
+  v1 = 100; v2 = 0; rolledBack = true; phase = 'rollback'; health = 'ok'; snap('Auto-rollback: shift 100% straight back to v1. Most users never noticed — this is exactly why you roll out gradually.');
+  rolledBack = false; phase = 'canary'; v1 = 95; v2 = 5; snap('v2 is fixed and redeployed. Canary again at 5% — healthy.');
+  v1 = 50; v2 = 50; snap('Healthy at 50%…');
+  v1 = 0; v2 = 100; phase = 'live'; snap('…and now 100%. v2 is fully live — proven safe one slice of traffic at a time.');
+  return out;
+}
+
 // --- DATA STRUCTURES STACK (/structures), part 2: the linked ADTs ---
 
 // A linked list: nodes scattered in memory, each holding a value and a pointer
