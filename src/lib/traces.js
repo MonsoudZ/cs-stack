@@ -141,8 +141,10 @@ export const METHODS = {
         push({line:4,vm:['opt_aref arr[mid]','opt_eq','branchif'],vars,touches:[3,4,6.5,7,7.5],mid,compared:true,cpu:{label:'ALU · compare',expr:'arr['+mid+'] = '+arr[mid]+(eq?' == ':(arr[mid]<target?' < ':' > '))+target},note:eq?'arr['+mid+'] = '+arr[mid]+' equals target ✓ — found at index '+mid:'arr['+mid+'] = '+arr[mid]+(arr[mid]<target?' is too small':' is too big')});
         if(eq){push({line:4,vm:['leave (return mid)'],vars,result:mid,mid,compared:true,note:'return '+mid});
           push({line:12,vm:['pop frame','hand value up'],vars,touches:[10.8,10.5,10,9,8.5,7.5,7,6.5,6,5.5,5,3],result:mid,finale:true,mid,note:'index '+mid+' climbs back up through runtime, systems, network, database, and UI: runtime value → database row → JSON → browser pixels'});return steps;}
-        if(arr[mid]<target){lo=mid+1; vars={...vars,lo}; push({line:6,vm:['opt_plus mid+1','setlocal lo'],vars,touches:[4,6],mid,cpu:{label:'discard left half',expr:'lo = '+mid+' + 1 = '+lo},note:'target is bigger → drop everything ≤ mid. half the array, gone.'});}
-        else{hi=mid-1; vars={...vars,hi}; push({line:8,vm:['opt_minus mid-1','setlocal hi'],vars,touches:[4,6],mid,cpu:{label:'discard right half',expr:'hi = '+mid+' − 1 = '+hi},note:'target is smaller → drop everything ≥ mid. half the array, gone.'});}
+        // mid:-1 clears the stale midpoint so the window panel shows "N of M
+        // still in play" rather than a false "(lo+hi)/2 = old-mid" equation.
+        if(arr[mid]<target){lo=mid+1; vars={...vars,lo}; push({line:6,vm:['opt_plus mid+1','setlocal lo'],vars,touches:[4,6],mid:-1,cpu:{label:'discard left half',expr:'lo = '+mid+' + 1 = '+lo},note:'target is bigger → drop everything ≤ mid. half the array, gone.'});}
+        else{hi=mid-1; vars={...vars,hi}; push({line:8,vm:['opt_minus mid-1','setlocal hi'],vars,touches:[4,6],mid:-1,cpu:{label:'discard right half',expr:'hi = '+mid+' − 1 = '+hi},note:'target is smaller → drop everything ≥ mid. half the array, gone.'});}
       }
       push({line:11,vm:['return -1'],vars,touches:[],result:-1,finale:true,note:'window empty → not found → -1'}); return steps; } },
   bfs:{ name:'BFS', header:"bfs(graph, 'A') → visits A, B, C, D, E",
@@ -300,8 +302,11 @@ const MORE = {
       let settled=0,swapped=true;
       while(swapped){ swapped=false;
         for(let i=1;i<n-settled;i++){ const a=i-1,b=i,va=arr[a],vb=arr[b];
-          if(va>vb){ arr[a]=vb; arr[b]=va; swapped=true;
+          if(va>vb){ swapped=true;
+            // snapshot the still-out-of-order pair (cells/arr pre-swap) so the
+            // diagram matches the "out of order, swap them" note, then swap.
             push({line:5,vm:['arr['+a+'], arr['+b+'] = arr['+b+'], arr['+a+']'],vars:{arr:'['+arr.join(', ')+']',i},touches:[4,6,7],cpu:{label:'ALU compare → swap',expr:va+' > '+vb+' → swap'},note:va+' > '+vb+' → out of order, swap them',cells:cells(a,b,settled,true),info:'swap '+va+' and '+vb});
+            arr[a]=vb; arr[b]=va;
           } else {
             push({line:4,vm:['arr['+a+'] > arr['+b+'] ? no → next'],vars:{arr:'['+arr.join(', ')+']',i},touches:[4,6],cpu:{label:'ALU compare',expr:va+' ≤ '+vb+' → keep'},note:va+' ≤ '+vb+' → already in order, leave them',cells:cells(a,b,settled,false),info:'no swap'});
           }
