@@ -21,6 +21,7 @@ import splineBody from '@fontsource/spline-sans/files/spline-sans-latin-400-norm
 // so the nav and content can't drift.
 import { layers as mainLayers } from '../data/layers.js';
 import StackNav from '../components/StackNav.astro';
+import CrossLinks from '../components/CrossLinks.svelte';
 import TopNav from '../components/TopNav.astro';
 import { stacks } from '../data/stacks.js';
 import { designs } from '../data/designs.js';
@@ -182,6 +183,7 @@ const jsonLd = {
     )}
     <main id="main" tabindex="-1" aria-keyshortcuts="j k" data-pagefind-body>
       <slot />
+      <CrossLinks stack={currentStack} design={currentDesign} />
       <StackNav current={currentSlug} />
     </main>
   </div>

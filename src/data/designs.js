@@ -6,15 +6,18 @@ export const TIERS = [
   { id: 'medium', label: 'Medium' },
   { id: 'big', label: 'Very big' },
 ];
+// `uses` lists the stacks (by slug) each design builds on — the same connections
+// the in-page SeeAlso links make, surfaced as a cross-link strip so the relation
+// is navigable both ways (CrossLinks.astro renders it, ordered by stacks.js).
 export const designs = [
-  { slug: 'url-shortener', name: 'URL shortener', tier: 'small', ready: true, blurb: 'shorten a link, redirect fast — the canonical small system design' },
+  { slug: 'url-shortener', name: 'URL shortener', tier: 'small', ready: true, blurb: 'shorten a link, redirect fast — the canonical small system design', uses: ['network', 'cloud', 'devops', 'database'] },
   // all on the same template (sections-as-layers + a RequestFlow widget)
-  { slug: 'rate-limiter', name: 'Rate limiter', tier: 'small', ready: true, blurb: 'cap requests per client without a central bottleneck' },
-  { slug: 'news-feed', name: 'News feed', tier: 'medium', ready: true, blurb: 'fan-out on write vs read, and ranking the timeline' },
-  { slug: 'chat', name: 'Chat / messaging', tier: 'medium', ready: true, blurb: 'real-time delivery, presence, and message ordering' },
-  { slug: 'twitter', name: 'Twitter timeline', tier: 'big', ready: true, blurb: 'the celebrity fan-out problem, at hundreds of millions of users' },
-  { slug: 'video', name: 'Video streaming', tier: 'big', ready: true, blurb: 'CDNs, adaptive bitrate, and moving petabytes' },
-  { slug: 'key-value-store', name: 'Distributed KV store', tier: 'big', ready: true, blurb: 'partition, replicate, and reach quorum — Dynamo/Raft, end to end' },
+  { slug: 'rate-limiter', name: 'Rate limiter', tier: 'small', ready: true, blurb: 'cap requests per client without a central bottleneck', uses: ['network', 'cloud', 'devops'] },
+  { slug: 'news-feed', name: 'News feed', tier: 'medium', ready: true, blurb: 'fan-out on write vs read, and ranking the timeline', uses: ['cloud', 'database'] },
+  { slug: 'chat', name: 'Chat / messaging', tier: 'medium', ready: true, blurb: 'real-time delivery, presence, and message ordering', uses: ['network', 'cloud'] },
+  { slug: 'twitter', name: 'Twitter timeline', tier: 'big', ready: true, blurb: 'the celebrity fan-out problem, at hundreds of millions of users', uses: ['cloud', 'database'] },
+  { slug: 'video', name: 'Video streaming', tier: 'big', ready: true, blurb: 'CDNs, adaptive bitrate, and moving petabytes', uses: ['network', 'cloud'] },
+  { slug: 'key-value-store', name: 'Distributed KV store', tier: 'big', ready: true, blurb: 'partition, replicate, and reach quorum — Dynamo/Raft, end to end', uses: ['structures', 'crypto', 'cloud', 'raft', 'database'] },
 ];
 
 // Sections for /design/url-shortener — same shape as a stack's layers, so the

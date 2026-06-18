@@ -281,6 +281,21 @@ test('Social cards: each deep dive advertises its own per-stack OG image', async
   await expect(page.locator('meta[property="og:image:alt"]')).toHaveAttribute('content', /URL shortener — a small system design/);
 });
 
+test('Cross-links: the stack <-> system-design relationship is navigable both ways', async ({ page }) => {
+  // a design page lists the stacks it builds on, and the link works
+  await page.goto('/design/key-value-store');
+  const strip = page.locator('nav.xlink');
+  await expect(strip.locator('.xlink-h')).toHaveText(/Built from the stacks/i);
+  await strip.getByRole('link', { name: /Consensus stack/i }).click();
+  await expect(page).toHaveURL(/\/raft\/?$/);
+  // a stack page lists the designs that build on it, and links back
+  await page.goto('/database');
+  const back = page.locator('nav.xlink');
+  await expect(back.locator('.xlink-h')).toHaveText(/Put to work in system design/i);
+  await back.getByRole('link', { name: /Distributed KV store/i }).click();
+  await expect(page).toHaveURL(/\/design\/key-value-store\/?$/);
+});
+
 test('Cloud page: own nav, the balancer fails over, a replica read goes stale', async ({ page }) => {
   await page.goto('/cloud');
   await expect(page.locator('h1.title')).toContainText('CLOUD');
