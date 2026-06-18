@@ -389,15 +389,16 @@ test('System design: the index links to the URL-shortener case study, which trac
   await expect(page).toHaveURL(/\/design\/url-shortener\/?$/);
   await expect(page.locator('h1.title')).toContainText('URL');
   await expect(page.locator('.spine .rung')).toHaveCount(6);
-  // the request-flow widget (section US2): stepping reaches a cache HIT
+  // the generic request-flow widget (section US2): stepping reaches a cache HIT
   const rf = page.locator('#US2');
   await rf.scrollIntoViewIfNeeded();
+  const hit = rf.locator('.rf-node .rf-meta', { hasText: 'HIT' });
   for (let i = 0; i < 16; i++) {
     await rf.locator('.cpu-ctrl button').first().click();
-    if (await rf.locator('.rf-badge.b-hit').count()) break;
+    if (await hit.count()) break;
     await page.waitForTimeout(40);
   }
-  await expect(rf.locator('.rf-badge.b-hit')).toBeVisible();
+  await expect(hit).toBeVisible();
   // the case study carries a tiered quiz
   await expect(page.locator('.quiz .quiz-level')).toHaveCount(3);
 });
@@ -415,6 +416,26 @@ test('System design: the rate-limiter case study traces a request to a 429 rejec
     await page.waitForTimeout(40);
   }
   await expect(rf.locator('.rf-node.warn')).toBeVisible();
+});
+
+test('System design: the distributed KV store traces a quorum write/read to a lagging replica (generic RequestFlow)', async ({ page }) => {
+  await page.goto('/design');
+  const card = page.getByRole('link', { name: /Distributed KV store/i });
+  await expect(card).toBeVisible();
+  await card.click();
+  await expect(page).toHaveURL(/\/design\/key-value-store\/?$/);
+  await expect(page.locator('h1.title')).toContainText('KEY-VALUE');
+  await expect(page.locator('.spine .rung')).toHaveCount(6);
+  // the quorum widget (section KV3): stepping reaches a stale/lagging replica (flagged)
+  const rf = page.locator('#KV3');
+  await rf.scrollIntoViewIfNeeded();
+  for (let i = 0; i < 16; i++) {
+    await rf.locator('.cpu-ctrl button').first().click();
+    if (await rf.locator('.rf-node.warn').count()) break;
+    await page.waitForTimeout(40);
+  }
+  await expect(rf.locator('.rf-node.warn')).toBeVisible();
+  await expect(page.locator('.quiz .quiz-level')).toHaveCount(3);
 });
 
 test('Concurrency page: own nav, two locks deadlock, compare-and-swap stays correct', async ({ page }) => {

@@ -14,6 +14,7 @@ export const designs = [
   { slug: 'chat', name: 'Chat / messaging', tier: 'medium', ready: true, blurb: 'real-time delivery, presence, and message ordering' },
   { slug: 'twitter', name: 'Twitter timeline', tier: 'big', ready: true, blurb: 'the celebrity fan-out problem, at hundreds of millions of users' },
   { slug: 'video', name: 'Video streaming', tier: 'big', ready: true, blurb: 'CDNs, adaptive bitrate, and moving petabytes' },
+  { slug: 'key-value-store', name: 'Distributed KV store', tier: 'big', ready: true, blurb: 'partition, replicate, and reach quorum — Dynamo/Raft, end to end' },
 ];
 
 // Sections for /design/url-shortener — same shape as a stack's layers, so the

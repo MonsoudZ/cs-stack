@@ -903,7 +903,7 @@ describe('buildDeploy (canary rollout + rollback)', () => {
 describe('buildUrlShortener (system design: request flow)', () => {
   const steps = buildUrlShortener();
   it('writes the mapping to the DB, then a read returns a 301 redirect', () => {
-    const afterWrite = steps.find((s) => s.phase === 'write' && s.dbKeys === 1);
+    const afterWrite = steps.find((s) => /^WRITE/.test(s.phase) && s.dbKeys === 1);
     expect(afterWrite).toBeTruthy();
     expect(steps.some((s) => s.response && /^301/.test(s.response))).toBe(true);
   });

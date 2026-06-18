@@ -1,0 +1,158 @@
+---
+import Base from '../../layouts/Base.astro';
+import LayerSection from '../../components/LayerSection.astro';
+import RequestFlow from '../../components/RequestFlow.svelte';
+import Why from '../../components/Why.astro';
+import Takeaway from '../../components/Takeaway.astro';
+import Advanced from '../../components/Advanced.astro';
+import Quiz from '../../components/Quiz.svelte';
+import SeeAlso from '../../components/SeeAlso.astro';
+
+const sections = [
+  { id: 'KV0', num: '00', navLabel: 'Requirements', zone: 'meaning', title: 'Requirements', sub: 'a two-call API — and why distribution is the whole problem' },
+  { id: 'KV1', num: '01', navLabel: 'Scale & partitioning', zone: 'number', title: 'Scale: one box isn’t enough', sub: 'too much data, too many ops — so partition' },
+  { id: 'KV2', num: '02', navLabel: 'Consistent hashing', zone: 'system', title: 'Partitioning — consistent hashing', sub: 'a ring + virtual nodes · minimal reshuffle' },
+  { id: 'KV3', num: '03', navLabel: 'Replication & quorum', zone: 'system', title: 'Replication & quorum', sub: 'N replicas · W + R > N · trace a write and a read' },
+  { id: 'KV4', num: '04', navLabel: 'Failure & repair', zone: 'system', title: 'Failure & anti-entropy', sub: 'hinted handoff · read repair · Merkle sync · gossip' },
+  { id: 'KV5', num: '05', navLabel: 'Tradeoffs', zone: 'all', title: 'Tradeoffs', sub: 'CP vs AP · tunable consistency · leader vs leaderless' },
+];
+
+const L = Object.fromEntries(sections.map((l) => [l.id, l]));
+
+// Trace a quorum write (W=2) then a quorum read (R=2) across N=3 replicas, with
+// one lagging replica → a version conflict on read → read repair. W+R>N, so the
+// read quorum always overlaps the write quorum on a fresh replica.
+const flow = {
+  nodes: [
+    { id: 'client', label: 'Client' },
+    { id: 'coord', label: 'Coordinator' },
+    { id: 'ra', label: 'Replica A' },
+    { id: 'rb', label: 'Replica B' },
+    { id: 'rc', label: 'Replica C' },
+  ],
+  steps: [
+    { active: 'coord', phase: 'SETUP', meta: { ra: 'k=v0', rb: 'k=v0', rc: 'k=v0' }, note: 'Key k is replicated on N=3 nodes, all holding v0. The cluster requires W=2 acks to call a write durable and R=2 replies to answer a read. W+R > N (2+2 > 3) — the key guarantee to remember.' },
+    { active: 'client', phase: 'WRITE · W=2', meta: { ra: 'k=v0', rb: 'k=v0', rc: 'k=v0' }, note: 'A client sends PUT k = v1 to the coordinator — any node can coordinate; it’s just the one that received this request.' },
+    { active: 'coord', phase: 'WRITE · W=2', meta: { ra: 'k=v0', rb: 'k=v0', rc: 'k=v0' }, note: 'The coordinator hashes k onto the ring, finds the 3 replicas responsible for it, and fans the write out to all of them at once.' },
+    { active: 'ra', phase: 'WRITE · W=2', meta: { ra: 'k=v1 ✓', rb: 'k=v0', rc: 'k=v0' }, note: 'Replica A persists v1 and acks. That’s 1 of the 2 acks the coordinator is waiting for.' },
+    { active: 'rb', phase: 'WRITE · W=2', meta: { ra: 'k=v1 ✓', rb: 'k=v1 ✓', rc: 'k=v0' }, response: 'PUT ok', note: 'Replica B acks too — W=2 reached. The coordinator returns success now, without waiting for C. Latency tracks the 2nd-fastest replica, not the slowest.' },
+    { active: 'rc', phase: 'WRITE · W=2', warn: 'rc', meta: { ra: 'k=v1', rb: 'k=v1', rc: 'k=v0 · lagging' }, note: 'Replica C is slow — a GC pause or a blip on its link. The write is already durable on a quorum; C still holds the stale v0 and will catch up.' },
+    { active: 'client', phase: 'READ · R=2', meta: { ra: 'k=v1', rb: 'k=v1', rc: 'k=v0 · lagging' }, note: 'Later, a GET k arrives. With R=2 the coordinator must hear back from 2 replicas before it answers.' },
+    { active: 'coord', phase: 'READ · R=2', meta: { ra: 'k=v1', rb: 'k=v1', rc: 'k=v0 · lagging' }, note: 'The coordinator reads from 2 replicas — and happens to pick A and the still-lagging C.' },
+    { active: 'rc', phase: 'READ · R=2', warn: 'rc', meta: { ra: 'k=v1 →', rb: 'k=v1', rc: 'k=v0 ✗' }, note: 'Conflict: A returns v1, C returns the stale v0. Every value carries a version (a vector clock), so the coordinator can see v1 strictly succeeds v0 — no guessing.' },
+    { active: 'coord', phase: 'READ · R=2', response: 'v1', meta: { ra: 'k=v1', rb: 'k=v1', rc: 'k=v0 ✗' }, note: 'It returns the newest value, v1. Because W + R > N, the read set (2) and the write set (2) must overlap on at least one node that has v1 — so a fresh value is always visible.' },
+    { active: 'rc', phase: 'REPAIR', meta: { ra: 'k=v1', rb: 'k=v1', rc: 'k=v1 ✓' }, note: 'Read repair: having noticed C was stale, the coordinator writes v1 back to it in the background. The cluster heals toward consistency as a side effect of being read.' },
+  ],
+};
+
+const title = 'System design — distributed key-value store';
+const description = 'A full walkthrough of designing a distributed key-value store: the tiny get/put API, why one machine isn’t enough, partitioning with consistent hashing, replication and quorum (W + R > N) traced write-by-write, the failure machinery (hinted handoff, read repair, Merkle-tree anti-entropy, gossip), and the CP-vs-AP and tunable-consistency tradeoffs — a very-big system design that ties the consensus, database, and cloud stacks together.';
+---
+<Base {title} {description} layers={sections}>
+  <div slot="hero">
+    <div class="kicker">A system design · very big</div>
+    <h1 class="title">THE <em>KEY-VALUE</em><br />STORE</h1>
+    <p class="lede">A store with only two calls — <code>put(k, v)</code> and <code>get(k)</code> — sounds like a hash map. It is, until you need it to hold more data than one machine, survive any single node dying, and stay fast across a datacenter. Everything hard about distributed systems shows up here in its purest form: how to spread data, how to keep copies, and what "the value of k" even means when nodes disagree. We'll build it from the consensus, database, and cloud stacks you already know.</p>
+    <div class="hero-meta"><a class="back-link" href="/design">← all system designs</a> · requirements → partitioning → consistent hashing → quorum → failure → tradeoffs</div>
+  </div>
+
+  <LayerSection {...L.KV0}>
+    <p class="prose">Pin the scope. <b>Functional</b> is almost nothing: <code>get(k)</code> returns the value for a key, <code>put(k, v)</code> stores one — no joins, no range scans, no schema. <b>Non-functional</b> is the entire design: it must <span class="hl">scale</span> past one machine's disk and RAM, stay <span class="hl">available</span> when nodes fail (in a big fleet, something is always failing), and answer in <span class="hl">single-digit milliseconds</span>. The narrow API is exactly what <i>buys</i> that — with no cross-key queries, every operation touches one key, so the data can be scattered freely across the cluster.</p>
+    <Takeaway>A KV store's API is trivial; its requirements are not. Scale, availability under failure, and low latency drive everything — and the single-key access pattern is what makes aggressive partitioning possible.</Takeaway>
+    <Advanced>
+      <p>The narrowness is a deliberate trade. A relational database offers joins, transactions across rows, and rich queries — and pays for them with coordination that's hard to scale horizontally. A KV store gives all of that up so that any key can live on any node independently, which is what lets it grow to thousands of machines. "Choose the weakest data model that solves the problem" is the move: the weaker the contract, the more freely the system distributes.</p>
+    </Advanced>
+    <Why
+      problem="“Build a key-value store” hides that the API is the easy part and the distribution is the whole problem."
+      idea="Fix a minimal get/put contract with no cross-key operations, and treat scale, availability, and latency as the hard requirements that shape the design."
+      tradeoff="Dropping joins, range scans, and multi-key transactions is what enables free partitioning — but it pushes that complexity up into the application."
+      next="First pressure: the data and the traffic outgrow a single box."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.KV1}>
+    <p class="prose">Start with one node holding every key. It works until it doesn't: the dataset outgrows one machine's disk, the request rate outgrows one machine's CPU and network, and — worst — that one machine is a <b>single point of failure</b>. The fix is <span class="hl">partitioning</span> (also called sharding): split the keyspace across many nodes so each holds a slice. The obvious scheme, <code>node = hash(k) mod N</code>, spreads load evenly… until N changes. Add or remove one node and <b>almost every key</b> moves, because the modulus shifts under all of them — a reshuffle storm precisely when the cluster is already under stress.</p>
+    <Takeaway>One node can't hold the data, serve the traffic, or survive a failure, so partition the keyspace — but naive <code>hash(k) mod N</code> remaps nearly every key whenever the node count changes, which is unacceptable at scale.</Takeaway>
+    <SeeAlso slug="database" note="how a single store indexes and persists data on one node — the building block each partition runs" />
+    <Advanced>
+      <p>The <code>mod N</code> problem is quantitative: changing N from 4 to 5 leaves only ~1/5 of keys on the same node — the other ~80% must migrate, all at once, saturating the network and the disks. Membership changes (a node crashing, a new one joining for capacity) are routine in a large fleet, so a partitioning scheme that triggers a near-total reshuffle on every change isn't just inefficient — it makes the cluster fragile exactly when you need it stable. That single flaw is what motivates consistent hashing.</p>
+    </Advanced>
+    <Why
+      problem="A single node caps capacity and is a single point of failure, and the simplest partitioning (mod N) remaps almost all keys when membership changes."
+      idea="Partition the keyspace across many nodes so each owns a slice, but choose a scheme whose key-to-node mapping is stable under add/remove."
+      tradeoff="Partitioning multiplies operational complexity (placement, rebalancing, routing) — the price of moving past one machine."
+      next="The scheme that makes membership changes cheap: a hash ring."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.KV2}>
+    <p class="prose"><b>Consistent hashing</b> places both nodes and keys on the same circular hash space (a "ring", say 0…2³²−1). A key belongs to the <span class="hl">first node clockwise</span> from its hash. The payoff: when a node joins or leaves, only the keys in <b>its arc</b> move — roughly <code>1/N</code> of the data, not all of it. One catch — a few nodes on the ring divide it into uneven arcs, so load is lumpy. The fix is <span class="hl">virtual nodes</span>: each physical node is hashed to many points on the ring, so its share is the average of many small arcs — smooth load, and a leaving node's keys spread evenly across all the survivors rather than dumping onto one neighbour.</p>
+    <Takeaway>Consistent hashing maps keys and nodes onto a ring so a membership change moves only ~1/N of keys; virtual nodes (many ring points per physical node) even out the load and spread a failed node's keys across all survivors.</Takeaway>
+    <SeeAlso slug="structures" note="the hashing and ordered-lookup structures the ring is built from" />
+    <Advanced>
+      <p>Virtual nodes do more than smooth load. With one point per node, the keys of a crashed node all fall to a single clockwise neighbour — doubling <i>its</i> load and often toppling it next (a cascading failure). With, say, 256 vnodes per node, a failure scatters those keys across the whole cluster in small pieces, so no single survivor is overwhelmed. Vnodes also let you weight by capacity — give a bigger machine more ring points — and make rebalancing incremental. The replicas for a key are then "the next R <i>distinct</i> physical nodes clockwise," skipping vnodes that map back to a node already chosen.</p>
+    </Advanced>
+    <Why
+      problem="Partitioning has to survive routine membership changes without a near-total data reshuffle, and a plain ring still distributes load unevenly."
+      idea="Hash keys and nodes onto one ring (key → first node clockwise) so only ~1/N of keys move on a change, and give each node many virtual points so load and failure-recovery spread evenly."
+      tradeoff="More vnodes mean more ring metadata to gossip and track — a modest bookkeeping cost for even load and graceful failure."
+      next="Placement decided — now keep more than one copy of every key."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.KV3}>
+    <p class="prose">Partitioning alone still loses data when a node dies, so each key is <b>replicated</b> onto the next <span class="hl">N</span> nodes on the ring. Now: how many must respond before an operation counts? A write waits for <span class="hl">W</span> acks; a read waits for <span class="hl">R</span> replies. The single rule that makes reads see writes is <b>W + R &gt; N</b> — it forces the read set and the write set to overlap on at least one replica that has the latest value. Step a write (N=3, W=2) and then a read (R=2) through it: one replica lags, the read catches the conflict by version, and the system repairs itself.</p>
+    <RequestFlow flow={flow} label="trace a quorum write then a quorum read — watch W + R > N guarantee the read sees the write, even with a lagging replica" client:visible />
+    <Takeaway>Replicate each key on N nodes and require W acks to write, R replies to read; W + R &gt; N guarantees the read and write quorums overlap, so a read always reaches a replica holding the newest value.</Takeaway>
+    <SeeAlso slug="raft" note="the leader-based alternative — Raft replicates the same way but via a single elected leader and a committed log" />
+    <Advanced>
+      <p>The quorum knobs <i>tune</i> the system without redesigning it. <code>W=N, R=1</code> makes reads cheap and fast but writes slow and fragile (every replica must ack) — good for read-heavy data. <code>W=1, R=N</code> flips it for write-heavy workloads. <code>W=R=⌈(N+1)/2⌉</code> (a majority) balances both and still satisfies W+R&gt;N. Drop below the overlap — e.g. <code>W=R=1</code> — and you've chosen <b>eventual consistency</b>: fast and always-writable, but a read can miss a recent write. This is the <b>leaderless</b> (Dynamo-style) design; the <a href="/raft">consensus stack</a> shows the <b>leader-based</b> alternative, where one elected leader orders every write through a replicated log — stronger guarantees, at the cost of routing writes through that leader.</p>
+    </Advanced>
+    <Why
+      problem="A single copy of a key is lost when its node dies, and once there are copies you must decide how many to wait for without making every operation as slow as the slowest replica."
+      idea="Replicate each key on N nodes and answer after W write-acks / R read-replies, choosing W and R so that W + R > N — which forces read and write quorums to overlap on a fresh replica."
+      tradeoff="Higher W/R buys consistency but adds latency and reduces availability (more nodes must be up); lower values are fast and available but can serve stale reads."
+      next="Quorums handle a slow replica — but what about one that’s actually down, or that drifts for hours?"
+    />
+  </LayerSection>
+
+  <LayerSection {...L.KV4}>
+    <p class="prose">Real clusters have nodes that are slow, down, or quietly diverging — so the design needs machinery to converge anyway. <b>Hinted handoff</b>: if a target replica is down during a write, a healthy node accepts the data with a "hint" and forwards it once the target returns, so writes stay available. <b>Read repair</b> (you just saw it) fixes stale replicas opportunistically whenever a read exposes a disagreement. For replicas that drift apart with no traffic to repair them, <b>anti-entropy</b> runs in the background: each pair compares <span class="hl">Merkle trees</span> of their key ranges, so they exchange only the few subtrees that actually differ instead of shipping everything. And the whole cluster tracks who's alive via a <b>gossip</b> protocol — nodes periodically swap membership state, no central registry.</p>
+    <Takeaway>Convergence is layered: hinted handoff keeps writes available during a failure, read repair fixes staleness on the read path, Merkle-tree anti-entropy reconciles idle replicas cheaply, and gossip spreads membership — together they let the cluster heal without a coordinator.</Takeaway>
+    <SeeAlso slug="crypto" note="why a Merkle tree lets two replicas find their few differing keys by comparing hashes, not whole datasets" />
+    <Advanced>
+      <p>Merkle anti-entropy is the elegant piece: each replica keeps a hash tree over its key range, where a parent hashes its children. Two replicas compare root hashes — equal means identical, done in one message. If they differ, they descend only into the subtrees whose hashes disagree, so the data exchanged is proportional to the <i>differences</i>, not the dataset. It's the same structure the <a href="/crypto">crypto stack</a> uses to prove a block's contents, applied to replica reconciliation.</p>
+      <p>What about concurrent writes to the same key on different replicas (no clear winner by version)? Then "newest" is ambiguous, and the system either keeps <b>both versions</b> as siblings for the client to reconcile (Dynamo's shopping-cart merge) or imposes <b>last-write-wins</b> by wall-clock — simple, but it silently drops one update if clocks are skewed. Vector clocks detect the conflict; resolving it is an application decision.</p>
+    </Advanced>
+    <Why
+      problem="Nodes fail, restart, and drift; without active repair, replicas diverge permanently and either reject writes during failures or serve inconsistent data forever."
+      idea="Layer convergence mechanisms — hinted handoff for write availability, read repair on the read path, Merkle-tree anti-entropy for idle drift, and gossip for membership — so the cluster heals on its own."
+      tradeoff="Each mechanism adds background work and bandwidth, and conflict resolution (vector clocks vs last-write-wins) trades correctness against simplicity."
+      next="Step back: every knob here is really one big decision in disguise."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.KV5}>
+    <p class="prose">All the knobs collapse into one stance: where you sit on <span class="hl">CAP</span>. When the network partitions — and at scale it will — a KV store must choose. An <b>AP</b> store (Dynamo, Cassandra, leaderless low quorums) stays writable on both sides of the split and reconciles later: maximum availability, eventual consistency. A <b>CP</b> store (a Raft/Paxos-based store, or quorums with W+R&gt;N and a strict leader) refuses writes it can't make safely: linearizable reads, at the cost of rejecting requests during a partition. The senior move is that this is <span class="hl">tunable per workload</span> — set N, W, R (or pick leaderless vs leader-based) to land where each piece of data needs to be, rather than picking one global answer.</p>
+    <Takeaway>A distributed KV store is a CAP decision made concrete by N/W/R and leader-vs-leaderless: AP for always-writable and eventually consistent, CP for linearizable but partition-intolerant — and the best systems make it tunable per workload rather than global.</Takeaway>
+    <SeeAlso slug="cloud" note="the CAP theorem and the partition reality this entire design is a response to" />
+    <Advanced>
+      <p>Two refinements. First, the famous "consistency" of CAP is <b>linearizability</b> — a strong, single-system-image guarantee; many "eventually consistent" stores actually offer useful middle grounds like <b>read-your-writes</b> or <b>monotonic reads</b> per session, which cover most user-facing needs without full CP cost. Second, leader-based (Raft) vs leaderless (Dynamo) isn't strictly CP vs AP — it's <i>where ordering happens</i>. A leader gives a single authoritative order (simpler conflicts, but the leader is a bottleneck and a failover gap); leaderless spreads writes everywhere (no bottleneck, but you inherit conflict resolution). Real systems mix them: leaderless replication for the data plane, a Raft group for the metadata/membership that must be exactly consistent.</p>
+    </Advanced>
+    <Why
+      problem="Under a network partition a distributed store cannot be both fully consistent and fully available, and pretending otherwise hides the real engineering decision."
+      idea="Choose a CAP stance per workload via N/W/R and leader-vs-leaderless replication — AP for availability, CP for linearizability — instead of forcing one global model."
+      tradeoff="AP risks serving and reconciling stale/conflicting data; CP risks rejecting requests during partitions — and tunability adds the burden of choosing correctly per dataset."
+      next="Zoom out: requirements, partitioning, replication, failure, tradeoffs — the same shape every big system reuses, here in its purest form."
+    />
+  </LayerSection>
+
+  <Quiz slug="key-value-store" client:visible />
+  <p class="prose design-back"><a href="/design">← back to all system designs</a></p>
+</Base>
+
+<style>
+  .back-link{color:var(--accent,var(--signal))}
+  .design-back{max-width:680px;margin:40px auto 0;text-align:center}
+  .design-back a{color:var(--accent,var(--signal))}
+</style>

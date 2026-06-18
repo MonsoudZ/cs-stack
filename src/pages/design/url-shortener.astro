@@ -2,7 +2,8 @@
 import Base from '../../layouts/Base.astro';
 import LayerSection from '../../components/LayerSection.astro';
 import { urlShortenerSections } from '../../data/designs.js';
-import UrlShortener from '../../components/UrlShortener.svelte';
+import RequestFlow from '../../components/RequestFlow.svelte';
+import { URL_NODES, buildUrlShortener } from '../../lib/widgets.js';
 import Why from '../../components/Why.astro';
 import Takeaway from '../../components/Takeaway.astro';
 import Advanced from '../../components/Advanced.astro';
@@ -51,7 +52,7 @@ const description = 'A full walkthrough of designing a URL shortener: requiremen
 
   <LayerSection {...L.US2}>
     <p class="prose">The architecture falls out of the estimate: a <b>load balancer</b> spreads requests across <b>stateless app servers</b>; a <b>cache</b> holds the hot keys so most reads never touch storage; and a <b>database</b> is the durable source of truth. Step a write and then two reads through it — the second read shows why the cache is the whole game.</p>
-    <UrlShortener client:visible />
+    <RequestFlow flow={{ nodes: URL_NODES, steps: buildUrlShortener() }} label="step a request through the system — watch the cache turn a DB lookup into a fast redirect" client:visible />
     <Takeaway>One write path (mint a key, store it) and a heavily-cached read path (cache → DB only on a miss) — the same load-balancer / stateless-app / cache / database shape underlies most read-heavy web systems.</Takeaway>
     <SeeAlso slug="cloud" note="the load balancer, stateless servers, replicas, and CAP tradeoff this is built on" />
     <Advanced>

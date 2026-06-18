@@ -645,4 +645,36 @@ export const quizzes = {
       ],
     },
   ],
+  'key-value-store': [
+    {
+      level: 'easy',
+      question: 'Why partition a key-value store across many nodes with consistent hashing instead of plain hash(k) mod N?',
+      options: [
+        { label: 'With mod N, changing the node count remaps almost every key at once; consistent hashing moves only about 1/N of the keys when a node joins or leaves', correct: true, why: 'mod N shifts the modulus under every key, forcing a near-total reshuffle exactly when the cluster is already stressed. A hash ring only reassigns the keys in the changed node’s arc.' },
+        { label: 'Consistent hashing lets a single node hold the entire dataset, so no partitioning is actually needed', why: 'It’s the opposite — consistent hashing is a partitioning scheme; it spreads keys across nodes. The point is stable placement, not avoiding partitioning.' },
+        { label: 'mod N is insecure because it reveals the key, while consistent hashing encrypts it', why: 'Neither scheme is about secrecy. Both hash the key for placement; the difference is how the mapping behaves when membership changes.' },
+        { label: 'Consistent hashing makes every key live on every node, so lookups never miss', why: 'That would be full replication, not partitioning. Consistent hashing assigns each key to a small set of nodes (the next ones clockwise), not all of them.' },
+      ],
+    },
+    {
+      level: 'medium',
+      question: 'A store uses N=3 replicas with W=2 and R=2. One replica lags behind on a recent write. What does a read return, and why?',
+      options: [
+        { label: 'The newest value — because W + R > N (2 + 2 > 3), the read’s 2 replicas must overlap the write’s 2 on at least one node holding the latest value, which versioning then picks', correct: true, why: 'The quorum overlap is the whole guarantee: any read set of size R and write set of size W share a node when W+R>N, so the freshest value is always among the replies and the version number identifies it.' },
+        { label: 'Possibly the stale value, since with three replicas there’s no way to know which copy is newest', why: 'Values carry versions (e.g. vector clocks), so the coordinator can tell which is newer — and W+R>N guarantees the newer one is in the read set.' },
+        { label: 'It always reads from all 3 replicas regardless of R, so it can’t ever be stale', why: 'R=2 means it waits for only 2 replies, not 3. Correctness comes from the W+R>N overlap, not from reading every replica.' },
+        { label: 'An error, because a lagging replica makes the read quorum impossible to satisfy', why: 'A lagging replica still responds; it just has an older value. The quorum is met by any R replies, and versioning resolves the disagreement.' },
+      ],
+    },
+    {
+      level: 'hard',
+      question: 'For replicas that drift apart with little traffic, why is Merkle-tree anti-entropy preferred over having each pair exchange their full datasets?',
+      options: [
+        { label: 'Each replica keeps a hash tree over its key range; two replicas compare root hashes and descend only into subtrees that differ, so the data exchanged is proportional to the differences, not the dataset size', correct: true, why: 'Equal roots mean identical data in one message; on a mismatch they recurse only into disagreeing subtrees. That makes reconciliation cost scale with how much actually differs, which is tiny for mostly-synced replicas.' },
+        { label: 'Merkle trees encrypt the data so it can be sent over an untrusted network, which a full exchange cannot', why: 'Anti-entropy is about finding differences efficiently, not encryption. The hashes locate divergence; they aren’t a transport-security mechanism.' },
+        { label: 'A full dataset exchange would lose data, whereas Merkle trees are the only lossless way to copy keys', why: 'A full exchange is lossless too — it’s just wasteful. The advantage of Merkle trees is bandwidth proportional to the diff, not correctness.' },
+        { label: 'Merkle trees let replicas skip versioning entirely, since the tree decides which value wins', why: 'Anti-entropy still relies on per-value versions to decide the winner; the Merkle tree only locates which keys differ, it doesn’t resolve conflicts.' },
+      ],
+    },
+  ],
 };
