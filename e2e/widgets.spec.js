@@ -275,6 +275,10 @@ test('Social cards: each deep dive advertises its own per-stack OG image', async
   await page.goto('/memory');
   await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', /\/og\/memory\.png$/);
   await expect(page.locator('meta[property="og:image:alt"]')).toHaveAttribute('content', /THE MEMORY STACK/);
+  // system-design case studies get their own per-design card too
+  await page.goto('/design/url-shortener');
+  await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', /\/og\/url-shortener\.png$/);
+  await expect(page.locator('meta[property="og:image:alt"]')).toHaveAttribute('content', /URL shortener — a small system design/);
 });
 
 test('Cloud page: own nav, the balancer fails over, a replica read goes stale', async ({ page }) => {

@@ -8,6 +8,7 @@ import { writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { stacks } from '../src/data/stacks.js';
+import { designs } from '../src/data/designs.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const FONT = 'Helvetica Neue, Helvetica, Arial, sans-serif';
@@ -83,3 +84,35 @@ function stackCard({ name, kind, layer, accent, blurb }) {
 }
 mkdirSync(join(root, 'public', 'og'), { recursive: true });
 for (const s of stacks) render(stackCard(s), join(root, 'public', 'og', s.slug + '.png'));
+
+// --- one card per system-design case study, tinted by tier ---
+const TIER_ACCENT = { small: '#2ee6c0', medium: '#ffb454', big: '#ff6b6b' };
+function designCard({ name, tier, blurb }) {
+  const accent = TIER_ACCENT[tier] || '#5b9dff';
+  const kicker = 'A SYSTEM DESIGN · ' + esc(tier.toUpperCase());
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <radialGradient id="glow" cx="16%" cy="14%" r="82%">
+      <stop offset="0%" stop-color="${accent}" stop-opacity="0.20"/>
+      <stop offset="60%" stop-color="#070a10" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="630" fill="#070a10"/>
+  <rect width="1200" height="630" fill="url(#glow)"/>
+  <rect x="0" y="0" width="14" height="630" fill="${accent}"/>
+
+  <!-- request-flow motif, top-right: three nodes wired together -->
+  <rect x="980" y="150" width="130" height="20" rx="10" fill="${accent}"/>
+  <rect x="980" y="118" width="96" height="20" rx="10" fill="${hexA(accent, 0.6)}"/>
+  <rect x="980" y="86" width="60" height="20" rx="10" fill="${hexA(accent, 0.35)}"/>
+
+  <text x="90" y="150" font-family="${FONT}" font-size="26" font-weight="700"
+        letter-spacing="6" fill="${accent}">${kicker}</text>
+
+  <text x="84" y="340" font-family="${FONT}" font-size="80" font-weight="800" fill="#ffffff">${esc(name.toUpperCase())}</text>
+
+  <text x="90" y="560" font-family="${FONT}" font-size="26" font-weight="500" fill="#a6b3c4">${esc(blurb)}</text>
+  <text x="1110" y="560" text-anchor="end" font-family="${FONT}" font-size="22" font-weight="700" fill="#80909f">THE STACK</text>
+</svg>`;
+}
+for (const d of designs) render(designCard(d), join(root, 'public', 'og', d.slug + '.png'));

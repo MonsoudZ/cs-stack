@@ -23,6 +23,7 @@ import { layers as mainLayers } from '../data/layers.js';
 import StackNav from '../components/StackNav.astro';
 import TopNav from '../components/TopNav.astro';
 import { stacks } from '../data/stacks.js';
+import { designs } from '../data/designs.js';
 // The current page's slug (''/home for the main stack), used to tell the
 // cross-stack footer which deep-dive to omit from its list.
 const currentSlug = Astro.url.pathname.replace(/\//g, '');
@@ -40,10 +41,19 @@ const canonical = new URL(Astro.url.pathname, base);
 // otherwise the site card. Alt text tracks the same source so previews and
 // screen readers stay in sync.
 const currentStack = stacks.find((s) => s.slug === currentSlug);
-const ogImage = new URL(currentStack ? `/og/${currentStack.slug}.png` : '/og.png', base);
+// A System Design page (/design/<slug>) gets its own card too; the slug is the
+// last path segment, not the slash-stripped form `currentSlug` uses.
+const seg = Astro.url.pathname.split('/').filter(Boolean);
+const currentDesign = seg[0] === 'design' && seg[1] ? designs.find((d) => d.slug === seg[1]) : null;
+const ogImage = new URL(
+  currentStack ? `/og/${currentStack.slug}.png` : currentDesign ? `/og/${currentDesign.slug}.png` : '/og.png',
+  base,
+);
 const ogImageAlt = currentStack
   ? `THE ${currentStack.name.toUpperCase()} ${currentStack.kind.toUpperCase()} — a deep dive into layer ${currentStack.layer}`
-  : 'THE STACK — from electrons to the cloud';
+  : currentDesign
+    ? `${currentDesign.name} — a ${currentDesign.tier} system design`
+    : 'THE STACK — from electrons to the cloud';
 // Structured data (schema.org). URLs derive from `canonical`, so they update
 // automatically once `site` is set. The topic list reuses the layer data so
 // it can't drift from the page; the two meta-layers (recap, tracer) are left
