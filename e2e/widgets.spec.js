@@ -453,6 +453,27 @@ test('System design: the distributed KV store traces a quorum write/read to a la
   await expect(page.locator('.quiz .quiz-level')).toHaveCount(3);
 });
 
+test('System design: search autocomplete traces a debounced query through a cold edge then a cache hit', async ({ page }) => {
+  await page.goto('/design');
+  const card = page.getByRole('link', { name: /Search autocomplete/i });
+  await expect(card).toBeVisible();
+  await card.click();
+  await expect(page).toHaveURL(/\/design\/search-autocomplete\/?$/);
+  await expect(page.locator('h1.title')).toContainText('AUTOCOMPLETE');
+  await expect(page.locator('.spine .rung')).toHaveCount(6);
+  // the typeahead widget (section SA3): stepping reaches an edge-cache HIT
+  const rf = page.locator('#SA3');
+  await rf.scrollIntoViewIfNeeded();
+  const hit = rf.locator('.rf-node .rf-meta', { hasText: 'HIT' });
+  for (let i = 0; i < 16; i++) {
+    await rf.locator('.cpu-ctrl button').first().click();
+    if (await hit.count()) break;
+    await page.waitForTimeout(40);
+  }
+  await expect(hit).toBeVisible();
+  await expect(page.locator('.quiz .quiz-level')).toHaveCount(3);
+});
+
 test('Concurrency page: own nav, two locks deadlock, compare-and-swap stays correct', async ({ page }) => {
   await page.goto('/concurrency');
   await expect(page.locator('h1.title')).toContainText('CONCURRENCY');

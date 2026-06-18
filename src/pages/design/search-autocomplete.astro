@@ -1,0 +1,155 @@
+---
+import Base from '../../layouts/Base.astro';
+import LayerSection from '../../components/LayerSection.astro';
+import RequestFlow from '../../components/RequestFlow.svelte';
+import Why from '../../components/Why.astro';
+import Takeaway from '../../components/Takeaway.astro';
+import Advanced from '../../components/Advanced.astro';
+import Quiz from '../../components/Quiz.svelte';
+import SeeAlso from '../../components/SeeAlso.astro';
+
+const sections = [
+  { id: 'SA0', num: '00', navLabel: 'Requirements', zone: 'meaning', title: 'Requirements', sub: 'prefix → ranked completions, faster than you type' },
+  { id: 'SA1', num: '01', navLabel: 'Scale', zone: 'number', title: 'Scale: a query per keystroke', sub: 'why the read rate dwarfs everything — and debounce' },
+  { id: 'SA2', num: '02', navLabel: 'The trie', zone: 'system', title: 'The data structure — a trie', sub: 'a prefix tree · lookup in O(prefix), not a scan' },
+  { id: 'SA3', num: '03', navLabel: 'Ranking & precompute', zone: 'system', title: 'Ranking & precomputation', sub: 'top-k by popularity, computed offline, stored at each node' },
+  { id: 'SA4', num: '04', navLabel: 'Serving at scale', zone: 'system', title: 'Serving at scale', sub: 'shard the trie, cache hot prefixes at the edge' },
+  { id: 'SA5', num: '05', navLabel: 'Tradeoffs', zone: 'all', title: 'Tradeoffs', sub: 'freshness vs cost · exact vs fuzzy · personal vs cacheable' },
+];
+
+const L = Object.fromEntries(sections.map((l) => [l.id, l]));
+
+// Trace a typeahead query: a debounced request for prefix "ca" misses the edge
+// cache, the service walks the trie to the "ca" node and reads its precomputed
+// top-k, the edge caches the result, then a second identical query hits the edge.
+const flow = {
+  nodes: [
+    { id: 'client', label: 'Client' },
+    { id: 'edge', label: 'Edge cache' },
+    { id: 'svc', label: 'Service' },
+    { id: 'trie', label: 'Trie index' },
+  ],
+  steps: [
+    { active: 'trie', phase: 'SETUP', meta: { trie: 'top-k @ each node' }, note: 'Offline, every prefix node in the trie is annotated with its precomputed top-k completions, ranked by popularity. Nothing is ranked at query time.' },
+    { active: 'client', phase: 'TYPE · “c”', note: 'The user presses “c”. The client does NOT fire yet — it debounces (~150 ms), so a fast typist generates one request, not five.' },
+    { active: 'client', phase: 'TYPE · “ca”', note: 'A keystroke later the prefix is “ca” and the debounce timer fires. One request goes out for the prefix “ca”.' },
+    { active: 'edge', phase: 'QUERY · “ca”', warn: 'edge', meta: { edge: 'ca → MISS' }, note: 'The edge cache checks for prefix “ca” → MISS (it is cold). On a miss the request continues to the service.' },
+    { active: 'svc', phase: 'QUERY · “ca”', meta: { edge: 'ca → MISS' }, note: 'The service walks the trie from the root: c → a, arriving at the “ca” node in O(length of prefix) — two hops, no scan of the corpus.' },
+    { active: 'trie', phase: 'QUERY · “ca”', meta: { trie: 'top-k ready' }, response: 'cat · car · california', note: 'The “ca” node already holds its top-k, so the service just reads them off. Query-time work is a tree walk plus a list read — nothing more.' },
+    { active: 'edge', phase: 'QUERY · “ca”', meta: { edge: 'ca → cached' }, note: 'The suggestions return to the client, and the edge caches “ca” on the way out. Suggestions are read-only and identical for everyone, so they cache beautifully.' },
+    { active: 'client', phase: 'QUERY · “ca”', meta: { edge: 'ca → cached' }, note: 'Soon another user types the same hot prefix “ca” — a tiny set of prefixes accounts for most traffic.' },
+    { active: 'edge', phase: 'QUERY · “ca”', meta: { edge: 'ca → HIT' }, response: 'cat · car · california', note: 'Edge cache HIT — the answer ships from the edge in about a millisecond, never touching the service or the trie. Most traffic ends right here.' },
+  ],
+};
+
+const title = 'System design — search autocomplete';
+const description = 'A full walkthrough of designing search autocomplete (typeahead): the requirements and why latency dominates, the query-per-keystroke scale and client debounce, the trie that turns a prefix into a lookup, ranking and precomputing top-k completions offline, sharding and edge-caching to serve it, and the freshness-vs-cost and exact-vs-fuzzy tradeoffs — a medium system design built from the structures, database, and cloud stacks.';
+---
+<Base {title} {description} layers={sections}>
+  <div slot="hero">
+    <div class="kicker">A system design · medium</div>
+    <h1 class="title">SEARCH<br /><em>AUTOCOMPLETE</em></h1>
+    <p class="lede">Start typing into a search box and ten suggestions appear before your finger leaves the key. It feels like magic, but it's a tight engineering problem: answer a <i>prefix</i> with the best completions, ranked by what everyone searches for, in the few milliseconds between keystrokes — and do it for a firehose of queries. The trick is to do almost no work when you type by doing all the work in advance. We'll build it from the structures, database, and cloud stacks.</p>
+    <div class="hero-meta"><a class="back-link" href="/design">← all system designs</a> · requirements → scale → trie → ranking → serving → tradeoffs</div>
+  </div>
+
+  <LayerSection {...L.SA0}>
+    <p class="prose">Pin the scope. <b>Functional</b>: given a <span class="hl">prefix</span> the user has typed so far, return the <span class="hl">top-k</span> most likely completions (say 10), ranked by popularity. <b>Non-functional</b> — where the design lives: it must answer in <span class="hl">tens of milliseconds</span> (slower than a keystroke and the suggestions feel broken), it's <b>overwhelmingly read-heavy</b> (people type far more than the suggestion corpus changes), and it can tolerate being slightly <b>stale</b> — a brand-new trending term showing up a few minutes late is fine.</p>
+    <Takeaway>Autocomplete is "prefix → top-k ranked completions" under a hard latency budget; it's read-dominated and tolerant of mild staleness, and those three facts drive every later decision toward precomputation and caching.</Takeaway>
+    <Advanced>
+      <p>The latency budget is stricter than it looks: the suggestion has to be useful <i>before</i> the next keystroke, so the end-to-end p99 (network + lookup) has to fit in the gap a fast typist leaves — often a target like 50–100 ms including the round trip. That budget is what rules out doing any real ranking work at query time; the only affordable query-time operations are a lookup and a cache read.</p>
+    </Advanced>
+    <Why
+      problem="“Build autocomplete” hides that the suggestions must be both well-ranked and returned faster than a person types — two requirements in tension."
+      idea="Fix the contract as prefix → top-k by popularity, and treat the per-keystroke latency budget and read-heavy, staleness-tolerant nature as the hard requirements."
+      tradeoff="Allowing slight staleness is what makes precomputation possible; demanding instant freshness would force expensive query-time work."
+      next="First, count how often this runs — the number is bigger than you'd guess."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.SA1}>
+    <p class="prose">Here's the scary number: a naive client fires a request on <b>every keystroke</b>, so a single user typing a 10-character query generates up to 10 queries — and across millions of users that's a read rate far above the actual search rate. Two moves tame it. On the client, <span class="hl">debounce</span>: wait ~150 ms after the last keystroke before sending, so a burst of typing collapses into one request. On the server, lean all the way into the read-heavy shape — the answer for a given prefix is the <b>same for everyone</b> and changes slowly, so it's almost perfectly <span class="hl">cacheable</span>.</p>
+    <Takeaway>Autocomplete's read rate can exceed the search rate by ~10×, because every keystroke is a potential query; client-side debounce collapses bursts into single requests, and because answers are shared and slow-changing, aggressive caching does the rest.</Takeaway>
+    <SeeAlso slug="cloud" note="the edge caching, load balancing, and stateless fan-out this read-heavy workload leans on" />
+    <Advanced>
+      <p>Debounce trades a little responsiveness for a large drop in load — too short and you barely cut requests, too long and the suggestions lag the typing. Production clients tune it (often 100–300 ms) and pair it with cancelling in-flight requests when a newer keystroke arrives, so a slow earlier response can't overwrite a fresher one. The key insight is that the request rate is something you <i>design</i>, not just something you receive — the client is part of the system.</p>
+    </Advanced>
+    <Why
+      problem="A query per keystroke multiplies the read rate far beyond the real search volume, threatening to swamp the service."
+      idea="Debounce on the client to collapse keystroke bursts into one request, and exploit the shared, slow-changing answers with heavy caching."
+      tradeoff="More debounce means fewer requests but laggier suggestions; the request rate is a tuning decision, not a fixed input."
+      next="Now the core: how do you turn a prefix into an answer without scanning everything?"
+    />
+  </LayerSection>
+
+  <LayerSection {...L.SA2}>
+    <p class="prose">The natural structure for "find everything starting with this prefix" is a <b>trie</b> (prefix tree). Each edge is a character, so the path from the root spells a prefix and each node represents one. Looking up a prefix is just <b>walking down the characters you typed</b> — <span class="hl">O(length of the prefix)</span>, completely independent of how many phrases are in the corpus. Compare that to scanning or even a sorted list: the trie turns "match this prefix" from a search over millions of phrases into a handful of pointer hops.</p>
+    <Takeaway>A trie makes prefix lookup cost depend on the prefix length, not the corpus size — walking "c → a → t" reaches the node for "cat" in three hops, no matter how many phrases exist, which is exactly the property a per-keystroke query needs.</Takeaway>
+    <SeeAlso slug="structures" note="the tree and pointer mechanics the trie is built from — and why O(prefix) beats scanning" />
+    <Advanced>
+      <p>A plain trie wastes memory on long non-branching chains, so real systems compress it into a <b>radix tree</b> (Patricia trie), collapsing each chain of single-child nodes into one edge labelled with a substring. That keeps the O(prefix) walk while shrinking the node count dramatically. The alternative index — an <b>inverted index</b> with an n-gram or edge-gram analyzer (how a search engine does prefix matching) — trades the trie's tight prefix locality for the ability to also do fuzzy and mid-word matching, at higher cost.</p>
+    </Advanced>
+    <Why
+      problem="Matching a prefix against millions of candidate phrases on every keystroke is far too slow if it means scanning or repeated sorting."
+      idea="Store the phrases in a trie so a prefix lookup is a walk down its characters — cost proportional to the prefix length, not the corpus size."
+      tradeoff="A trie is fast for exact-prefix matching but uses memory and doesn't natively handle typos or mid-word matches (radix compression and inverted indexes address those)."
+      next="A lookup finds the node — but how does it know the ten best completions to show?"
+    />
+  </LayerSection>
+
+  <LayerSection {...L.SA3}>
+    <p class="prose">Reaching the "ca" node is only half the job; below it sit thousands of completions, and you need the <b>best ten</b>. Ranking by <span class="hl">popularity</span> (how often each phrase is actually searched) is the standard signal — but computing it at query time would blow the latency budget. So <b>precompute</b> it: an offline job reads the search logs, counts query frequencies, and stores the <span class="hl">top-k completions directly at each prefix node</span>. At query time the service walks to the node and reads the list — no ranking, no traversal of the subtree. Trace a debounced query through it and watch the precomputed top-k come straight off the node.</p>
+    <RequestFlow flow={flow} label="trace a typeahead query — a debounced prefix misses the edge, the service reads precomputed top-k off the trie node, then a repeat hits the edge" client:visible />
+    <Takeaway>Rank completions by popularity, but compute the top-k offline from search logs and store it at each prefix node — so a live query is a tree walk plus a list read, with all the expensive ranking moved out of the request path.</Takeaway>
+    <SeeAlso slug="database" note="where the query logs live and how the offline job aggregates frequencies to rebuild the index" />
+    <Advanced>
+      <p>"Popularity" is rarely just a raw count. Real systems blend in <b>recency</b> (a term trending today should rise fast), <b>time decay</b> (so last year's spike fades), and sometimes per-region or per-language signals. The offline pipeline is a classic batch job: aggregate the logs, score each candidate, and write the top-k per node into the served index. This is the precompute-vs-compute-at-read tradeoff in its purest form — you spend batch compute and storage up front to make every read trivially cheap.</p>
+      <p>Storing top-k <i>at every node</i> duplicates data (a popular phrase appears in the top-k of all its prefixes), which is the deliberate space-for-speed trade: a little redundancy so no query ever has to look below the node it landed on.</p>
+    </Advanced>
+    <Why
+      problem="Below any prefix there can be thousands of completions, and ranking them by popularity at query time would shatter the latency budget."
+      idea="Precompute the top-k per prefix offline from search-log frequencies and store it on each trie node, so the live query just reads a ready-made list."
+      tradeoff="Precomputation costs batch compute and storage (top-k duplicated across prefixes) and adds rebuild latency — the answer can lag reality by a rebuild cycle."
+      next="The trie plus its top-k lists is large and hammered — how do you actually serve it?"
+    />
+  </LayerSection>
+
+  <LayerSection {...L.SA4}>
+    <p class="prose">A trie over a large corpus won't fit or serve from one box, so scale it the read-heavy way. <b>Shard</b> the trie — typically by first letters or a hash of the prefix — so each server owns a slice and a query routes to the right shard. Keep the servers <b>stateless</b> behind a load balancer and replicate each shard for availability and read throughput. Then the biggest win, again: <span class="hl">cache hot prefixes at the edge</span> (a CDN or in-memory cache). Because a small set of prefixes dominates and the answers are identical for everyone, the edge absorbs most traffic and the trie shards only see the long tail and cache misses.</p>
+    <Takeaway>Shard the trie by prefix and replicate it behind stateless servers, then cache hot prefixes at the edge — the skewed, shared, read-only nature of suggestions means the edge serves the bulk of queries and the index handles only the tail.</Takeaway>
+    <SeeAlso slug="cloud" note="the sharding, replication, stateless servers, and CDN edge this serving layer is the same machinery as" />
+    <Advanced>
+      <p>Sharding by first letters is simple but lumpy (prefixes aren't uniformly distributed — far more queries start with "s" than "z"), so hashing the prefix or using virtual shards evens the load, much like the consistent-hashing trick a distributed store uses. The rebuilt index is usually swapped in <b>atomically</b> — build the new trie, then flip serving to it — so readers never see a half-updated structure, and the edge caches are given short TTLs (or are invalidated on swap) so a rebuild actually reaches users.</p>
+    </Advanced>
+    <Why
+      problem="One machine can neither hold a large trie nor serve a per-keystroke read firehose, and a naive shard split overloads popular letters."
+      idea="Shard the trie by prefix (hashed for even load), replicate behind stateless servers, and cache hot prefixes at the edge to absorb the skewed, shared traffic."
+      tradeoff="Sharding and edge caching add routing and invalidation complexity, and short cache TTLs trade freshness against the load the edge can shed."
+      next="Finally, the decisions with no single right answer."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.SA5}>
+    <p class="prose">Good autocomplete is a set of explicit tradeoffs. <b>Freshness vs cost</b>: rebuilding the index every few minutes catches trends fast but burns compute; rebuilding hourly is cheap but laggy. <b>Exact vs fuzzy</b>: a pure trie only matches exact prefixes, so a typo ("recieve") returns nothing — tolerating typos means edit-distance or n-gram matching, which is far costlier. <b>Personalized vs cacheable</b>: tailoring suggestions to the user can improve relevance but <span class="hl">destroys cacheability</span> (every user's answer differs), so the usual compromise is a shared, cacheable base list with light personal re-ranking on the client.</p>
+    <Takeaway>Autocomplete's real decisions — rebuild frequency (freshness vs cost), exact vs fuzzy matching (simplicity vs typo tolerance), and personalization vs cacheability — are all about how much you'll pay to relax the precompute-and-cache model that makes it fast.</Takeaway>
+    <SeeAlso slug="structures" note="why fuzzy matching (edit distance, n-grams) is a fundamentally costlier search than an exact-prefix trie walk" />
+    <Advanced>
+      <p>Personalization vs cacheability is the sharpest one. Fully personalized suggestions can't be shared, so each is computed fresh — the opposite of the model that makes autocomplete cheap. The senior move is to <b>layer</b> it: serve the globally-cached top-k (cheap, fast, shared) and then lightly re-rank or inject a couple of personal results on the client, keeping the expensive shared path fully cacheable. It's the same "match the consistency/cost model to each part of the request" thinking the other designs use, applied to relevance.</p>
+    </Advanced>
+    <Why
+      problem="Freshness, typo tolerance, and personalization each pull against the precompute-and-cache model, and pretending they're free hides the engineering."
+      idea="Choose each on purpose: rebuild cadence for freshness vs cost, exact vs fuzzy for simplicity vs tolerance, and a cacheable shared base with client-side personal re-ranking."
+      tradeoff="Every step toward fresher, fuzzier, or more personal suggestions erodes cacheability and adds cost — so you buy each one against a named requirement."
+      next="Zoom out: requirements, scale, structure, precomputation, serving, tradeoffs — the same shape every system reuses, here tuned for raw latency."
+    />
+  </LayerSection>
+
+  <Quiz slug="search-autocomplete" client:visible />
+  <p class="prose design-back"><a href="/design">← back to all system designs</a></p>
+</Base>
+
+<style>
+  .back-link{color:var(--accent,var(--signal))}
+  .design-back{max-width:680px;margin:40px auto 0;text-align:center}
+  .design-back a{color:var(--accent,var(--signal))}
+</style>

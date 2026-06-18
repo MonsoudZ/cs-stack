@@ -15,6 +15,7 @@ export const designs = [
   { slug: 'rate-limiter', name: 'Rate limiter', tier: 'small', ready: true, blurb: 'cap requests per client without a central bottleneck', uses: ['network', 'cloud', 'devops'] },
   { slug: 'news-feed', name: 'News feed', tier: 'medium', ready: true, blurb: 'fan-out on write vs read, and ranking the timeline', uses: ['cloud', 'database'] },
   { slug: 'chat', name: 'Chat / messaging', tier: 'medium', ready: true, blurb: 'real-time delivery, presence, and message ordering', uses: ['network', 'cloud'] },
+  { slug: 'search-autocomplete', name: 'Search autocomplete', tier: 'medium', ready: true, blurb: 'typeahead in milliseconds — a trie and precomputed top-k', uses: ['structures', 'database', 'cloud'] },
   { slug: 'twitter', name: 'Twitter timeline', tier: 'big', ready: true, blurb: 'the celebrity fan-out problem, at hundreds of millions of users', uses: ['cloud', 'database'] },
   { slug: 'video', name: 'Video streaming', tier: 'big', ready: true, blurb: 'CDNs, adaptive bitrate, and moving petabytes', uses: ['network', 'cloud'] },
   { slug: 'key-value-store', name: 'Distributed KV store', tier: 'big', ready: true, blurb: 'partition, replicate, and reach quorum — Dynamo/Raft, end to end', uses: ['structures', 'crypto', 'cloud', 'raft', 'database'] },

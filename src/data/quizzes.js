@@ -677,4 +677,36 @@ export const quizzes = {
       ],
     },
   ],
+  'search-autocomplete': [
+    {
+      level: 'easy',
+      question: 'Why store autocomplete phrases in a trie instead of scanning a list of phrases on each keystroke?',
+      options: [
+        { label: 'A trie turns a prefix lookup into a walk down the typed characters — O(prefix length), independent of how many phrases exist — while scanning costs grow with the corpus', correct: true, why: 'Walking “c → a → t” reaches the “cat” node in three hops no matter how big the corpus is. That corpus-independent cost is exactly what a per-keystroke query needs.' },
+        { label: 'A trie sorts the phrases alphabetically so binary search is faster than scanning', why: 'That describes a sorted array with binary search (O(log n), still corpus-dependent). A trie’s advantage is that lookup depends on the prefix length, not the number of phrases.' },
+        { label: 'A trie compresses the phrases so they take less storage than a list', why: 'A trie can actually use more memory than a flat list; radix compression helps, but the reason to use it is fast prefix lookup, not storage savings.' },
+        { label: 'A trie lets the server rank completions by popularity at query time for free', why: 'A trie locates the prefix node; ranking still has to come from somewhere. The standard design precomputes top-k offline rather than ranking during the query.' },
+      ],
+    },
+    {
+      level: 'medium',
+      question: 'Why are the top-k completions precomputed offline and stored at each prefix node, rather than computed when the query arrives?',
+      options: [
+        { label: 'Ranking thousands of completions by popularity at query time would blow the millisecond latency budget; precomputing from search logs makes the live query just a tree walk plus a list read', correct: true, why: 'The answer must arrive before the next keystroke, so the only affordable query-time work is a lookup and a read. Moving the ranking to an offline batch job over the logs keeps the request path trivially cheap.' },
+        { label: 'Search logs can only be read offline, so there is no way to rank during a query', why: 'Logs could in principle be queried live; the reason to precompute is the latency budget and load, not an access restriction.' },
+        { label: 'Precomputing guarantees the suggestions are always perfectly up to date', why: 'It’s the opposite — precomputing means the answer can lag reality by one rebuild cycle. You accept mild staleness in exchange for speed.' },
+        { label: 'Storing top-k at each node uses less memory than storing the phrases once', why: 'It uses more — a popular phrase is duplicated into the top-k of all its prefixes. That redundancy is a deliberate space-for-speed trade, not a saving.' },
+      ],
+    },
+    {
+      level: 'hard',
+      question: 'Why does fully personalizing autocomplete suggestions conflict with what makes the system fast, and what’s the usual compromise?',
+      options: [
+        { label: 'Shared, identical answers are what make suggestions cacheable at the edge; personalizing them makes every user’s answer different and uncacheable, so the fix is a globally-cached base list with light personal re-ranking on the client', correct: true, why: 'The edge cache absorbs most traffic precisely because the answer for a prefix is the same for everyone. Personalization breaks that sharing, so you keep the expensive shared path cacheable and layer cheap personal re-ranking on top.' },
+        { label: 'Personalization requires a bigger trie, which no longer fits in memory, so it must be disabled entirely', why: 'It isn’t a memory problem — personalized suggestions can be computed without a larger trie. The real cost is lost cacheability, which the layered approach restores.' },
+        { label: 'Personalized results are always less relevant, so they’re avoided for quality reasons', why: 'Personalization can improve relevance; that’s why it’s tempting. The reason to limit it is cacheability/cost, not relevance.' },
+        { label: 'Personalization forces the index to rebuild on every keystroke, which is impossible', why: 'Per-user re-ranking doesn’t require rebuilding the shared index at all. The conflict is with edge caching of shared answers, resolved by re-ranking client-side.' },
+      ],
+    },
+  ],
 };
