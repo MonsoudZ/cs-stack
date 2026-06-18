@@ -103,6 +103,7 @@ and is regression-tested in e2e.
 
 ## The deployed origin
 
-`site` in `astro.config.mjs` (`https://cs-stack.pages.dev`) is the only place the
-deployed origin lives; it drives canonical URLs, the sitemap, `robots.txt`, and the
-absolute OG-image URLs. Change it there in one line if the site moves.
+`site` in `astro.config.mjs` (`https://cs-stack.monsoud-zanaty.workers.dev`) is the
+only place the deployed origin lives; it drives canonical URLs, the sitemap,
+`robots.txt`, and the absolute OG-image URLs. Change it there in one line if the
+site moves (e.g. onto a custom domain).
