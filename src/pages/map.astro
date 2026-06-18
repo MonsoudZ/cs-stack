@@ -1,0 +1,196 @@
+---
+import Base from '../layouts/Base.astro';
+import { stacks } from '../data/stacks.js';
+import { designs, TIERS } from '../data/designs.js';
+
+const title = 'THE STACK — the whole map';
+const description = 'The whole site at a glance: the ladder of deep-dive stacks from silicon to the cloud, and the system designs that compose them. Hover a design to light up the layers it builds on, and see how far you have climbed.';
+
+// Accent → palette class (the audit bans static inline styles; classes set --c).
+const TONE = { '#2ee6c0': 't-sig', '#a78bfa': 't-violet', '#ffb454': 't-amber', '#5b9dff': 't-blue', '#ff6b6b': 't-red' };
+
+// stacks.js is already bottom → top; the ladder reads the way you climb.
+const ladder = stacks;
+const byTier = TIERS.map((t) => ({ ...t, items: designs.filter((d) => d.ready && d.tier === t.id) }));
+const total = stacks.length + designs.filter((d) => d.ready).length;
+---
+<Base {title} {description} chrome={false} layers={[]}>
+  <div slot="hero">
+    <div class="kicker">The whole map</div>
+    <h1 class="title">THE STACK,<br /><em>ALL AT ONCE</em></h1>
+    <p class="lede">Everything on one page: the <b>ladder</b> of deep dives from silicon to the cloud on the left, and the <b>system designs</b> that put them to work on the right. Hover or focus a design to light up the layers it's built from — and watch your progress fill in as you go.</p>
+    <div class="hero-meta"><a class="back-link" href="/">← the full stack</a> · <a class="back-link" href="/learn">the guided path →</a></div>
+  </div>
+
+  <section class="mapwrap" aria-label="Site map">
+    <div class="map-progress">
+      <div class="map-bar" role="presentation"><span class="map-bar-fill" id="mapFill"></span></div>
+      <p class="map-count" id="mapCount" aria-live="polite">{total} lessons — every stack and system design on the site</p>
+      <button type="button" id="mapReset" class="map-reset" hidden>reset progress</button>
+    </div>
+
+    <div class="map-grid">
+      <div class="map-col">
+        <h2 class="map-h">The ladder <span class="map-h-sub">silicon → cloud</span></h2>
+        <ol class="ladder">
+          {ladder.map((s) => (
+            <li>
+              <a
+                class:list={['rungcard', TONE[s.accent] ?? '']}
+                href={`/${s.slug}`}
+                data-key={s.slug}
+                data-stack={s.slug}
+              >
+                <span class="rungcard-num" aria-hidden="true">{s.layer === 'app' ? 'app' : s.layer}</span>
+                <span class="rungcard-body">
+                  <span class="rungcard-name">{s.name} {s.kind}<span class="rungcard-check" aria-hidden="true">✓</span></span>
+                  <span class="rungcard-blurb">{s.blurb}</span>
+                </span>
+              </a>
+            </li>
+          ))}
+        </ol>
+      </div>
+
+      <div class="map-col">
+        <h2 class="map-h">Put to work <span class="map-h-sub">small → very big</span></h2>
+        {byTier.map((t) => (
+          <div class="tiergroup">
+            <p class="tier-label">{t.label}</p>
+            <ul class="designlist">
+              {t.items.map((d) => (
+                <li>
+                  <a
+                    class="designcard"
+                    href={`/design/${d.slug}`}
+                    data-key={d.slug}
+                    data-design={d.slug}
+                    data-uses={(d.uses || []).join(' ')}
+                  >
+                    <span class="designcard-name">{d.name}<span class="rungcard-check" aria-hidden="true">✓</span></span>
+                    <span class="designcard-blurb">{d.blurb}</span>
+                    <span class="designcard-uses">
+                      {(d.uses || []).map((u) => {
+                        const s = stacks.find((x) => x.slug === u);
+                        return s ? <span class:list={['usechip', TONE[s.accent] ?? '']} data-stack={u}>{s.name}</span> : null;
+                      })}
+                    </span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <script is:inline>
+    (() => {
+      const KEY = 'stack:progress';
+      const read = () => { try { return new Set(JSON.parse(localStorage.getItem(KEY)) || []); } catch (e) { return new Set(); } };
+      const nodes = [...document.querySelectorAll('[data-key]')];
+      const fill = document.getElementById('mapFill');
+      const count = document.getElementById('mapCount');
+      const reset = document.getElementById('mapReset');
+      const total = nodes.length;
+
+      // --- progress overlay (read-only here; managed via quizzes and /learn) ---
+      function render() {
+        const done = read();
+        let n = 0;
+        nodes.forEach((el) => { const on = done.has(el.dataset.key); el.classList.toggle('is-done', on); if (on) n += 1; });
+        if (fill) fill.style.width = (total ? (n / total) * 100 : 0) + '%';
+        if (count) count.textContent = n === 0
+          ? total + ' lessons — every stack and system design on the site'
+          : (n >= total ? 'all ' + total + ' explored — the whole map is yours' : n + ' of ' + total + ' explored');
+        if (reset) reset.hidden = n === 0;
+      }
+      if (reset) reset.addEventListener('click', () => { try { localStorage.setItem(KEY, '[]'); } catch (e) {} render(); });
+      render();
+      // progress can change in another tab (a quiz on a deep dive); reflect it.
+      window.addEventListener('storage', (e) => { if (e.key === KEY) render(); });
+      window.addEventListener('pageshow', render);
+
+      // --- cross-highlight: a design lights its stacks, a stack lights its designs ---
+      const rungs = [...document.querySelectorAll('[data-stack].rungcard')];
+      const cards = [...document.querySelectorAll('[data-design]')];
+      const chips = [...document.querySelectorAll('.usechip[data-stack]')];
+      const clear = () => { rungs.forEach((r) => r.classList.remove('lit')); cards.forEach((c) => c.classList.remove('lit', 'dim')); chips.forEach((c) => c.classList.remove('lit')); };
+      function lightFromDesign(card) {
+        const uses = (card.dataset.uses || '').split(' ').filter(Boolean);
+        rungs.forEach((r) => r.classList.toggle('lit', uses.includes(r.dataset.stack)));
+        card.querySelectorAll('.usechip').forEach((c) => c.classList.add('lit'));
+      }
+      function lightFromStack(slug) {
+        cards.forEach((c) => {
+          const uses = (c.dataset.uses || '').split(' ').filter(Boolean);
+          const hit = uses.includes(slug);
+          c.classList.toggle('lit', hit);
+          c.classList.toggle('dim', !hit);
+          c.querySelectorAll('.usechip').forEach((chip) => chip.classList.toggle('lit', chip.dataset.stack === slug && hit));
+        });
+      }
+      cards.forEach((card) => {
+        card.addEventListener('mouseenter', () => lightFromDesign(card));
+        card.addEventListener('focus', () => lightFromDesign(card));
+        card.addEventListener('mouseleave', clear);
+        card.addEventListener('blur', clear);
+      });
+      rungs.forEach((r) => {
+        r.addEventListener('mouseenter', () => lightFromStack(r.dataset.stack));
+        r.addEventListener('focus', () => lightFromStack(r.dataset.stack));
+        r.addEventListener('mouseleave', clear);
+        r.addEventListener('blur', clear);
+      });
+    })();
+  </script>
+</Base>
+
+<style>
+  .back-link{color:var(--accent,var(--signal))}
+  .mapwrap{max-width:1080px;margin:0 auto;padding:8px 24px 32px}
+  .map-progress{position:sticky;top:0;z-index:5;background:var(--bg);padding:16px 0 14px;margin-bottom:18px;border-bottom:1px solid var(--border)}
+  .map-bar{height:6px;border-radius:4px;background:var(--fill);overflow:hidden}
+  .map-bar-fill{display:block;height:100%;width:0;background:var(--signal);border-radius:4px;transition:width .35s ease}
+  .map-count{margin:10px 0 0;font-family:var(--mono);font-size:13px;color:var(--dim)}
+  .map-reset{margin-top:8px;font-family:var(--mono);font-size:12px;color:var(--faint);background:none;border:none;cursor:pointer;text-decoration:underline;padding:0}
+
+  .map-grid{display:grid;grid-template-columns:minmax(280px,1fr) minmax(300px,1.1fr);gap:34px;align-items:start}
+  @media(max-width:860px){.map-grid{grid-template-columns:1fr;gap:30px}}
+  .map-col{min-width:0}
+  .map-h{font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink);margin:0 0 14px;display:flex;align-items:baseline;gap:10px}
+  .map-h-sub{font-size:11px;font-weight:500;letter-spacing:.04em;text-transform:none;color:var(--faint)}
+
+  /* tone classes set the per-item accent; no static inline styles */
+  .t-sig{--c:var(--signal)}.t-violet{--c:var(--violet)}.t-amber{--c:var(--amber)}.t-blue{--c:var(--blue)}.t-red{--c:var(--red)}
+
+  .ladder{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+  .rungcard{display:flex;gap:14px;align-items:baseline;padding:12px 15px;text-decoration:none;
+    border:1px solid var(--border);border-left:3px solid var(--c,var(--border));border-radius:11px;background:var(--surface);
+    transition:border-color .16s,box-shadow .16s,transform .16s,opacity .16s}
+  .rungcard:hover,.rungcard:focus-visible,.rungcard.lit{border-color:var(--c,var(--signal));box-shadow:0 0 16px -5px var(--c,var(--signal));transform:translateX(2px)}
+  .rungcard-num{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--c,var(--faint));min-width:30px;text-align:right}
+  .rungcard-body{display:flex;flex-direction:column;gap:3px;min-width:0}
+  .rungcard-name{font-weight:700;font-size:15px;color:var(--ink);text-transform:capitalize}
+  .rungcard-blurb{font-size:12.5px;color:var(--dim);line-height:1.45}
+  .rungcard-check{display:none;margin-left:8px;color:var(--signal);font-size:13px}
+  .is-done .rungcard-check{display:inline}
+  .is-done.rungcard{border-left-color:var(--signal)}
+
+  .tiergroup{margin-bottom:18px}
+  .tier-label{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);margin:0 0 8px}
+  .designlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+  .designcard{display:block;padding:13px 16px;text-decoration:none;border:1px solid var(--border);border-radius:12px;background:var(--surface);
+    transition:border-color .16s,box-shadow .16s,transform .16s,opacity .16s}
+  .designcard:hover,.designcard:focus-visible,.designcard.lit{border-color:var(--signal);box-shadow:0 0 16px -5px var(--signal);transform:translateY(-1px)}
+  .designcard.dim{opacity:.4}
+  .designcard-name{display:block;font-weight:700;font-size:16px;color:var(--ink)}
+  .designcard-check{display:none;margin-left:8px;color:var(--signal);font-size:13px}
+  .is-done .designcard-check{display:inline}
+  .is-done.designcard{border-color:var(--signal)}
+  .designcard-blurb{display:block;font-size:13px;color:var(--dim);line-height:1.45;margin-top:3px}
+  .designcard-uses{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+  .usechip{font-family:var(--mono);font-size:11px;color:var(--dim);border:1px solid var(--border);border-radius:999px;padding:2px 9px;transition:border-color .16s,color .16s,background .16s}
+  .usechip.lit{border-color:var(--c,var(--signal));color:var(--c,var(--ink));background:color-mix(in srgb, var(--c,var(--signal)) 12%, transparent)}
+</style>

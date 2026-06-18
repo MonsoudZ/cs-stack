@@ -1,16 +1,17 @@
 ---
 import Base from '../layouts/Base.astro';
-import { curriculum } from '../data/curriculum.js';
+import { guidedPath } from '../data/curriculum.js';
 const title = 'THE STACK — the guided path';
-const description = 'Climb the whole computing stack in order, bottom to top: a full-stack overview, then every deep dive from silicon to the cloud. Track what you’ve finished.';
+const description = 'Climb the whole computing stack in order, bottom to top: a full-stack overview, every deep dive from silicon to the cloud, then the system designs that put it all to work. Track what you’ve finished.';
+const curriculum = guidedPath;
 const total = curriculum.length;
 ---
 <Base {title} {description} chrome={false} layers={[]}>
   <div slot="hero">
     <div class="kicker">The guided path</div>
     <h1 class="title">LEARN THE <em>STACK</em></h1>
-    <p class="lede">The whole site, in the order it’s meant to be climbed: start with the full stack for the shape of it, then go down each deep dive from silicon to the cloud. Mark a lesson done as you finish it — your progress is saved in this browser.</p>
-    <div class="hero-meta"><a class="back-link" href="/">← back to the full stack</a></div>
+    <p class="lede">The whole site, in the order it’s meant to be climbed: start with the full stack for the shape of it, go down each deep dive from silicon to the cloud, then put it to work on the system designs. Mark a lesson done as you finish it — your progress is saved in this browser.</p>
+    <div class="hero-meta"><a class="back-link" href="/">← back to the full stack</a> · <a class="back-link" href="/map">see the whole map →</a></div>
   </div>
 
   <section class="path" aria-label="Guided learning path">

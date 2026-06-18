@@ -225,8 +225,8 @@ test('Prev/next: deep dives chain through the curriculum order', async ({ page }
 test('Guided path: /learn lists the curriculum, tracks progress, and resumes', async ({ page }) => {
   await page.goto('/learn');
   await expect(page.locator('h1.title')).toContainText('LEARN');
-  // 19 lessons: the full-stack overview + 18 deep dives
-  await expect(page.locator('.path-item')).toHaveCount(19);
+  // 27 lessons: the full-stack overview + 18 deep dives + 8 system designs
+  await expect(page.locator('.path-item')).toHaveCount(27);
   // homepage CTA points here
   await page.goto('/');
   await expect(page.locator('.hero-path')).toHaveAttribute('href', '/learn');
@@ -237,12 +237,12 @@ test('Guided path: /learn lists the curriculum, tracks progress, and resumes', a
     await first.click();
     await expect(first).toHaveAttribute('aria-pressed', 'true', { timeout: 400 });
   }).toPass({ timeout: 8000 });
-  await expect(page.locator('#pathCount')).toContainText('1 of 19 done');
+  await expect(page.locator('#pathCount')).toContainText('1 of 27 done');
   await expect(page.locator('#pathResume')).toContainText('Resume');
   // survives a reload
   await page.reload();
   await expect(page.locator('.path-item').first().locator('.path-done')).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.locator('#pathCount')).toContainText('1 of 19 done');
+  await expect(page.locator('#pathCount')).toContainText('1 of 27 done');
 });
 
 test('Quiz: wrong answer gives feedback, correct answer marks the lesson done on the path', async ({ page }) => {
@@ -279,6 +279,30 @@ test('Social cards: each deep dive advertises its own per-stack OG image', async
   await page.goto('/design/url-shortener');
   await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', /\/og\/url-shortener\.png$/);
   await expect(page.locator('meta[property="og:image:alt"]')).toHaveAttribute('content', /URL shortener — a small system design/);
+});
+
+test('Map: reflects saved progress, cross-highlights a design’s stacks, and resets', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('stack:progress', JSON.stringify(['silicon', 'cpu', 'url-shortener']));
+  });
+  await page.goto('/map');
+  await expect(page.locator('h1.title')).toContainText('ALL AT ONCE');
+  // progress overlay reflects the seeded set
+  await expect(page.locator('#mapCount')).toHaveText(/3 of \d+ explored/);
+  await expect(page.locator('a[data-key="silicon"]')).toHaveClass(/is-done/);
+  await expect(page.locator('a[data-key="logic"]')).not.toHaveClass(/is-done/);
+  // hovering a design lights up exactly the stacks it builds on
+  await page.locator('a[data-design="key-value-store"]').hover();
+  await expect(page.locator('a[data-stack="database"]')).toHaveClass(/lit/);
+  await expect(page.locator('a[data-stack="raft"]')).toHaveClass(/lit/);
+  await expect(page.locator('a[data-stack="cpu"]')).not.toHaveClass(/lit/);
+  // reset clears progress
+  await page.locator('#mapReset').click();
+  await expect(page.locator('#mapCount')).toHaveText(/26 lessons/);
+  await expect(page.locator('a[data-key="silicon"]')).not.toHaveClass(/is-done/);
+  // a ladder rung links to its stack
+  await page.locator('a[data-stack="database"]').click();
+  await expect(page).toHaveURL(/\/database\/?$/);
 });
 
 test('Cross-links: the stack <-> system-design relationship is navigable both ways', async ({ page }) => {
