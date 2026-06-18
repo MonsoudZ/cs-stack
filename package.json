@@ -14,7 +14,7 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "gen:og": "node scripts/gen-og.mjs",
-    "audit": "ASTRO_TELEMETRY_DISABLED=1 npm run build && node scripts/audit.mjs && node scripts/a11y.mjs"
+    "audit": "ASTRO_TELEMETRY_DISABLED=1 npm run build && node scripts/audit.mjs && node scripts/a11y.mjs && node scripts/links.mjs"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.3",
