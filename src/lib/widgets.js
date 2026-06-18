@@ -7,3 +7,4 @@ export * from './widgets/memory-os-structures-numbers.js';
 export * from './widgets/silicon-logic-cpu-concurrency-cloud.js';
 export * from './widgets/consensus-languages-devops.js';
 export * from './widgets/ai.js';
+export * from './widgets/design.js';

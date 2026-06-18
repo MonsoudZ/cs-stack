@@ -36,7 +36,14 @@ place its facts live:
 | `<x>Layers.js` | one per deep dive (`cpuLayers`, `memLayers`, …) | that page's nav + sections |
 | `stacks.js` | the 18 deep dives: `slug, name, kind, layer, accent, blurb` | `StackNav` footer, `GoDeeper`, `SeeAlso`, per-stack OG cards, `curriculum` |
 | `curriculum.js` | the guided-path order (overview + 18), derived from `stacks.js`; `key` = localStorage progress id | `/learn`, `PrevNext` |
-| `quizzes.js` | one question per stack, keyed by slug | `Quiz.svelte` |
+| `quizzes.js` | tiered questions (easy→medium→hard) per stack **and** per design, keyed by slug | `Quiz.svelte` |
+| `designs.js` | the System Design case studies (`slug, name, tier, ready, blurb`) + each design's section list | `/design` index + the design pages |
+
+A second content type, **System Design** (`/design`), reuses the same engine: a
+case-study page is just `<Base layers={sections}>` where the "layers" are the
+design's steps (requirements → estimate → architecture → … → tradeoffs), so the
+spine nav, scroll-spy, advanced sections, and quiz all work unchanged. The
+stacks teach the building blocks; the designs compose them.
 
 So adding a stack to `stacks.js` automatically gives it a footer card, an OG
 card, a `GoDeeper` helper, a slot in the guided path, and a `PrevNext` link.

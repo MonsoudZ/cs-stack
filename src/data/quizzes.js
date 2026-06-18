@@ -453,4 +453,36 @@ export const quizzes = {
       ],
     },
   ],
+  'url-shortener': [
+    {
+      level: 'easy',
+      question: 'A URL shortener gets ~100× more reads than writes. What’s the single most important consequence for the design?',
+      options: [
+        { label: 'Cache the hot keys so most redirects never touch the database', correct: true, why: 'Reads dominate and follow a skewed (Zipf) pattern, so a cache of the hottest links absorbs the firehose and lets a modest database serve only misses.' },
+        { label: 'Make writes as fast as possible — they’re the bottleneck', why: 'Writes are the rare path (~1% of traffic); optimizing them barely moves the needle. The read path is what must be cheap.' },
+        { label: 'Use the strongest consistency level everywhere', why: 'Strong global consistency fights availability and latency on the redirect — the opposite of what a read-heavy, availability-sensitive system wants.' },
+        { label: 'Store everything in one big SQL table with complex joins', why: 'Lookups are by a single key (no joins); the access pattern is a point lookup, which a key-value store or simple index serves far better at this read rate.' },
+      ],
+    },
+    {
+      level: 'medium',
+      question: 'Why generate the short key from a unique counter encoded in base-62 rather than hashing the long URL?',
+      options: [
+        { label: 'A counter is collision-free and yields a predictable short length; hashing risks two URLs colliding, forcing a check-and-retry', correct: true, why: 'Unique counters can’t collide by construction, so there’s no read-before-write; truncated hashes can collide, which means handling and retrying collisions and possibly collapsing distinct URLs.' },
+        { label: 'Hashing is cryptographically insecure and would leak the URL', why: 'A hash doesn’t leak the input; the real problems with hashing here are collisions and non-deterministic length, not secrecy.' },
+        { label: 'A counter makes keys impossible to guess', why: 'It’s the opposite — sequential counters are guessable/enumerable; if that matters you interleave or encrypt the counter before encoding.' },
+        { label: 'Base-62 keys are shorter than any hash could ever be', why: 'You can truncate a hash to any length; the decisive advantage of the counter is uniqueness (no collisions), not raw length.' },
+      ],
+    },
+    {
+      level: 'hard',
+      question: 'Returning a 301 (permanent) redirect instead of a 302 (temporary) trades away what — and gains what?',
+      options: [
+        { label: 'A 301 is cached by browsers/CDNs so it offloads your servers, but you lose per-click analytics and can’t change the target later', correct: true, why: 'Permanent redirects get cached downstream, so repeat clicks may never reach you (great for load) — but that’s exactly why you can’t count them or repoint the link afterward.' },
+        { label: 'A 301 is faster to parse than a 302, but uses more bandwidth', why: 'The status code isn’t a parsing/bandwidth difference; the real tradeoff is downstream caching (load) vs. analytics and editability.' },
+        { label: 'A 301 encrypts the destination; a 302 sends it in plaintext', why: 'Neither status code encrypts anything — TLS handles that. The difference is caching semantics, not secrecy.' },
+        { label: 'A 301 keeps every click hitting your servers, enabling analytics', why: 'Reversed — that’s the 302 behavior. A 301 is cached, so repeat clicks bypass you and analytics are lost.' },
+      ],
+    },
+  ],
 };

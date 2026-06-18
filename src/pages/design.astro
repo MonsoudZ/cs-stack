@@ -1,0 +1,55 @@
+---
+import Base from '../layouts/Base.astro';
+import { designs, TIERS } from '../data/designs.js';
+const title = 'THE STACK — system design';
+const description = 'System-design case studies: full, diagrammed walkthroughs of real systems from small to very big — requirements, scale estimates, an interactive architecture you can step a request through, the data model, scaling, and tradeoffs. Built from the stacks.';
+---
+<Base {title} {description} chrome={false}>
+  <div slot="hero">
+    <div class="kicker">Compose the stacks</div>
+    <h1 class="title">SYSTEM <em>DESIGN</em></h1>
+    <p class="lede">The stacks teach the building blocks; these put them together. Each case study is a full, diagrammed walkthrough of a real system — requirements, a back-of-the-envelope estimate, an interactive architecture you can step a request through, the data model, how it scales, and the tradeoffs — climbing from small to very big.</p>
+    <div class="hero-meta"><a class="back-link" href="/">← back to the full stack</a></div>
+  </div>
+
+  {TIERS.map((t) => (
+    <section class="dt-tier">
+      <h2 class="dt-head">{t.label}</h2>
+      <ul class="dt-list" role="list">
+        {designs.filter((d) => d.tier === t.id).map((d) => (
+          d.ready ? (
+            <li>
+              <a class="dt-card" href={`/design/${d.slug}`}>
+                <span class="dt-name">{d.name}</span>
+                <span class="dt-blurb">{d.blurb}</span>
+                <span class="dt-go">open →</span>
+              </a>
+            </li>
+          ) : (
+            <li>
+              <div class="dt-card soon">
+                <span class="dt-name">{d.name}</span>
+                <span class="dt-blurb">{d.blurb}</span>
+                <span class="dt-go">soon</span>
+              </div>
+            </li>
+          )
+        ))}
+      </ul>
+    </section>
+  ))}
+</Base>
+
+<style>
+  .back-link{color:var(--accent,var(--signal))}
+  .dt-tier{max-width:860px;margin:0 auto 36px}
+  .dt-head{font-family:var(--mono);font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin:0 0 14px;border-bottom:1px solid var(--border);padding-bottom:8px}
+  .dt-list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+  .dt-card{display:flex;flex-direction:column;gap:6px;height:100%;border:1px solid var(--border);border-radius:14px;padding:18px;background:var(--surface);text-decoration:none;transition:.16s}
+  a.dt-card:hover{border-color:var(--signal);box-shadow:0 0 16px var(--signal-d);transform:translateY(-2px)}
+  .dt-name{font-size:18px;font-weight:700;color:var(--ink)}
+  .dt-blurb{font-size:14px;color:var(--dim);line-height:1.5;flex:1}
+  .dt-go{font-family:var(--mono);font-size:12px;color:var(--signal);margin-top:4px}
+  .dt-card.soon{opacity:.55}
+  .dt-card.soon .dt-go{color:var(--faint)}
+</style>

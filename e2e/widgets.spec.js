@@ -375,6 +375,29 @@ test('DevOps page: own nav, a CI gate fails and blocks the commit, a canary depl
   await expect(dp.locator('.dp-flag.bad')).toBeVisible();
 });
 
+test('System design: the index links to the URL-shortener case study, which traces a request to a cache hit', async ({ page }) => {
+  // index lists the case study and links to it
+  await page.goto('/design');
+  await expect(page.locator('h1.title')).toContainText('DESIGN');
+  const card = page.getByRole('link', { name: /URL shortener/i });
+  await expect(card).toBeVisible();
+  await card.click();
+  await expect(page).toHaveURL(/\/design\/url-shortener\/?$/);
+  await expect(page.locator('h1.title')).toContainText('URL');
+  await expect(page.locator('.spine .rung')).toHaveCount(6);
+  // the request-flow widget (section US2): stepping reaches a cache HIT
+  const rf = page.locator('#US2');
+  await rf.scrollIntoViewIfNeeded();
+  for (let i = 0; i < 16; i++) {
+    await rf.locator('.cpu-ctrl button').first().click();
+    if (await rf.locator('.rf-badge.b-hit').count()) break;
+    await page.waitForTimeout(40);
+  }
+  await expect(rf.locator('.rf-badge.b-hit')).toBeVisible();
+  // the case study carries a tiered quiz
+  await expect(page.locator('.quiz .quiz-level')).toHaveCount(3);
+});
+
 test('Concurrency page: own nav, two locks deadlock, compare-and-swap stays correct', async ({ page }) => {
   await page.goto('/concurrency');
   await expect(page.locator('h1.title')).toContainText('CONCURRENCY');

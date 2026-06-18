@@ -1,0 +1,124 @@
+---
+import Base from '../../layouts/Base.astro';
+import LayerSection from '../../components/LayerSection.astro';
+import { urlShortenerSections } from '../../data/designs.js';
+import UrlShortener from '../../components/UrlShortener.svelte';
+import Why from '../../components/Why.astro';
+import Takeaway from '../../components/Takeaway.astro';
+import Advanced from '../../components/Advanced.astro';
+import Quiz from '../../components/Quiz.svelte';
+import SeeAlso from '../../components/SeeAlso.astro';
+const L = Object.fromEntries(urlShortenerSections.map((l) => [l.id, l]));
+const title = 'System design — URL shortener';
+const description = 'A full walkthrough of designing a URL shortener: requirements, a back-of-the-envelope scale estimate, the architecture (traced request by request), short-key generation and the data model, scaling and bottlenecks, and the key tradeoffs — the canonical small system-design problem, built from the stacks.';
+---
+<Base {title} {description} layers={urlShortenerSections}>
+  <div slot="hero">
+    <div class="kicker">A system design · small</div>
+    <h1 class="title">THE <em>URL</em><br />SHORTENER</h1>
+    <p class="lede">The "hello world" of system design — shorten a long link, redirect it fast. It looks trivial, but it's the cleanest way to meet the moves every larger system reuses: estimate the load, separate reads from writes, cache the hot path, and pick your tradeoffs on purpose. We'll build it from the stacks you already know.</p>
+    <div class="hero-meta"><a class="back-link" href="/design">← all system designs</a> · requirements → scale → architecture → keys → scaling → tradeoffs</div>
+  </div>
+
+  <LayerSection {...L.US0}>
+    <p class="prose">Before any boxes, pin the scope. <b>Functional</b>: take a long URL and return a short one; redirect a short URL to its original; optionally support custom aliases and expiry. <b>Non-functional</b> — and this is where the design lives: redirects must be <span class="hl">fast</span> and <span class="hl">highly available</span> (a dead redirect breaks every link ever shared), and the traffic is <b>overwhelmingly reads</b> — people click links far more than they create them.</p>
+    <Takeaway>The requirements already shape the design: it's read-heavy, latency-sensitive on the redirect, and availability matters more than perfect consistency — every later decision leans on those three facts.</Takeaway>
+    <Advanced>
+      <p>Naming the <b>non-functional</b> requirements is what separates a real design from a CRUD app. "Highly available redirects" pushes you toward an AP stance (serve, even slightly stale) over CP; "low latency" pushes the redirect onto a cache or the edge; "read-heavy" justifies spending almost nothing on the write path and a lot on the read path. Each adjective is a lever on the architecture.</p>
+    </Advanced>
+    <Why
+      problem="A vague brief (“build a URL shortener”) hides the decisions that actually matter and leads to over- or under-building."
+      idea="Separate functional requirements (what it does) from non-functional ones (how fast, how available, at what scale), because the non-functional ones drive the architecture."
+      tradeoff="Pinning scope early means saying no to features (analytics, auth, custom domains) for now — but a design that tries to do everything answers nothing."
+      next="With the shape named, put numbers on it."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.US1}>
+    <p class="prose">A quick estimate turns adjectives into a design. Say <b>100M new links/day</b> → ~1,200 writes/sec. With a <span class="hl">100:1</span> read-to-write ratio that's ~<b>120,000 reads/sec</b>. Over 5 years that's ~180B links; at ~500 bytes each, ~<b>90 TB</b> of storage. The shape is unmistakable: a modest write load, a firehose of reads, and a dataset too big for one machine.</p>
+    <Takeaway>Back-of-the-envelope math (writes/sec, reads/sec, total storage) tells you the system is read-dominated and the data won't fit on one box — which is exactly what justifies a cache and, eventually, sharding.</Takeaway>
+    <Advanced>
+      <p>The point of the estimate isn't precision — it's <b>orders of magnitude</b>. 120K reads/sec says "a single database can't serve this from disk, so cache the hot keys"; 90 TB says "one node won't hold it, so shard." Getting the exponent right (is it thousands or millions of QPS?) decides the architecture; the leading digit rarely does.</p>
+      <p>Reads also follow a <b>Zipf</b> distribution — a small set of links (a viral tweet, a campaign) get the vast majority of clicks. That's what makes caching so effective here: a cache of the hottest fraction of keys absorbs most of the 120K reads/sec.</p>
+    </Advanced>
+    <Why
+      problem="Without numbers, you can't tell whether a single database suffices or whether you need caching, replicas, and sharding."
+      idea="Estimate writes/sec, reads/sec, and total storage from a few assumptions, then read the architecture off the magnitudes."
+      tradeoff="The numbers are guesses, so treat them as ranges — but even a rough estimate rules out whole classes of design."
+      next="Now lay out the components and watch a request move through them."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.US2}>
+    <p class="prose">The architecture falls out of the estimate: a <b>load balancer</b> spreads requests across <b>stateless app servers</b>; a <b>cache</b> holds the hot keys so most reads never touch storage; and a <b>database</b> is the durable source of truth. Step a write and then two reads through it — the second read shows why the cache is the whole game.</p>
+    <UrlShortener client:visible />
+    <Takeaway>One write path (mint a key, store it) and a heavily-cached read path (cache → DB only on a miss) — the same load-balancer / stateless-app / cache / database shape underlies most read-heavy web systems.</Takeaway>
+    <SeeAlso slug="cloud" note="the load balancer, stateless servers, replicas, and CAP tradeoff this is built on" />
+    <Advanced>
+      <p>Keeping the app servers <b>stateless</b> is what lets the load balancer send any request to any server and lets you scale by just adding boxes — the session/state lives in the cache and DB, not in a server's memory. It's the same trick the cloud stack leans on, applied here.</p>
+      <p>The cache is usually <b>cache-aside</b> (read-through): the app checks the cache, and on a miss reads the DB and populates it. The alternative, write-through (write to cache and DB together), wastes memory on links that may never be read again — and in a read-heavy system most writes aren't worth caching eagerly.</p>
+    </Advanced>
+    <Why
+      problem="120K reads/sec can't all hit a disk-backed database, and a single server can neither hold the data nor survive a failure."
+      idea="Put a load balancer in front of stateless app servers, a cache in front of the database for the hot keys, and treat the database as the durable source of truth."
+      tradeoff="Each layer adds a hop and a place for staleness (a cached entry can lag the DB), and the cache only helps because the workload is skewed — a uniform read pattern would blow through it."
+      next="Two details decide whether this scales: how you make the key, and how you store it."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.US3}>
+    <p class="prose">The short <b>key</b> is the crux. Encode a unique, monotonic <span class="hl">counter</span> in <b>base-62</b> (<code>a–z A–Z 0–9</code>): ~7 characters cover 62⁷ ≈ 3.5 trillion links, and because the counter is unique, keys <b>never collide</b> and are a predictable length. The store itself is simple — a <b>key-value</b> mapping <code>key → &#123;long URL, created, expiry&#125;</code>, looked up by an exact key, which is a point query a hash or B-tree index answers in one hop.</p>
+    <Takeaway>A counter encoded in base-62 gives short, collision-free keys for free; the data is a key-value point lookup, so the database job is "find one row by key, fast" — not complex queries.</Takeaway>
+    <SeeAlso slug="database" note="the B-tree / index that turns “find this key” into a couple of hops, not a scan" />
+    <Advanced>
+      <p>Why not <b>hash</b> the long URL (e.g. take the first chars of an MD5)? Hashing risks <b>collisions</b> — two URLs mapping to the same key — which forces a read-before-write check and a retry loop, and identical URLs collapse to one key (sometimes unwanted). A counter sidesteps all of it. The cost: a counter is <i>guessable</i> (sequential), so if enumeration is a concern you interleave or encrypt the counter before encoding.</p>
+      <p>A single global counter would be a write bottleneck and a single point of failure, so real systems hand each app server a <b>range</b> of IDs to mint locally (or use a Snowflake-style ID = timestamp + machine + sequence). The structures and database stacks are what this rests on — a fast point lookup and a scalable ID source.</p>
+    </Advanced>
+    <Why
+      problem="The key has to be short, unique, hard-ish to abuse, and cheap to generate at thousands per second — and the lookup has to be fast at 120K/sec."
+      idea="Mint keys from a unique counter encoded in base-62 (short, collision-free) and store a plain key→URL mapping indexed for O(1)-ish point lookups."
+      tradeoff="Counters are guessable and a single counter is a bottleneck (mitigated by ID ranges); hashing avoids sequence leakage but reintroduces collisions to handle."
+      next="With keys and storage settled, where does it strain as traffic grows?"
+    />
+  </LayerSection>
+
+  <LayerSection {...L.US4}>
+    <p class="prose">Growth pushes on a few seams. The <b>cache</b> is the first and biggest win — caching the hot keys means the database serves only misses, so a modest DB handles a huge read rate. Beyond that: <b>read replicas</b> (or a horizontally <b>sharded</b> key-value store, partitioned by key) spread the storage and the misses; a <span class="hl">CDN</span> can even cache the redirect itself at the edge; and the write path gets <b>rate limiting</b> to fend off abuse.</p>
+    <Takeaway>Scale it in order of leverage: cache the hot keys first (it absorbs most reads), then shard/replicate the store, push redirects to the edge, and rate-limit writes — each step targets the bottleneck the previous one exposes.</Takeaway>
+    <SeeAlso slug="devops" note="rolling these changes out safely — canary a new cache or shard scheme, watch error rates, roll back" />
+    <Advanced>
+      <p>Because the workload is so skewed, the cache hit rate is the single most important number — and the failure mode to design for is a <b>cache stampede</b>: a hot key expires and thousands of concurrent misses hammer the DB at once. The fixes are request <b>coalescing</b> (one miss fetches, the rest wait) and jittered TTLs so keys don't all expire together.</p>
+      <p>Sharding a key-value store by key (consistent hashing) keeps each shard's load even and makes adding capacity cheap, but it gives up cross-key queries — fine here, since every lookup is by a single key. This is the cloud stack's quorum/replication machinery applied to a concretely simple access pattern.</p>
+    </Advanced>
+    <Why
+      problem="A single cache and database can't grow forever, and the read firehose plus abusive write traffic will eventually overwhelm any one node."
+      idea="Layer defenses by leverage: cache hot keys, replicate/shard the store, serve redirects from a CDN, and rate-limit the write path."
+      tradeoff="Each layer adds operational complexity and new failure modes (stampedes, hot shards, stale edge caches) — you add them when the metrics say to, not before."
+      next="Finally, the decisions with no single right answer."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.US5}>
+    <p class="prose">Good designs are explicit about their tradeoffs. The sharpest here is the redirect status: a <b>301 (permanent)</b> is cached by browsers and CDNs, so it offloads your servers — but you lose per-click analytics and can't ever change the target. A <b>302 (temporary)</b> sends every click back to you, enabling analytics and editable targets, at the cost of far more load. There's no universally right answer — it's a stance on analytics vs. load.</p>
+    <Takeaway>System design is choosing tradeoffs on purpose: 301 vs 302 (load vs analytics), strong vs eventual consistency on new links (correctness vs availability), key length vs space vs guessability — name them, pick deliberately, and you've designed the system.</Takeaway>
+    <SeeAlso slug="network" note="what a 301 vs 302 actually is on the wire — HTTP status codes and caching" />
+    <Advanced>
+      <p>The <b>consistency</b> call is subtle: must a brand-new short link be resolvable everywhere the instant it's created? For the creator, yes (read-your-writes); globally, a second of lag is usually fine — so you can run the redirect path as eventually-consistent and highly available (an AP lean under CAP) while giving the writer a consistent view. Matching the consistency model to each path, rather than picking one globally, is the senior move.</p>
+    </Advanced>
+    <Why
+      problem="The remaining decisions (status code, consistency, key length) have real costs on both sides, and pretending there's one right answer hides the engineering."
+      idea="Make each tradeoff explicit and choose based on the requirements — analytics needs vs. server load, instant global consistency vs. availability."
+      tradeoff="Every choice you make closes a door (301 forecloses analytics; AP forecloses instant global consistency) — which is why you tie each one back to a stated requirement."
+      next="Zoom out: this same six-step shape — requirements, estimate, architecture, data, scale, tradeoffs — scales up to every bigger system."
+    />
+  </LayerSection>
+
+  <Quiz slug="url-shortener" client:visible />
+  <p class="prose design-back"><a href="/design">← back to all system designs</a></p>
+</Base>
+
+<style>
+  .back-link{color:var(--accent,var(--signal))}
+  .design-back{max-width:680px;margin:40px auto 0;text-align:center}
+  .design-back a{color:var(--accent,var(--signal))}
+</style>

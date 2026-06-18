@@ -84,6 +84,8 @@ src/
     silicon.astro         a /silicon deep-dive (crystal → doping → PN junction → MOSFET → CMOS inverter)
     ai.astro              an /ai deep-dive — the app on top (neuron → learning → tokens → embeddings → attention → LLM → training → RAG)
     logic.astro           a /logic deep-dive (boolean → gates → NAND → multiplexer → the adder → ALU)
+    design.astro          the System Design index (case studies, small → very big)
+    design/url-shortener.astro   a system-design case study — same Base engine, sections-as-layers + a request-flow widget
     robots.txt.js         robots.txt generated from `site`
 scripts/
   audit.mjs               regex source/HTML quality gate (used by `npm run audit`)

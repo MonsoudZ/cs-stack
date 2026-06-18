@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { quizzes } from '../data/quizzes.js';
 import { stacks } from '../data/stacks.js';
-import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, RSA, buildSignature, buildMerkle, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum, DOPING, buildDiode, cmosInverter, nand, buildUniversal, mux2, ALU_OPS, computeAlu, PIPE_STAGES, buildPipeline, buildDeadlock, buildCas, buildLoadBalancer, buildReplication, buildRaftElection, buildRaftLog, LANGS, buildLangRun, buildLangMemory, CI_STAGES, buildCiPipeline, buildDeploy, buildLinkedList, buildStackQueue, GRAPH, buildGraphTraversal, buildStackHeap, buildAllocator, buildGc, ISOLATION_LEVELS, buildIsolation, buildTypeCheck, buildEventLoop, buildCrp, FS, buildPathResolve, buildJournal, buildSockets, buildHttp, buildTcp, buildJoin,
+import { designs } from '../data/designs.js';
+import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, RSA, buildSignature, buildMerkle, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum, DOPING, buildDiode, cmosInverter, nand, buildUniversal, mux2, ALU_OPS, computeAlu, PIPE_STAGES, buildPipeline, buildDeadlock, buildCas, buildLoadBalancer, buildReplication, buildRaftElection, buildRaftLog, LANGS, buildLangRun, buildLangMemory, CI_STAGES, buildCiPipeline, buildDeploy, URL_NODES, buildUrlShortener, buildLinkedList, buildStackQueue, GRAPH, buildGraphTraversal, buildStackHeap, buildAllocator, buildGc, ISOLATION_LEVELS, buildIsolation, buildTypeCheck, buildEventLoop, buildCrp, FS, buildPathResolve, buildJournal, buildSockets, buildHttp, buildTcp, buildJoin,
   computeNeuron, buildGradientDescent, EMBEDDINGS, nearestWords, cosineSim, buildAttention, softmaxTemp, nextTokenDist,
   tokenize, TOK_VOCAB, buildTraining, buildRag, RAG_DOCS, buildOptimize, buildAst, buildRuntimes, buildRegisters, REG_COUNT, buildScopes } from './widgets.js';
 
@@ -899,6 +900,27 @@ describe('buildDeploy (canary rollout + rollback)', () => {
   });
 });
 
+describe('buildUrlShortener (system design: request flow)', () => {
+  const steps = buildUrlShortener();
+  it('writes the mapping to the DB, then a read returns a 301 redirect', () => {
+    const afterWrite = steps.find((s) => s.phase === 'write' && s.dbKeys === 1);
+    expect(afterWrite).toBeTruthy();
+    expect(steps.some((s) => s.response && /^301/.test(s.response))).toBe(true);
+  });
+  it('first read misses the cache then populates it; a later read hits', () => {
+    const states = steps.map((s) => s.cacheState).filter(Boolean);
+    expect(states).toEqual(['miss', 'fill', 'hit']); // the read-heavy caching story
+    // the cache hit happens without touching the DB after it is warm
+    const hit = steps.find((s) => s.cacheState === 'hit');
+    expect(hit.active).toBe('cache');
+  });
+  it('only ever activates known components, and is deterministic', () => {
+    const ids = new Set(URL_NODES.map((n) => n.id));
+    for (const s of steps) expect(ids.has(s.active)).toBe(true);
+    expect(buildUrlShortener()).toEqual(buildUrlShortener());
+  });
+});
+
 describe('buildLinkedList (pointer insert)', () => {
   const steps = buildLinkedList();
   it('inserts 15 between 10 and 20 by repointing — final order 10,15,20,30', () => {
@@ -1061,11 +1083,11 @@ describe('mux2 (2-to-1 multiplexer)', () => {
 
 describe('quizzes (check-your-understanding integrity)', () => {
   const slugs = Object.keys(quizzes);
-  it('every deep-dive stack has a quiz, keyed by its slug', () => {
+  it('every deep-dive stack has a quiz, and every quiz keys to a stack or a design', () => {
     for (const s of stacks) expect(quizzes[s.slug], `missing quiz for ${s.slug}`).toBeTruthy();
-    // and no quiz points at a non-existent stack
-    const stackSlugs = new Set(stacks.map((s) => s.slug));
-    for (const slug of slugs) expect(stackSlugs.has(slug), `quiz ${slug} has no stack`).toBe(true);
+    // a quiz slug must name either a deep-dive stack or a system-design case study
+    const known = new Set([...stacks.map((s) => s.slug), ...designs.map((d) => d.slug)]);
+    for (const slug of slugs) expect(known.has(slug), `quiz ${slug} has no stack or design`).toBe(true);
   });
   it('every quiz question has text and exactly one correct option, with feedback on every option', () => {
     for (const slug of slugs) {
