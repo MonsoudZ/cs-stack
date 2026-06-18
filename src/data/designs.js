@@ -8,12 +8,12 @@ export const TIERS = [
 ];
 export const designs = [
   { slug: 'url-shortener', name: 'URL shortener', tier: 'small', ready: true, blurb: 'shorten a link, redirect fast — the canonical small system design' },
-  // roadmap — built with the same template as the pilot
-  { slug: 'rate-limiter', name: 'Rate limiter', tier: 'small', ready: false, blurb: 'cap requests per client without a central bottleneck' },
-  { slug: 'news-feed', name: 'News feed', tier: 'medium', ready: false, blurb: 'fan-out on write vs read, and ranking the timeline' },
-  { slug: 'chat', name: 'Chat / messaging', tier: 'medium', ready: false, blurb: 'real-time delivery, presence, and message ordering' },
-  { slug: 'twitter', name: 'Twitter timeline', tier: 'big', ready: false, blurb: 'the celebrity fan-out problem, at hundreds of millions of users' },
-  { slug: 'video', name: 'Video streaming', tier: 'big', ready: false, blurb: 'CDNs, adaptive bitrate, and moving petabytes' },
+  // all on the same template (sections-as-layers + a RequestFlow widget)
+  { slug: 'rate-limiter', name: 'Rate limiter', tier: 'small', ready: true, blurb: 'cap requests per client without a central bottleneck' },
+  { slug: 'news-feed', name: 'News feed', tier: 'medium', ready: true, blurb: 'fan-out on write vs read, and ranking the timeline' },
+  { slug: 'chat', name: 'Chat / messaging', tier: 'medium', ready: true, blurb: 'real-time delivery, presence, and message ordering' },
+  { slug: 'twitter', name: 'Twitter timeline', tier: 'big', ready: true, blurb: 'the celebrity fan-out problem, at hundreds of millions of users' },
+  { slug: 'video', name: 'Video streaming', tier: 'big', ready: true, blurb: 'CDNs, adaptive bitrate, and moving petabytes' },
 ];
 
 // Sections for /design/url-shortener — same shape as a stack's layers, so the

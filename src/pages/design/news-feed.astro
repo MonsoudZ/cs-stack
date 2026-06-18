@@ -1,0 +1,155 @@
+---
+import Base from '../../layouts/Base.astro';
+import LayerSection from '../../components/LayerSection.astro';
+import RequestFlow from '../../components/RequestFlow.svelte';
+import Why from '../../components/Why.astro';
+import Takeaway from '../../components/Takeaway.astro';
+import Advanced from '../../components/Advanced.astro';
+import Quiz from '../../components/Quiz.svelte';
+import SeeAlso from '../../components/SeeAlso.astro';
+
+const sections = [
+  { id: 'NF0', num: '00', navLabel: 'Requirements', zone: 'meaning', title: 'Requirements: what is a feed, really?', sub: 'functional + non-functional · read-heavy by nature' },
+  { id: 'NF1', num: '01', navLabel: 'Scale', zone: 'number', title: 'Scale estimate: reads, writes, and fan-out', sub: 'who-follows-whom turns one write into many' },
+  { id: 'NF2', num: '02', navLabel: 'Fan-out on write', zone: 'system', title: 'Fan-out on write: precompute every feed', sub: 'push a post into each follower’s ready-made feed' },
+  { id: 'NF3', num: '03', navLabel: 'Fan-out on read', zone: 'system', title: 'Fan-out on read: build the feed on demand', sub: 'pull from everyone you follow at read time' },
+  { id: 'NF4', num: '04', navLabel: 'Hybrid + ranking', zone: 'system', title: 'The hybrid, and ranking the timeline', sub: 'push for most, pull for celebrities · recency vs engagement' },
+  { id: 'NF5', num: '05', navLabel: 'Tradeoffs', zone: 'all', title: 'Tradeoffs & the whole picture', sub: 'write cost vs read cost · freshness · the celebrity seam' },
+];
+const L = Object.fromEntries(sections.map((l) => [l.id, l]));
+
+const title = 'System design — news feed';
+const description = 'A full walkthrough of designing a social news feed: requirements, a back-of-the-envelope scale estimate dominated by fan-out, the two core strategies (fan-out on write vs fan-out on read) traced step by step, the hybrid that real systems use, ranking the timeline, and the key tradeoffs — the canonical medium system-design problem, built from the stacks.';
+
+const flow = {
+  nodes: [
+    { id: 'author', label: 'Author' },
+    { id: 'fanout', label: 'Fan-out service' },
+    { id: 'feeds', label: 'Follower feeds' },
+    { id: 'reader', label: 'Reader' },
+  ],
+  steps: [
+    { active: 'author', phase: 'WRITE', note: 'An author publishes a new post. The write itself is tiny — one row in a posts table — but it’s about to multiply.' },
+    { active: 'author', phase: 'WRITE', meta: { author: 'post #9182' }, note: 'The post is durably stored once. Now the system has to decide who should see it and where to put it.' },
+    { active: 'fanout', phase: 'WRITE', meta: { author: 'post #9182' }, note: 'The fan-out service looks up the author’s followers — say 400 of them — to decide where this post id needs to land.' },
+    { active: 'fanout', phase: 'WRITE', meta: { author: 'post #9182', fanout: '400 followers' }, note: 'For each follower, it appends the post id to that follower’s precomputed feed — a per-user cached list of ids.' },
+    { active: 'feeds', phase: 'WRITE', meta: { fanout: '400 writes', feeds: '400 feeds updated' }, note: 'Each follower’s feed (a Redis list of post ids) now already contains #9182. The work happened at write time, once per follower.' },
+    { active: 'reader', phase: 'READ', meta: { feeds: 'feed ready' }, note: 'Later, a reader opens the app. Their feed is already built — no computation, no joins, just fetch the list.' },
+    { active: 'reader', phase: 'READ', meta: { feeds: 'feed ready' }, response: 'post ids 1..N (instant)', note: 'The app reads the ready-made list of post ids straight from the cache. This is why reads are blazing fast: all the work was paid for at write time.' },
+    { active: 'reader', phase: 'READ', response: 'hydrated posts', note: 'The ids are hydrated — the actual post bodies, authors, and media are fetched separately and merged in. The feed itself only ever stored ids.' },
+    { active: 'author', phase: 'WRITE', meta: { author: 'celebrity post' }, note: 'Now a celebrity publishes. Same single write — but this account has 50 million followers.' },
+    { active: 'fanout', phase: 'WRITE', warn: 'fanout', meta: { author: 'celebrity post', fanout: '50M followers' }, note: 'Fan-out on write means 50 million feed appends for one post — a write storm that floods the system and delays the feed for everyone.' },
+    { active: 'feeds', phase: 'WRITE', warn: 'feeds', meta: { fanout: '50M writes!', feeds: 'overwhelmed' }, note: 'This is the celebrity problem: O(followers) writes per post doesn’t scale for huge accounts. Pushing to every feed is the wrong move here.' },
+    { active: 'reader', phase: 'READ', meta: { feeds: 'merge at read' }, response: 'pushed feed + pulled celebrity posts', note: 'The fix: skip the push for celebrities. At read time, pull their recent posts on demand and merge them into the reader’s mostly-precomputed feed — the hybrid.' },
+  ],
+};
+---
+<Base {title} {description} layers={sections}>
+  <div slot="hero">
+    <div class="kicker">A system design · medium</div>
+    <h1 class="title">THE <em>NEWS</em><br />FEED</h1>
+    <p class="lede">Open the app and a fresh, ranked list of posts is just <i>there</i> — instantly, for hundreds of millions of people at once. That instant feel is the whole design problem: a feed read can’t afford to query everyone you follow on the spot, so the hard question is <b>when</b> you do the work — at write time, at read time, or both. We’ll build it from the stacks you already know.</p>
+    <div class="hero-meta"><a class="back-link" href="/design">← all system designs</a> · requirements → scale → fan-out on write → fan-out on read → hybrid + ranking → tradeoffs</div>
+  </div>
+
+  <LayerSection {...L.NF0}>
+    <p class="prose">Pin the scope first. <b>Functional</b>: a user follows other users; when someone they follow posts, it appears in their feed; the feed shows recent, relevant posts newest-or-best first. <b>Non-functional</b> — and this is where the design lives: opening the feed must be <span class="hl">fast</span> (sub-second) and <span class="hl">highly available</span>, and the workload is <b>overwhelmingly reads</b> — people scroll feeds far more than they post.</p>
+    <Takeaway>The feed is read-heavy and latency-sensitive on the read path, and a single post can be relevant to many followers — so the design hinges on where you pay the cost of assembling each user’s feed.</Takeaway>
+    <Advanced>
+      <p>The subtlety that separates a feed from a CRUD timeline is the <b>many-to-many</b> follow graph: one post is relevant to every follower, and one feed draws from everyone a user follows. That fan-out is the entire problem. "Fast feed open" pushes the assembly work off the read path; "highly available" pushes you toward serving a slightly-stale feed over blocking; "read-heavy" justifies spending a lot at write time to make reads cheap.</p>
+    </Advanced>
+    <Why
+      problem="“Build a news feed” hides the real decision — assembling a personalized feed from a follow graph is expensive, and doing it naively at read time is far too slow."
+      idea="Separate functional requirements (follow, post, see a feed) from non-functional ones (fast open, highly available, read-heavy), because the non-functional ones force the architecture."
+      tradeoff="Pinning scope means deferring features (DMs, notifications, ads) — but a feed that tries to do everything answers nothing."
+      next="Put numbers on it and the fan-out cost jumps out."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.NF1}>
+    <p class="prose">A quick estimate exposes the real cost. Say <b>500M daily users</b>, each opening their feed a few times a day → on the order of <b>millions of feed reads/sec</b>, against perhaps <b>tens of thousands of posts/sec</b>. So far that’s read-heavy like any web system. The twist is <span class="hl">fan-out</span>: with an average of hundreds of followers, one post becomes hundreds of feed updates — and for the biggest accounts, <b>millions</b>.</p>
+    <Takeaway>Reads dwarf writes, but the number that decides the architecture is fan-out: one post times the follower count. A modest write rate hides a brutal amplification once you multiply by followers.</Takeaway>
+    <Advanced>
+      <p>The point isn’t precision — it’s <b>orders of magnitude</b>. Millions of reads/sec says "you cannot recompute a feed from scratch on every open." But the follower distribution is wildly <b>skewed</b>: most accounts have a few hundred followers, while a handful have tens of millions. That long tail is exactly what breaks a one-size-fits-all strategy — the average follower count lies, and the extreme decides the design.</p>
+    </Advanced>
+    <Why
+      problem="Without numbers you can’t tell whether to do feed work at write time, read time, or both — and the average follower count hides the accounts that break the system."
+      idea="Estimate reads/sec, writes/sec, and especially fan-out (post × followers), then notice the follower distribution is heavily skewed."
+      tradeoff="The numbers are guesses, but the skew is the durable insight: design for the extreme account, not the average one."
+      next="Start with the strategy that makes reads cheapest: precompute every feed at write time."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.NF2}>
+    <p class="prose"><b>Fan-out on write</b> (push) does all the work when a post is created. The moment an author publishes, a fan-out service appends that post id into <span class="hl">each follower’s precomputed feed</span> — a per-user cached list of ids. Reads then become trivial: a reader’s feed is already assembled, so opening the app is just "fetch my list." Trace a normal post through it, then watch a celebrity break it.</p>
+    <RequestFlow flow={flow} client:visible />
+    <Takeaway>Push precomputes each user’s feed at write time, so reads are O(1) cache fetches — blazing fast. The cost is hidden in the write path: publishing a post is O(followers) writes, which is fine for normal accounts and catastrophic for celebrities.</Takeaway>
+    <SeeAlso slug="cloud" note="the caches, replicas, and horizontal scaling this push architecture is built on" />
+    <Advanced>
+      <p>Feeds are stored as a <b>ranked, capped list of post ids</b> — typically a <code>Redis</code> list per user, holding only the most recent few hundred ids, not the post bodies. The content is <b>hydrated separately</b>: fetch the ids from the feed, then look up the actual posts from a store or cache and merge them in. Keeping feeds as ids keeps them tiny and lets the same post be referenced from millions of feeds without duplicating its body.</p>
+      <p>The brutal failure mode is the <b>celebrity</b>: one post by an account with 50M followers means 50M feed appends — a write storm that monopolizes the fan-out workers and delays delivery for everyone. Pure push simply doesn’t survive the high end of the follower distribution, which is what motivates the next strategy.</p>
+    </Advanced>
+    <Why
+      problem="A feed read can’t afford to query everyone you follow on the spot — that’s too slow at millions of reads/sec."
+      idea="Do the assembly at write time: when someone posts, push the post id into every follower’s precomputed feed, so a read is just fetching a ready list."
+      tradeoff="Reads get extremely cheap, but writes become O(followers); for a celebrity that’s millions of writes per post — the strategy’s fatal flaw."
+      next="Flip it: what if you did the work at read time instead?"
+    />
+  </LayerSection>
+
+  <LayerSection {...L.NF3}>
+    <p class="prose"><b>Fan-out on read</b> (pull) does the opposite — almost nothing at write time. Publishing a post is just one write; no feeds are touched. The work happens when a reader opens the app: the system <span class="hl">queries everyone they follow</span>, gathers each one’s recent posts, merges and ranks them on the spot, and returns the feed. Writes stay cheap no matter how many followers an author has.</p>
+    <Takeaway>Pull computes the feed on demand by querying who you follow, so writes are O(1) regardless of follower count — the celebrity problem vanishes on the write side. The cost moves to reads, which now do expensive gather-merge-rank work on every open.</Takeaway>
+    <SeeAlso slug="database" note="the indexed “recent posts by these author ids” queries the read path leans on" />
+    <Advanced>
+      <p>Pull solves the celebrity write storm completely — a celebrity’s post is stored once and read by whoever asks. But it inverts the pain: a reader who follows 2,000 accounts now triggers a fan of queries on every feed open, and that read amplification, multiplied by millions of reads/sec, becomes the bottleneck. Caching the merged result helps, but feeds change constantly, so cache hit rates suffer compared with the precomputed-feed approach.</p>
+      <p>Neither pure strategy wins outright: push is cheap to read but explodes on celebrity writes; pull is cheap to write but explodes on heavy-follower reads. The follower distribution’s two extremes punish opposite ends — which is precisely why real systems refuse to pick just one.</p>
+    </Advanced>
+    <Why
+      problem="Pure push can’t survive celebrities, but you still need to deliver their posts somehow."
+      idea="Compute the feed at read time by querying the accounts a user follows and merging their recent posts, so the write path stays trivial."
+      tradeoff="Writes get cheap, but reads become expensive gather-merge-rank work — and reads are the dominant, latency-sensitive path you were trying to protect."
+      next="Most real systems take neither extreme — they blend the two."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.NF4}>
+    <p class="prose">The system most real feeds use is a <b>hybrid</b>: <span class="hl">push for normal accounts</span>, <span class="hl">pull for the few high-follower ones</span>. Ordinary posts are fanned out to follower feeds as before; posts from celebrities are <b>not</b> pushed — instead, at read time, the system pulls their recent posts and merges them into the reader’s mostly-precomputed feed. Then it <b>ranks</b> the result, which is why timelines moved from chronological to engagement-ranked.</p>
+    <Takeaway>The hybrid pushes for the common case (cheap reads) and pulls for the rare extreme (cheap celebrity writes), merging both at read time — capturing the upside of each strategy where it actually applies.</Takeaway>
+    <SeeAlso slug="cloud" note="the load balancing and replication that lets push, pull, and merge all scale out independently" />
+    <Advanced>
+      <p>The split is governed by a <b>celebrity threshold</b> — a follower count above which an account is treated as pull-only (and may be reclassified dynamically as it grows). Below it, push; above it, skip the fan-out and merge at read time. Most reads end up being "fetch my precomputed feed, then merge in posts from the handful of huge accounts I follow," which keeps the read cheap and the write storm avoided.</p>
+      <p><b>Ranking</b> is the other half. Early feeds were <b>chronological</b> (newest first) — simple, but it buries good posts under noise and floods you with whatever was posted most recently. Modern feeds rank by predicted <b>engagement</b> (likely interest, recency, affinity, relationship), trading the predictability of a pure timeline for relevance. The feed list stores ids in ranked order; <b>read-your-writes</b> ensures your own brand-new post shows up in your feed immediately even before fan-out fully settles.</p>
+    </Advanced>
+    <Why
+      problem="Push dies on celebrity writes; pull dies on heavy-follower reads — and a feed has both kinds of accounts at once."
+      idea="Use push for the many normal accounts and pull for the few celebrity accounts, merge both at read time, then rank the combined list."
+      tradeoff="The hybrid adds real complexity — a threshold to tune, two code paths, and a read-time merge — but it’s the only approach that survives the whole follower distribution."
+      next="Step back: name the tradeoffs the whole design rests on."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.NF5}>
+    <p class="prose">Good designs are explicit about their tradeoffs. The central one is <b>where you pay</b>: push spends at write time for cheap reads, pull spends at read time for cheap writes, and the hybrid splits by follower count. There’s also <b>freshness vs cost</b> — a precomputed feed can lag slightly, and that’s usually fine — and <b>chronological vs ranked</b>, trading a predictable timeline for relevance. None has a universally right answer; each is a stance tied to a requirement.</p>
+    <Takeaway>System design is choosing tradeoffs on purpose: write-cost vs read-cost (push/pull/hybrid), freshness vs cost (slightly stale feeds), and chronological vs ranked (predictability vs relevance) — name them, pick deliberately, and you’ve designed the feed.</Takeaway>
+    <SeeAlso slug="database" note="how feeds, posts, and the follow graph are stored, indexed, and replicated underneath all this" />
+    <Advanced>
+      <p>The senior move is matching the strategy to each <b>account type</b> rather than picking one globally — push where fan-out is cheap, pull where it isn’t, merge at read. The same per-path thinking applies to <b>consistency</b>: a globally slightly-stale feed is acceptable (an availability lean), but <b>read-your-writes</b> for your own posts is not — you must see your own post instantly, so the writer gets a consistent view even while fan-out to others is still catching up.</p>
+    </Advanced>
+    <Why
+      problem="The remaining decisions (push vs pull, how fresh, chronological vs ranked) have real costs on both sides, and pretending there’s one right answer hides the engineering."
+      idea="Make each tradeoff explicit and choose from the requirements — fast reads vs cheap writes, perfect freshness vs cost, predictable order vs relevance."
+      tradeoff="Every choice closes a door (push forecloses cheap celebrity writes; ranking forecloses a predictable timeline) — which is why you tie each one back to a stated requirement."
+      next="Zoom out: this same six-step shape — requirements, estimate, two strategies, the hybrid, tradeoffs — scales up to the full Twitter-timeline problem."
+    />
+  </LayerSection>
+
+  <Quiz slug="news-feed" client:visible />
+  <p class="prose design-back"><a href="/design">← back to all system designs</a></p>
+</Base>
+
+<style>
+  .back-link{color:var(--accent,var(--signal))}
+  .design-back{max-width:680px;margin:40px auto 0;text-align:center}
+  .design-back a{color:var(--accent,var(--signal))}
+</style>

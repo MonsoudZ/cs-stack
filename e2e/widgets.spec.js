@@ -398,6 +398,21 @@ test('System design: the index links to the URL-shortener case study, which trac
   await expect(page.locator('.quiz .quiz-level')).toHaveCount(3);
 });
 
+test('System design: the rate-limiter case study traces a request to a 429 rejection (generic RequestFlow)', async ({ page }) => {
+  await page.goto('/design/rate-limiter');
+  await expect(page.locator('h1.title')).toContainText('RATE');
+  await expect(page.locator('.spine .rung')).toHaveCount(6);
+  // the generic request-flow widget: stepping past the bucket emptying flags a rejection
+  const rf = page.locator('#RL2');
+  await rf.scrollIntoViewIfNeeded();
+  for (let i = 0; i < 16; i++) {
+    await rf.locator('.cpu-ctrl button').first().click();
+    if (await rf.locator('.rf-node.warn').count()) break;
+    await page.waitForTimeout(40);
+  }
+  await expect(rf.locator('.rf-node.warn')).toBeVisible();
+});
+
 test('Concurrency page: own nav, two locks deadlock, compare-and-swap stays correct', async ({ page }) => {
   await page.goto('/concurrency');
   await expect(page.locator('h1.title')).toContainText('CONCURRENCY');

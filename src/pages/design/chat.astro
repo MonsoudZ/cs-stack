@@ -1,0 +1,157 @@
+---
+import Base from '../../layouts/Base.astro';
+import LayerSection from '../../components/LayerSection.astro';
+import RequestFlow from '../../components/RequestFlow.svelte';
+import Why from '../../components/Why.astro';
+import Takeaway from '../../components/Takeaway.astro';
+import Advanced from '../../components/Advanced.astro';
+import Quiz from '../../components/Quiz.svelte';
+import SeeAlso from '../../components/SeeAlso.astro';
+
+const sections = [
+  { id: 'CH0', num: '00', navLabel: 'Requirements', zone: 'meaning', title: 'Requirements: what are we actually building?', sub: 'functional + non-functional · real-time is the constraint' },
+  { id: 'CH1', num: '01', navLabel: 'Connections', zone: 'number', title: 'The connection: persistent vs polling', sub: 'WebSocket push · why a server can reach the client' },
+  { id: 'CH2', num: '02', navLabel: 'Delivery', zone: 'system', title: 'Delivery: trace a message end to end', sub: 'gateway · routing table · push to the live socket' },
+  { id: 'CH3', num: '03', navLabel: 'Ordering & storage', zone: 'system', title: 'Ordering, storage & delivery semantics', sub: 'per-conversation sequence · store-and-forward · dedupe' },
+  { id: 'CH4', num: '04', navLabel: 'Presence & offline', zone: 'system', title: 'Presence, offline delivery & fan-out', sub: 'who is online · queue while away · group chat' },
+  { id: 'CH5', num: '05', navLabel: 'Tradeoffs', zone: 'all', title: 'Tradeoffs & the whole picture', sub: 'consistency vs latency · semantics · encryption' },
+];
+const L = Object.fromEntries(sections.map((l) => [l.id, l]));
+
+const flow = {
+  nodes: [
+    { id: 'sender', label: 'Sender' },
+    { id: 'gateway', label: 'Gateway' },
+    { id: 'service', label: 'Message service' },
+    { id: 'recipient', label: 'Recipient' },
+  ],
+  steps: [
+    { phase: 'SEND', active: 'sender', meta: { sender: 'socket open', recipient: 'socket open' }, note: 'Both users opened the app, so each holds a persistent WebSocket connection to a gateway server — the link stays open in both directions.' },
+    { phase: 'SEND', active: 'sender', note: 'The sender types a message and emits it over its already-open socket. No new connection, no poll — just a frame pushed up the live pipe.' },
+    { phase: 'SEND', active: 'gateway', note: 'The sender’s gateway receives the frame. The gateway’s only job is to terminate sockets and shuttle frames between clients and the backend.' },
+    { phase: 'SEND', active: 'service', note: 'The gateway hands the message to the message service, which assigns it a monotonic sequence number for this conversation so order is fixed regardless of network jitter.' },
+    { phase: 'SEND', active: 'service', note: 'The service persists the message to a durable store first — store-and-forward — so it survives a crash and can be re-delivered if the push is lost.' },
+    { phase: 'SEND', active: 'service', meta: { recipient: 'online' }, note: 'The service consults the routing table (the connection registry) to learn which gateway currently holds the recipient’s live socket.' },
+    { phase: 'SEND', active: 'recipient', note: 'It pushes the message to that gateway, which writes it down the recipient’s open socket — delivered in real time, no request from the recipient needed.', response: 'delivered' },
+    { phase: 'SEND', active: 'service', note: 'The recipient’s client acks receipt and, once shown, a read receipt; those flow back through the service to the sender as delivered/read state.', response: 'read' },
+    { phase: 'SEND', active: 'recipient', meta: { recipient: 'offline' }, warn: 'recipient', note: 'Now the recipient has closed the app — no live socket. The routing table shows no gateway for this user, so there is nothing to push to.' },
+    { phase: 'SEND', active: 'service', meta: { recipient: 'offline' }, warn: 'recipient', note: 'The message is already persisted, so the service simply queues it for the offline user and fires a push notification to wake their device.' },
+    { phase: 'SEND', active: 'recipient', meta: { recipient: 'reconnecting' }, note: 'When the recipient reopens the app, it reconnects, re-registers in the routing table, and pulls everything queued since its last acknowledged sequence number.' },
+    { phase: 'SEND', active: 'recipient', meta: { recipient: 'online' }, note: 'Backlog delivered in order; receipts flow back to the sender. Online or offline, the same persisted message reaches the recipient exactly where it left off.', response: 'delivered' },
+  ],
+};
+
+const title = 'System design — chat / messaging';
+const description = 'A full walkthrough of designing a real-time chat system: requirements, persistent connections vs polling, tracing a message through gateways and a routing table, per-conversation ordering and a durable store, presence and offline store-and-forward delivery, and the key tradeoffs — a medium system-design problem, built from the stacks.';
+---
+<Base {title} {description} layers={sections}>
+  <div slot="hero">
+    <div class="kicker">A system design · medium</div>
+    <h1 class="title">THE <em>CHAT</em><br />SYSTEM</h1>
+    <p class="lede">Messaging looks simple — send text, see it appear — but the moment you want it to arrive <span class="hl">the instant it's sent</span>, the whole design pivots on one problem: the server has to push to the client, not wait to be asked. That single constraint pulls in persistent connections, a routing table that knows where every user is, strict per-conversation ordering, and a durable store so nothing is lost while you're offline. We'll build it from the stacks you already know.</p>
+    <div class="hero-meta"><a class="back-link" href="/design">← all system designs</a> · requirements → connections → delivery → ordering → presence → tradeoffs</div>
+  </div>
+
+  <LayerSection {...L.CH0}>
+    <p class="prose">Pin the scope first. <b>Functional</b>: one user sends a message to another (or a group); the recipient sees it, and the sender sees delivered/read state; history is kept so you can scroll back. <b>Non-functional</b> — where the design lives: messages must arrive with <span class="hl">low latency</span> (it has to feel instant), in the <span class="hl">right order</span> within a conversation, and <b>nothing may be lost</b> — a message sent must eventually be delivered, even if the recipient is offline when it's sent.</p>
+    <Takeaway>The requirements already shape the design: real-time push, strict per-conversation ordering, and guaranteed eventual delivery (including offline) are the three constraints every later decision answers to.</Takeaway>
+    <Advanced>
+      <p>Naming the <b>non-functional</b> requirements is what makes this more than a CRUD app. "Feels instant" rules out the client polling for new messages and forces a server-initiated <b>push</b>. "Right order" forces an explicit ordering scheme, because messages can race through the network. "Never lost" forces durability and <b>store-and-forward</b>, because the recipient often isn't connected at send time. Each adjective is a lever on the architecture.</p>
+    </Advanced>
+    <Why
+      problem="“Build a chat app” hides which property is hard — and the hard property (real-time, ordered, lossless delivery) is what drives every component."
+      idea="Separate functional requirements (send, receive, receipts, history) from the non-functional ones (latency, ordering, durability) that actually shape the system."
+      tradeoff="Pinning scope means deferring features (search, media, reactions) to keep the core — getting a message there, fast, in order, never lost — clearly in view."
+      next="The first decision is the one everything rests on: how does a message reach a client in real time?"
+    />
+  </LayerSection>
+
+  <LayerSection {...L.CH1}>
+    <p class="prose">A normal web request is client-initiated: the browser asks, the server answers. But chat needs the <b>server</b> to reach the client the moment a message arrives. The naive fix is <b>polling</b> — the client asks "anything new?" every second — which is high-latency (up to a full interval late) and wasteful (most polls return nothing). The real answer is a <span class="hl">persistent connection</span>: a <b>WebSocket</b> stays open in both directions, so the server can <b>push</b> a message down it the instant it has one, with no request to trigger it.</p>
+    <Takeaway>Polling fakes real-time by asking repeatedly — laggy and wasteful. A persistent WebSocket keeps a two-way pipe open so the server pushes instantly; that single capability (server→client push) is what makes chat feel live.</Takeaway>
+    <SeeAlso slug="network" note="what a WebSocket upgrade and a long-lived TCP connection actually are on the wire" />
+    <Advanced>
+      <p>Long-polling (hold the request open until there's data) is a middle ground that works over plain HTTP, but it pays a new-request cost per message and is awkward for high-rate streams. WebSockets win for chat because the connection is <b>bidirectional and long-lived</b>: one handshake, then frames flow freely each way for the whole session.</p>
+      <p>The catch is <b>state</b>. Each open socket is a live resource pinned to one server, so a chat backend is stateful in a way a stateless web app isn't — millions of concurrent connections must be spread across many gateway servers, and the system must track <i>which</i> server holds each one. That tracking problem is the next section.</p>
+    </Advanced>
+    <Why
+      problem="HTTP is request/response, but chat needs the server to deliver a message the client never asked for, the instant it exists."
+      idea="Hold a persistent, bidirectional WebSocket open per client so the server can push messages immediately instead of waiting to be polled."
+      tradeoff="Open sockets are stateful and resource-heavy — each one is pinned to a server, so you trade the simplicity of stateless HTTP for true real-time push and must now manage connection state."
+      next="If every socket lives on some server, how does the system find the one a given user is connected to?"
+    />
+  </LayerSection>
+
+  <LayerSection {...L.CH2}>
+    <p class="prose">Now the architecture falls out. Clients connect to <b>gateway servers</b> that terminate the WebSockets; a <b>message service</b> behind them persists messages and decides routing. The crux is the <span class="hl">connection registry</span> — a routing/presence table mapping <code>user → gateway holding their live socket</code>. To deliver, the service looks the recipient up in that table and pushes to the right gateway. Trace one message through, then watch what happens when the recipient is offline.</p>
+    <RequestFlow flow={flow} client:visible />
+    <Takeaway>A message goes sender → gateway → message service (persist + assign sequence) → routing-table lookup → recipient's gateway → recipient's socket. The registry is the heart: without knowing which gateway holds a user, the system can't push to them.</Takeaway>
+    <SeeAlso slug="cloud" note="spreading millions of stateful sockets across gateway servers, and the shared registry behind them" />
+    <Advanced>
+      <p>The registry is itself a distributed-systems problem. It changes constantly (every connect/disconnect is a write) and every delivery reads it, so it's usually a fast in-memory store (e.g. a Redis-style table or a pub/sub channel per user) rather than the durable message database. A common pattern: each gateway <b>subscribes</b> to a channel for the users it holds, and the service publishes a message to the recipient's channel — the registry and the routing become the same mechanism.</p>
+      <p>Keeping gateways <b>thin</b> (just sockets + routing) and the message service <b>separate</b> means you can scale connection capacity and message-processing capacity independently — add gateways for more concurrent users, add service nodes for more throughput.</p>
+    </Advanced>
+    <Why
+      problem="With sockets scattered across many gateway servers, a sender's message has no idea which server can reach the recipient."
+      idea="Keep a connection registry (user → gateway) that the message service consults on every delivery, pushing the message to the gateway that holds the recipient's live socket."
+      tradeoff="The registry is hot, mutable shared state (a write per connect/disconnect, a read per message) and a potential bottleneck — so it lives in a fast store separate from durable history."
+      next="Pushing is half the job. How do messages stay in order, and survive being sent to someone who isn't there?"
+    />
+  </LayerSection>
+
+  <LayerSection {...L.CH3}>
+    <p class="prose">Messages race through the network, so arrival order is unreliable. Fix ordering at the source: the message service stamps each message with a <b>monotonic sequence number per conversation</b>, and clients render by that number, not by arrival time. Storage is <b>store-and-forward</b>: every message is written to a <span class="hl">durable store</span> before delivery, so it survives crashes, backs the scroll-back history, and can be re-sent to anyone who was offline. The data is conversation-partitioned and queried by sequence range — a read pattern a log or wide-column store serves cheaply.</p>
+    <Takeaway>Per-conversation monotonic sequence numbers give a total order independent of network timing; a durable, append-style store both keeps history and enables offline (store-and-forward) re-delivery from the recipient's last seen sequence.</Takeaway>
+    <SeeAlso slug="cloud" note="partitioning the message log by conversation and the consistency model behind a per-conversation sequence" />
+    <Advanced>
+      <p><b>Delivery semantics</b> are the subtle part. Exactly-once delivery across an unreliable network is effectively impractical — a lost ack is indistinguishable from a lost message, so the sender must retry, which can duplicate. The standard answer is <b>at-least-once</b> delivery plus a stable, client-generated <b>idempotent message ID</b>: the recipient (and store) dedupe by that ID, so a retried message is recognized and dropped rather than shown twice. You get the reliability of retries without the duplicates.</p>
+      <p>A single per-conversation counter keeps ordering simple but means the conversation's writes funnel through one sequencer; for one-to-one and modest group chats that's fine. The alternative — per-message timestamps — drifts across clocks, which is exactly the ambiguity the sequence number removes.</p>
+    </Advanced>
+    <Why
+      problem="The network reorders and can drop messages, and a recipient may be offline when one is sent — so naive “deliver on arrival” loses messages and scrambles order."
+      idea="Assign a monotonic per-conversation sequence number for order, persist every message durably before delivery (store-and-forward), and dedupe retries with idempotent message IDs under at-least-once delivery."
+      tradeoff="Per-conversation sequencing serializes that conversation's writes, and at-least-once means the system must dedupe rather than trust each message arrives once — exactly-once is given up because it's impractical over a lossy link."
+      next="Durability handles the offline case mechanically — but how does the system know a user is offline, and how does group chat fan out?"
+    />
+  </LayerSection>
+
+  <LayerSection {...L.CH4}>
+    <p class="prose"><b>Presence</b> ("online", "last seen", typing) is read straight off the connection registry: an open socket means online; a disconnect (or a missed heartbeat) flips the user offline. When a message targets an offline user, the already-persisted copy is <b>queued</b> and a <span class="hl">push notification</span> wakes their device; on reconnect they re-register and pull everything since their last acknowledged sequence. <b>Group chat</b> is the same delivery, <b>fanned out</b>: the service looks up every member, pushes to those online, and queues for those who aren't.</p>
+    <Takeaway>Presence is just "is there a live socket?" derived from the registry plus heartbeats; offline delivery is store-and-forward via a queue and a push notification; group chat is one message fanned out to each member's online socket or offline queue.</Takeaway>
+    <SeeAlso slug="cloud" note="heartbeats, failure detection, and fanning a write out to many recipients at scale" />
+    <Advanced>
+      <p>Presence needs <b>heartbeats</b> because a dropped connection (dead Wi-Fi) often isn't a clean close — the server can't tell a quiet client from a gone one without periodic pings, so a missed heartbeat marks the user offline after a timeout. Presence is also high-churn and best-effort: showing someone "online" a few seconds stale is fine, so it leans availability over strict accuracy.</p>
+      <p>Group <b>fan-out</b> is where scale bites. A small group fans out trivially, but a 10,000-member group means one message becomes thousands of pushes — so large groups often move to a <b>fan-out-on-read</b> model (members pull from a shared conversation log) instead of pushing to each, the same fan-out tradeoff a news feed faces.</p>
+    </Advanced>
+    <Why
+      problem="The system must know who's reachable, deliver to people who aren't, and handle one message destined for many — none of which a simple point-to-point push covers."
+      idea="Derive presence from live sockets plus heartbeats, hold offline messages in a durable queue delivered on reconnect (with a push notification), and fan a group message out to each member's socket or queue."
+      tradeoff="Heartbeats and presence add constant chatter and are only best-effort; large-group fan-out can amplify one send into thousands of pushes, pushing big groups toward fan-out-on-read."
+      next="With delivery, ordering, and presence settled, the remaining calls have no single right answer."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.CH5}>
+    <p class="prose">Good designs are explicit about tradeoffs. <b>Latency vs consistency</b>: optimistic local echo (show the message instantly, reconcile when the server acks) feels fast but can briefly show an unconfirmed state. <b>Delivery semantics</b>: at-least-once + idempotent IDs is the pragmatic stance because exactly-once is impractical — you accept dedupe work to never lose a message. <b>Fan-out</b>: push per recipient (low latency, costly for big groups) vs pull from a shared log (cheap fan-out, a read step). None has a universal answer — each is a stance tied to a requirement.</p>
+    <Takeaway>System design is choosing tradeoffs on purpose: real-time push vs polling, at-least-once + dedupe vs unattainable exactly-once, push vs pull fan-out, strict ordering vs throughput — name them, pick deliberately, and you've designed the system.</Takeaway>
+    <SeeAlso slug="network" note="the WebSocket, TCP reliability, and push-notification transport this all rides on" />
+    <Advanced>
+      <p><b>End-to-end encryption</b> is the advanced stance with the deepest consequences. If messages are encrypted on the sender's device and only decryptable on the recipient's, the server becomes a blind relay — it routes and stores ciphertext it can't read. That preserves privacy but forecloses server-side features (search, content moderation, multi-device sync) unless they're rebuilt on the client, and it makes key management (per-device keys, forward secrecy via ratcheting protocols like Signal's) the hard new problem. It's the clearest case of a tradeoff: privacy bought with capability and complexity.</p>
+    </Advanced>
+    <Why
+      problem="The remaining decisions (consistency of local echo, delivery semantics, fan-out strategy, encryption) have real costs on both sides, and pretending there's one right answer hides the engineering."
+      idea="Make each tradeoff explicit and choose against the requirements — instant feel vs. confirmed state, never-lost vs. dedupe cost, low push latency vs. cheap fan-out, privacy vs. server-side features."
+      tradeoff="Every choice closes a door: at-least-once forces dedupe, push fan-out limits group size, end-to-end encryption blinds the server — which is why each is tied back to a stated requirement."
+      next="Zoom out: this same six-step shape — requirements, connections, delivery, ordering, presence, tradeoffs — scales up to every bigger real-time system."
+    />
+  </LayerSection>
+
+  <Quiz slug="chat" client:visible />
+  <p class="prose design-back"><a href="/design">← back to all system designs</a></p>
+</Base>
+
+<style>
+  .back-link{color:var(--accent,var(--signal))}
+  .design-back{max-width:680px;margin:40px auto 0;text-align:center}
+  .design-back a{color:var(--accent,var(--signal))}
+</style>

@@ -1,0 +1,156 @@
+---
+import Base from '../../layouts/Base.astro';
+import LayerSection from '../../components/LayerSection.astro';
+import RequestFlow from '../../components/RequestFlow.svelte';
+import Why from '../../components/Why.astro';
+import Takeaway from '../../components/Takeaway.astro';
+import Advanced from '../../components/Advanced.astro';
+import Quiz from '../../components/Quiz.svelte';
+import SeeAlso from '../../components/SeeAlso.astro';
+
+const sections = [
+  { id: 'RL0', num: '00', navLabel: 'Requirements', zone: 'meaning', title: 'Requirements', sub: 'what “rate limit” actually has to do' },
+  { id: 'RL1', num: '01', navLabel: 'Scale & placement', zone: 'number', title: 'Scale & placement', sub: 'how many checks, and where they live' },
+  { id: 'RL2', num: '02', navLabel: 'The algorithm', zone: 'system', title: 'The algorithm — token bucket', sub: 'capacity for bursts, refill for steady rate' },
+  { id: 'RL3', num: '03', navLabel: 'Distributed state', zone: 'system', title: 'Distributed state', sub: 'one shared, atomic counter across servers' },
+  { id: 'RL4', num: '04', navLabel: 'Edge cases', zone: 'system', title: 'Edge cases', sub: 'fail-open vs fail-closed, 429 + Retry-After' },
+  { id: 'RL5', num: '05', navLabel: 'Tradeoffs', zone: 'all', title: 'Tradeoffs', sub: 'fixed vs sliding window, accuracy vs cost' },
+];
+
+const L = Object.fromEntries(sections.map((l) => [l.id, l]));
+
+const flow = {
+  nodes: [
+    { id: 'client', label: 'Client' },
+    { id: 'limiter', label: 'Rate limiter' },
+    { id: 'app', label: 'App' },
+  ],
+  steps: [
+    { active: 'limiter', phase: 'SETUP', meta: { limiter: '3 / 3 tokens' }, note: 'The bucket holds capacity 3 and refills 1 token/sec. It starts full — room for a burst of 3.' },
+    { active: 'client', phase: 'REQUEST', meta: { limiter: '3 / 3 tokens' }, note: 'Request #1 arrives. The limiter checks the bucket before the app ever sees it.' },
+    { active: 'limiter', phase: 'REQUEST', meta: { limiter: '2 / 3 tokens' }, note: 'A token is available, so the limiter spends one (3 → 2) and forwards the request.' },
+    { active: 'app', phase: 'REQUEST', meta: { limiter: '2 / 3 tokens' }, response: '200 OK', note: 'Allowed. The app handles request #1 and returns 200 OK.' },
+    { active: 'client', phase: 'REQUEST', meta: { limiter: '2 / 3 tokens' }, note: 'Requests #2 and #3 arrive back-to-back — a burst.' },
+    { active: 'limiter', phase: 'REQUEST', meta: { limiter: '1 / 3 tokens' }, response: '200 OK', note: 'Token spent (2 → 1), request #2 allowed through.' },
+    { active: 'limiter', phase: 'REQUEST', meta: { limiter: '0 / 3 tokens' }, response: '200 OK', note: 'Last token spent (1 → 0), request #3 allowed. The bucket is now empty.' },
+    { active: 'client', phase: 'REQUEST', meta: { limiter: '0 / 3 tokens' }, note: 'Request #4 arrives immediately — still inside the same second.' },
+    { active: 'limiter', phase: 'REJECTED', warn: 'limiter', meta: { limiter: '0 / 3 tokens' }, response: '429 Too Many Requests', note: 'No token left. The limiter rejects request #4 with 429 + a Retry-After header — the app is never touched.' },
+    { active: 'limiter', phase: 'REFILL', meta: { limiter: '1 / 3 tokens' }, note: 'A second passes. The refill adds 1 token (0 → 1), so the steady rate is restored.' },
+    { active: 'client', phase: 'REQUEST', meta: { limiter: '1 / 3 tokens' }, note: 'Request #5 arrives after the refill.' },
+    { active: 'app', phase: 'REQUEST', meta: { limiter: '0 / 3 tokens' }, response: '200 OK', note: 'A token is back, so it is spent (1 → 0) and request #5 reaches the app — allowed again.' },
+  ],
+};
+
+const title = 'System design — rate limiter';
+const description = 'A full walkthrough of designing a rate limiter: the requirements, scale and where the check lives, the token-bucket algorithm traced request by request, the shared atomic state distributed limiting needs, the edge cases (fail-open vs fail-closed, 429 + Retry-After), and the window-algorithm tradeoffs — a compact, high-leverage small system-design problem.';
+---
+<Base {title} {description} layers={sections}>
+  <div slot="hero">
+    <div class="kicker">A system design · small</div>
+    <h1 class="title">THE <em>RATE</em><br />LIMITER</h1>
+    <p class="lede">Every public API needs one: a guard that lets normal traffic through and throttles the flood — a buggy client in a retry loop, a scraper, an attack. It's small, but it teaches the moves that matter: pick an algorithm with the right burst behaviour, keep the decision fast and shared across servers, and decide what happens when the limiter itself fails. We'll build it from the stacks you already know.</p>
+    <div class="hero-meta"><a class="back-link" href="/design">← all system designs</a> · requirements → scale → algorithm → distributed state → edge cases → tradeoffs</div>
+  </div>
+
+  <LayerSection {...L.RL0}>
+    <p class="prose">Pin the scope first. <b>Functional</b>: given a request, decide <span class="hl">allow or reject</span> against a quota like "100 requests per minute" — keyed by something stable, usually a <b>per-user</b> API token or a <b>per-IP</b> address. <b>Non-functional</b> — where the design lives: the check sits in front of every request, so it must be <span class="hl">fast</span> (microseconds, not a round-trip you notice), <b>cheap</b> (it runs more than the app does), and correct enough that legitimate bursts aren't punished.</p>
+    <Takeaway>A rate limiter is a fast allow/reject decision on a per-key quota; because it runs on every request, latency and cost dominate the design as much as accuracy does.</Takeaway>
+    <Advanced>
+      <p>The <b>key</b> choice is a real decision, not a detail. Per-IP is easy but punishes everyone behind a shared NAT or proxy and is trivially spoofed at the edge; per-user (API key, account) is fairer but needs the request authenticated <i>before</i> you can limit it. Many systems layer both — a coarse per-IP limit at the edge to shed obvious floods, then a precise per-user limit deeper in.</p>
+    </Advanced>
+    <Why
+      problem="“Don't let anyone hammer the API” is too vague to build — it hides what counts, against whom, and how strict."
+      idea="Define a concrete quota (N per window) and a stable key (per-user or per-IP), and treat the per-request latency cost as a hard non-functional requirement."
+      tradeoff="A tighter limit protects the backend but risks blocking legitimate bursts; a looser one is friendlier but lets more abuse through — the quota is a policy choice, not a fact."
+      next="With the quota named, count how often the check runs and decide where it lives."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.RL1}>
+    <p class="prose">The limiter runs on <b>every</b> request, so its rate equals your total request rate — if the API serves 50,000 req/sec, that's 50,000 limit checks/sec, each adding to the critical path. That budget forces two decisions: the check must be O(1) and in-memory, and <b>where</b> it lives matters. At the <span class="hl">edge / API gateway</span> it sheds bad traffic before it costs you a backend; <b>per-app</b> it can use richer context (which user, which endpoint) but only after the request has already arrived.</p>
+    <Takeaway>The limiter's throughput equals the whole system's request rate, so the check has to be O(1) and in-memory; placing it at the edge sheds load early, while placing it per-app buys context at the cost of letting traffic in first.</Takeaway>
+    <SeeAlso slug="cloud" note="the load balancer and API gateway this check sits inside, and the stateless app servers behind it" />
+    <Advanced>
+      <p>The two placements aren't exclusive — production systems usually do both. A blunt, cheap limit at the edge (per-IP, no auth needed) absorbs volumetric floods and DDoS-shaped traffic before they reach an origin; a precise limit per service applies fine-grained, per-endpoint quotas once the request is authenticated. The further out the check, the cheaper the rejection — but the less it knows about who's asking.</p>
+    </Advanced>
+    <Why
+      problem="A check that runs on every request can itself become the bottleneck, and putting it in the wrong place either wastes backend capacity or starves it of context."
+      idea="Keep each decision O(1) and in-memory, and choose placement by goal: edge to shed load cheaply, per-app to limit with full context."
+      tradeoff="Edge limiting is cheap but coarse and pre-auth; per-app limiting is precise but only after the request has already consumed a hop."
+      next="Now the core question — which algorithm makes the allow/reject decision?"
+    />
+  </LayerSection>
+
+  <LayerSection {...L.RL2}>
+    <p class="prose">The workhorse is the <b>token bucket</b>. A bucket holds up to <span class="hl">capacity</span> tokens and refills at a fixed <span class="hl">rate</span>; each request spends one token, and if the bucket is empty the request is rejected. The two knobs map cleanly onto intent: <b>capacity = the largest burst you tolerate</b>, and <b>refill rate = the steady throughput you allow</b>. So it absorbs a short spike up to capacity, then settles to the sustained rate. Step a burst through it and watch the bucket drain, reject, and refill.</p>
+    <RequestFlow flow={flow} client:visible />
+    <Takeaway>Token bucket = capacity tokens that refill at a fixed rate; capacity sets the burst you allow and refill rate sets the sustained throughput, so it cleanly permits short spikes without permitting a sustained flood.</Takeaway>
+    <Advanced>
+      <p>Implemented well, a token bucket stores just two numbers per key — <code>tokens</code> and <code>last_refill</code> timestamp — and is <i>lazy</i>: you don't run a background refiller, you compute <code>tokens = min(capacity, tokens + elapsed × rate)</code> on each request. That's O(1) time and tiny state per key, which is exactly what the per-request budget demands.</p>
+      <p>The close cousin is the <b>leaky bucket</b>: requests queue and drain at a fixed rate, smoothing output completely but forbidding bursts. Token bucket is usually preferred for APIs precisely because real clients are bursty and a little burst tolerance is friendlier than a hard, flat ceiling.</p>
+    </Advanced>
+    <Why
+      problem="A naive “N per fixed window” counter either forbids all bursts or allows bad ones, and clients' traffic is naturally spiky."
+      idea="Use a token bucket: capacity tokens that refill at a steady rate, so it allows a burst up to capacity and then enforces the sustained rate."
+      tradeoff="You now tune two parameters instead of one (capacity and refill), and a generous capacity permits bigger bursts than a strict per-second reading would."
+      next="That logic is easy on one server — the hard part is making it correct across many."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.RL3}>
+    <p class="prose">A limiter that lives in one server's memory breaks the moment you run several behind a load balancer. If each of 10 servers keeps its own count, a "100/min" limit silently becomes <span class="hl">up to 1,000/min</span> — the limit is <b>under-counted</b> because no server sees the whole picture. The fix is <b>shared, atomic state</b>: a fast store like <b>Redis</b> holding one counter per key, updated with an atomic operation (<code>INCR</code> plus an expiry, or a small <b>Lua script</b> for token-bucket math) so concurrent updates can't race.</p>
+    <Takeaway>Per-server counters under-count the true rate by the number of servers, so distributed limiting needs one shared counter per key updated atomically (e.g. Redis INCR + expiry, or a Lua script) — the whole fleet must read and write the same number.</Takeaway>
+    <SeeAlso slug="cloud" note="why several stateless servers behind a load balancer can't each hold their own state — and need an external store" />
+    <Advanced>
+      <p>The operation must be <b>atomic</b> because thousands of servers may touch one hot key at once: a read-modify-write done in app code races and over-allows. Redis runs commands single-threaded, so <code>INCR</code> (or a Lua script, which Redis runs atomically) collapses check-and-update into one indivisible step — the standard pattern is increment, set an expiry on first touch, and reject if the value exceeds the quota.</p>
+      <p>The cost is a network hop per check, so the shared store can become the bottleneck and a single point of failure. Mitigations: keep the store close (same region/AZ), shard it by key, or run a hybrid — a local in-memory bucket for the common case that periodically reconciles with the shared counter, trading a little accuracy for far fewer round-trips.</p>
+    </Advanced>
+    <Why
+      problem="Independent per-server counters each see only their slice of traffic, so the effective limit multiplies by the number of servers."
+      idea="Hold one counter per key in a shared, fast store and update it with an atomic operation so the whole fleet enforces a single, correct number."
+      tradeoff="A shared store adds a network hop, a hot-key bottleneck, and a dependency that can fail — accuracy bought with latency and a new moving part."
+      next="Which raises the question every reviewer asks — what happens when that store is down?"
+    />
+  </LayerSection>
+
+  <LayerSection {...L.RL4}>
+    <p class="prose">Two edge cases separate a toy from a real limiter. First, the <b>limiter store is down</b>: do you <span class="hl">fail open</span> (allow everything, prioritising availability — but the backend is now unprotected) or <span class="hl">fail closed</span> (reject everything, protecting the backend — but you just caused your own outage)? There's no universal answer; it's a deliberate stance. Second, communicate the rejection well: return <b>HTTP 429 Too Many Requests</b> with a <code>Retry-After</code> header so well-behaved clients back off instead of retrying in a tight, self-amplifying loop.</p>
+    <Takeaway>Decide fail-open (availability, exposed backend) vs fail-closed (safety, self-inflicted outage) on purpose, and reject with 429 + Retry-After so clients back off rather than hammer you harder.</Takeaway>
+    <SeeAlso slug="network" note="what 429 and Retry-After actually are on the wire — HTTP status codes and response headers" />
+    <Advanced>
+      <p>The choice usually splits by what's being protected: an internet-facing API guarding against abuse often <b>fails open</b> (a brief limiter outage shouldn't take the product down), while a limiter protecting a fragile or expensive downstream (a payments backend, a third-party quota) may <b>fail closed</b> to avoid a far worse cascade. Many systems fail open but with a tight local fallback limit so they're never fully unprotected.</p>
+      <p>Good 429 responses also return the quota state — <code>X-RateLimit-Limit</code>, <code>-Remaining</code>, and <code>-Reset</code> headers — so clients can self-pace before they're ever blocked. Pair that with <b>jittered exponential backoff</b> on the client to break the thundering-herd retry pattern that rate limiting is partly meant to tame.</p>
+    </Advanced>
+    <Why
+      problem="A limiter that ignores its own failure mode either leaves the backend defenceless or turns a dependency blip into a full outage, and a bare rejection invites tight retry storms."
+      idea="Pick fail-open or fail-closed against what you're protecting, and signal limits with 429 + Retry-After (and rate-limit headers) so clients cooperate."
+      tradeoff="Fail-open risks the backend during a limiter outage; fail-closed risks a self-inflicted outage — and even good signalling depends on clients honouring it."
+      next="Finally, the algorithm choice itself has tradeoffs worth naming."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.RL5}>
+    <p class="prose">Beyond token bucket, the window algorithms trade accuracy against cost. <b>Fixed-window</b> counts per calendar window (e.g. per minute) — dead cheap, but it has the <span class="hl">boundary-burst bug</span>: a client can send a full quota at <code>11:59:59</code> and another full quota at <code>12:00:00</code>, double the intended rate across the seam. <b>Sliding-window log</b> stores every request's timestamp — exact, but memory and CPU grow with traffic. <b>Sliding-window counter</b> blends the two with a weighted estimate: nearly as accurate, almost as cheap — the common production compromise.</p>
+    <Takeaway>Fixed-window is cheap but allows a 2× burst across the boundary; sliding-window log is exact but costly; sliding-window counter approximates the log at fixed-window cost — usually the right default, with token bucket when you want explicit burst control.</Takeaway>
+    <SeeAlso slug="devops" note="rolling out a limit change safely — canary the new policy, watch rejection and error rates, roll back if you throttle real users" />
+    <Advanced>
+      <p>The sliding-window counter estimates the current rate as <code>this_window + prev_window × (overlap fraction)</code> — one extra counter and a multiply, no per-request log. It can slightly over- or under-count at the edges, but it kills the fixed-window boundary burst for a few bytes of state, which is why it's the usual choice when you don't need token bucket's explicit burst knob.</p>
+      <p>All of these are policy on top of the same machinery: an atomic per-key counter in a shared store. Choosing among them is choosing a point on the accuracy-vs-cost curve — name the requirement (is a 2× boundary burst dangerous here?) and the algorithm follows.</p>
+    </Advanced>
+    <Why
+      problem="Each window algorithm is wrong in a different way — too lenient at boundaries, or too expensive at scale — and pretending one is universally best hides the engineering."
+      idea="Match the algorithm to the requirement: fixed-window when cheap-and-rough is fine, sliding-window log when exactness is worth the cost, sliding-window counter as the balanced default, token bucket for explicit bursts."
+      tradeoff="More accuracy costs more memory and CPU per check; cheaper algorithms admit predictable abuse (the boundary burst) — you trade one against the other on purpose."
+      next="Zoom out: requirements, scale, algorithm, shared state, failure modes, tradeoffs — the same six-step shape every system reuses."
+    />
+  </LayerSection>
+
+  <Quiz slug="rate-limiter" client:visible />
+  <p class="prose design-back"><a href="/design">← back to all system designs</a></p>
+</Base>
+
+<style>
+  .back-link{color:var(--accent,var(--signal))}
+  .design-back{max-width:680px;margin:40px auto 0;text-align:center}
+  .design-back a{color:var(--accent,var(--signal))}
+</style>

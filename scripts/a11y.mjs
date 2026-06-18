@@ -11,7 +11,7 @@ import { readFileSync } from 'node:fs';
 import { JSDOM } from 'jsdom';
 import axe from 'axe-core';
 
-const PAGES = ['dist/index.html', 'dist/network/index.html', 'dist/compiler/index.html', 'dist/languages/index.html', 'dist/render/index.html', 'dist/crypto/index.html', 'dist/database/index.html', 'dist/memory/index.html', 'dist/os/index.html', 'dist/structures/index.html', 'dist/numbers/index.html', 'dist/silicon/index.html', 'dist/cpu/index.html', 'dist/concurrency/index.html', 'dist/cloud/index.html', 'dist/raft/index.html', 'dist/devops/index.html', 'dist/logic/index.html', 'dist/learn/index.html', 'dist/search/index.html', 'dist/ai/index.html', 'dist/design/index.html', 'dist/design/url-shortener/index.html', 'dist/404.html'];
+const PAGES = ['dist/index.html', 'dist/network/index.html', 'dist/compiler/index.html', 'dist/languages/index.html', 'dist/render/index.html', 'dist/crypto/index.html', 'dist/database/index.html', 'dist/memory/index.html', 'dist/os/index.html', 'dist/structures/index.html', 'dist/numbers/index.html', 'dist/silicon/index.html', 'dist/cpu/index.html', 'dist/concurrency/index.html', 'dist/cloud/index.html', 'dist/raft/index.html', 'dist/devops/index.html', 'dist/logic/index.html', 'dist/learn/index.html', 'dist/search/index.html', 'dist/ai/index.html', 'dist/design/index.html', 'dist/design/url-shortener/index.html', 'dist/design/rate-limiter/index.html', 'dist/design/news-feed/index.html', 'dist/design/chat/index.html', 'dist/design/twitter/index.html', 'dist/design/video/index.html', 'dist/404.html'];
 let failed = false;
 
 for (const HTML of PAGES) {

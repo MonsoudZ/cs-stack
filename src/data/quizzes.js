@@ -485,4 +485,164 @@ export const quizzes = {
       ],
     },
   ],
+  'rate-limiter': [
+    {
+      level: 'easy',
+      question: 'A token bucket limiter has capacity 10 and refills 2 tokens per second. What does it allow?',
+      options: [
+        { label: 'A burst of up to 10 requests at once, then a steady 2 requests/second after that', correct: true, why: 'Capacity is the burst you tolerate (10 tokens to spend immediately) and the refill rate is the sustained throughput (2/sec once the bucket has drained).' },
+        { label: 'Exactly 2 requests per second, no more, ever — bursts are never allowed', why: 'That’s a leaky bucket’s flat ceiling, not a token bucket. A token bucket’s whole point is that a full bucket lets a short burst through before settling to the steady rate.' },
+        { label: 'Exactly 10 requests per second, since capacity is 10', why: 'Capacity is the burst size, not the per-second rate. The sustained rate is set by the refill (2/sec); the 10 is just how much can be spent at once.' },
+        { label: 'Unlimited requests until the bucket somehow overflows', why: 'A token bucket never fills past capacity, and each request spends a token — when tokens hit zero, requests are rejected. It’s a ceiling, not a free-for-all.' },
+      ],
+    },
+    {
+      level: 'medium',
+      question: 'You run a “100 requests/minute” limit across 10 app servers, each keeping its own in-memory counter. What actually happens?',
+      options: [
+        { label: 'The real limit becomes up to 1,000/minute, because each server counts only its own slice and none sees the total', correct: true, why: 'With per-server counters the limit is under-counted by the number of servers; the fix is one shared counter per key updated atomically (e.g. Redis INCR + expiry, or a Lua script).' },
+        { label: 'It stays exactly 100/minute — load balancers automatically keep the counters in sync', why: 'Load balancers route traffic; they don’t synchronise application state. Each server’s counter is independent, so the effective limit multiplies.' },
+        { label: 'The limit drops to about 10/minute, since the quota is split across the servers', why: 'It’s the opposite: each server independently allows the full 100, so the totals add up rather than divide.' },
+        { label: 'Requests are rejected at random because the servers’ counters conflict', why: 'There’s no conflict to resolve — the counters never talk to each other. Each over-allows on its own, so the aggregate exceeds the intended limit.' },
+      ],
+    },
+    {
+      level: 'hard',
+      question: 'Why is a fixed-window counter (e.g. “100 per calendar minute”) prone to the boundary-burst problem, and how does a sliding window fix it?',
+      options: [
+        { label: 'A client can send a full quota at the end of one window and another full quota at the start of the next — up to 2× the rate across the seam; a sliding window weights the previous window’s count so the seam disappears', correct: true, why: '100 at 11:59:59 plus 100 at 12:00:00 is 200 in two seconds. A sliding-window counter estimates the rate as this_window + prev_window × overlap, smoothing across the boundary at near fixed-window cost.' },
+        { label: 'Fixed windows are inaccurate because they store every request’s timestamp, which a sliding window avoids', why: 'Backwards — it’s the sliding-window log that stores every timestamp (exact but costly). A fixed window stores a single cheap counter; its flaw is the boundary burst, not timestamp storage.' },
+        { label: 'Fixed windows reject too many requests, and a sliding window simply raises the limit to compensate', why: 'The fixed window’s problem is being too lenient at the boundary, not too strict, and a sliding window tightens that seam — it doesn’t raise the quota.' },
+        { label: 'There’s no real difference; “sliding window” is just a fixed window with a longer duration', why: 'They differ fundamentally: a fixed window resets at calendar boundaries (creating the seam), while a sliding window continuously weights recent counts so no edge effect exists.' },
+      ],
+    },
+  ],
+  'news-feed': [
+    {
+      level: 'easy',
+      question: 'A news feed is opened far more often than posts are created. Why do many systems precompute each user’s feed ahead of time?',
+      options: [
+        { label: 'So opening the app is just fetching a ready-made list — no per-read computation', correct: true, why: 'The workload is overwhelmingly reads, so doing the assembly work in advance turns each feed open into a cheap cache fetch instead of an expensive on-the-spot query.' },
+        { label: 'Because posting is the bottleneck and must be made instant', why: 'Posting is the rare path; reads dominate. Optimizing the write path alone barely helps the experience users feel most — opening the feed.' },
+        { label: 'To guarantee every feed is perfectly consistent across all servers everywhere', why: 'Feeds tolerate being slightly stale; precomputing is about read speed, not global strong consistency, which would fight availability.' },
+        { label: 'Because precomputing uses less storage than computing on demand', why: 'It’s the opposite — precomputed per-user feeds duplicate references across many lists and use more space; you spend that storage to buy fast reads.' },
+      ],
+    },
+    {
+      level: 'medium',
+      question: 'What is the core tradeoff between fan-out on write (push) and fan-out on read (pull)?',
+      options: [
+        { label: 'Push pays at write time for cheap reads (writes are O(followers)); pull pays at read time for cheap writes (reads gather-merge on demand)', correct: true, why: 'Push precomputes feeds so reads are trivial but a post costs one write per follower; pull stores a post once but rebuilds the feed by querying everyone you follow on each open.' },
+        { label: 'Push is always faster than pull in every dimension', why: 'Push wins on reads but loses badly on writes for high-follower accounts; neither dominates, which is exactly why the tradeoff exists.' },
+        { label: 'Pull is more consistent, push is more available', why: 'That’s not the distinction — both can be tuned for staleness. The real axis is where the assembly cost is paid: write time vs read time.' },
+        { label: 'Push computes the feed on demand; pull precomputes it in advance', why: 'Reversed — push precomputes feeds at write time, pull computes them on demand at read time.' },
+      ],
+    },
+    {
+      level: 'hard',
+      question: 'Pure fan-out on write breaks for celebrity accounts. What’s the problem, and how does the hybrid fix it?',
+      options: [
+        { label: 'One celebrity post means millions of feed writes (O(followers)); the hybrid skips the push for huge accounts and instead pulls their posts at read time, merging into mostly-precomputed feeds', correct: true, why: 'Pushing to tens of millions of feeds per post is a write storm, so high-follower accounts are made pull-only above a threshold and merged in at read time — push for the many, pull for the few.' },
+        { label: 'Celebrity posts are too large to store, so the hybrid compresses them', why: 'Post size isn’t the issue — the feed stores ids, not bodies. The problem is the sheer number of feed writes per post.' },
+        { label: 'Celebrity reads are slow, so the hybrid precomputes celebrity feeds harder', why: 'The celebrity failure is on the write side (fan-out amplification), not their own reads; pushing even harder is what the hybrid avoids for them.' },
+        { label: 'There’s no real fix; systems just rate-limit how often celebrities can post', why: 'Rate-limiting posting doesn’t solve a single viral post fanning out to millions; the actual fix is switching those accounts to pull-and-merge at read time.' },
+      ],
+    },
+  ],
+  'chat': [
+    {
+      level: 'easy',
+      question: 'Why hold a persistent WebSocket connection open per client instead of having the client poll the server for new messages?',
+      options: [
+        { label: 'A persistent socket lets the server push a message the instant it arrives; polling only checks on an interval, so it’s laggy and mostly returns nothing', correct: true, why: 'Chat needs server-initiated delivery — the recipient never “asked” for the message. An open bidirectional socket pushes immediately, while polling is up to a full interval late and wastes requests on empty checks.' },
+        { label: 'Polling is impossible over HTTP, so a WebSocket is the only option that works at all', why: 'Polling (and long-polling) work fine over HTTP. The reason to prefer a socket is latency and efficiency, not feasibility.' },
+        { label: 'WebSockets are stateless, so they’re cheaper for the server to maintain than polling', why: 'It’s the opposite: an open socket is stateful and pinned to a server, which is the cost you accept. The win is instant push.' },
+        { label: 'A WebSocket encrypts messages, while polling sends them in plaintext', why: 'Encryption is handled by TLS regardless of whether you poll or hold a socket. The real difference is server→client push latency.' },
+      ],
+    },
+    {
+      level: 'medium',
+      question: 'How does a chat system keep a conversation’s messages in order, and deliver to someone who was offline when a message was sent?',
+      options: [
+        { label: 'Stamp each message with a monotonic per-conversation sequence number and render by it; persist every message durably so an offline user pulls the backlog from their last-seen sequence on reconnect', correct: true, why: 'Sequence numbers give a total order independent of network timing, and store-and-forward (persist before deliver) means an offline recipient’s messages wait durably and re-send in order on reconnect.' },
+        { label: 'Order messages by the timestamp each client’s clock records, and drop any message the recipient misses while offline', why: 'Client clocks drift and disagree, so timestamps don’t give a reliable order — and dropping missed messages loses data. Both halves are wrong.' },
+        { label: 'Rely on TCP to deliver everything in order, and require the recipient to be online or the message fails', why: 'TCP only orders bytes within one connection, not messages across reconnects or servers, and failing when offline is exactly what store-and-forward prevents.' },
+        { label: 'Let the recipient sort by arrival time and ask the sender to resend anything missed after they reconnect', why: 'Arrival time reflects network jitter, not send order, and putting re-delivery on the sender is fragile — the durable store and sequence numbers handle both centrally.' },
+      ],
+    },
+    {
+      level: 'hard',
+      question: 'Why do chat systems use at-least-once delivery with idempotent message IDs rather than guaranteeing exactly-once?',
+      options: [
+        { label: 'Exactly-once is impractical over a lossy network — a lost ack looks identical to a lost message, forcing retries that can duplicate — so they retry (at-least-once) and dedupe by a stable client-generated message ID', correct: true, why: 'You can’t distinguish a dropped message from a dropped acknowledgment, so the sender must retry to avoid loss, which risks duplicates; a stable idempotent ID lets the receiver drop the retry.' },
+        { label: 'Exactly-once would be too slow, so they accept losing the occasional message to keep latency low', why: 'At-least-once never intentionally loses messages — that would break the core requirement. It guarantees delivery and removes duplicates via dedupe.' },
+        { label: 'At-least-once means the server sends each message only once and never retries, avoiding duplicates entirely', why: 'That describes at-most-once, and it risks loss. At-least-once specifically retries, which can duplicate — the idempotent ID cleans those up.' },
+        { label: 'Idempotent IDs make the network reliable, so exactly-once becomes automatic once you add them', why: 'IDs don’t make the network reliable; they let the receiver detect repeats. Exactly-once still isn’t achievable end-to-end — at-least-once plus dedupe approximates it.' },
+      ],
+    },
+  ],
+  'twitter': [
+    {
+      level: 'easy',
+      question: 'Why does Twitter precompute (cache) each user’s home timeline instead of building it fresh on every open?',
+      options: [
+        { label: 'So a timeline read is one fast cache lookup, not a live query across the hundreds of accounts you follow', correct: true, why: 'Reads vastly outnumber writes and must be fast, so the work is done ahead of time on write — opening the app becomes a lookup of an already-assembled list rather than a scatter-gather across every followee.' },
+        { label: 'To save storage — a precomputed timeline takes less space than the tweets themselves', why: 'It’s the opposite: precomputing per-user timelines duplicates references across every follower (kept small only by storing IDs, not bodies). The win is read speed, not space.' },
+        { label: 'Because tweets must appear in every follower’s timeline at the exact same instant', why: 'Timelines are eventually consistent — a tweet arriving a beat late is fine. Precomputation is about cheap reads, not synchronized delivery.' },
+        { label: 'So writes become cheaper by deferring all work to read time', why: 'Precomputing on write makes writes more expensive, not less; the point is to make the read-heavy path cheap, paying for it on the rarer write path.' },
+      ],
+    },
+    {
+      level: 'medium',
+      question: 'Why does pure fan-out-on-write break specifically for celebrity accounts?',
+      options: [
+        { label: 'One celebrity tweet must be written into tens of millions of follower caches — a single post becomes a write storm', correct: true, why: 'Fan-out-on-write costs one cache write per follower; for an account with tens of millions of followers that’s tens of millions of writes per tweet.' },
+        { label: 'Celebrities post far too frequently for any system to keep up', why: 'Posting rate isn’t the issue — even one tweet is catastrophic. The cost comes from the follower count (the fan-out factor), not how often they post.' },
+        { label: 'Celebrity tweets are larger and exceed the per-entry cache size limit', why: 'Timelines store small post IDs, not bodies. The problem is the number of follower caches to write, not the size of each.' },
+        { label: 'Their followers read so often that the cache is never warm enough', why: 'Reads from a precomputed cache are cheap regardless of frequency; the break is on the write side.' },
+      ],
+    },
+    {
+      level: 'hard',
+      question: 'How does the hybrid push/pull-merge design resolve the celebrity problem — and why is eventual consistency acceptable here?',
+      options: [
+        { label: 'Push ordinary accounts’ tweets into follower caches on write, skip fan-out for celebrities and pull-and-merge their tweets on read; a timeline tolerates a tweet appearing a second late, so the async fan-out and read-time merge can lag', correct: true, why: 'Each account sits on the cheaper side of its amplification: small accounts pay tiny write fan-out, celebrities pay a small read-time pull. And a slightly late tweet is harmless, so fan-out can run async.' },
+        { label: 'Fan out everything on write but compress celebrity tweets so the millions of cache writes become cheap', why: 'Compression doesn’t reduce the number of writes — tens of millions of cache entries still get touched. The hybrid avoids those writes by pulling at read time.' },
+        { label: 'Pull every account’s tweets at read time and rank them, abandoning precomputation; consistency is strong because nothing is cached', why: 'Pulling all followees on every read is the scatter-gather the design avoids. The hybrid keeps the cache for ordinary accounts and pulls only the few celebrities.' },
+        { label: 'Push celebrity tweets first and ordinary tweets later, using strong consistency to guarantee exact ordering for everyone', why: 'Pushing celebrity tweets is exactly the write storm being avoided, and timelines use eventual consistency — a strict global order is neither needed nor affordable at this scale.' },
+      ],
+    },
+  ],
+  'video': [
+    {
+      level: 'easy',
+      question: 'A video platform serves terabits per second to millions of viewers. Why front the origin with a CDN and serve segments from the edge?',
+      options: [
+        { label: 'The origin is one place with a finite pipe; edge POPs near users serve most bytes locally, so the origin only pays for the occasional miss', correct: true, why: 'Video is bandwidth-dominated — the origin can’t physically push terabits/sec, so a CDN caches segments at edges close to users and the vast majority of bytes never touch the origin.' },
+        { label: 'CDNs transcode the video faster than the origin can', why: 'Transcoding happens offline at ingest, not at the edge; the CDN caches and serves already-prepared segments, it doesn’t encode them.' },
+        { label: 'Edges store the only copy, so the origin can be deleted to save money', why: 'The origin is the durable source of truth holding every segment; edges hold cached copies and fetch from the origin on a miss.' },
+        { label: 'It makes the video files smaller', why: 'A CDN doesn’t shrink files; size comes from the bitrate ladder chosen at transcode. The CDN’s win is serving bytes from near the viewer.' },
+      ],
+    },
+    {
+      level: 'medium',
+      question: 'What does adaptive bitrate do, and why does it depend on cutting each rendition into segments plus a bitrate ladder?',
+      options: [
+        { label: 'The player measures its bandwidth and picks the highest-quality segment that won’t stall, switching per segment — which works because every rendition is a ladder of qualities cut into aligned, individually-requestable chunks', correct: true, why: 'Segments make each chunk independently addressable so the player can change quality between chunks, and the ladder gives it qualities to choose from — together letting it ramp up on a fast link and step down on a slow one without stalling.' },
+        { label: 'The server inspects each viewer’s connection and transcodes a custom stream on the fly for them', why: 'The decision is client-side and per-segment; the server stays a dumb cache of pre-made segments. On-the-fly per-viewer transcoding would destroy the cacheability a CDN needs.' },
+        { label: 'It compresses segments harder when the network is slow so the same quality fits', why: 'ABR switches between already-encoded renditions of different quality; it doesn’t re-compress. Lower bandwidth means picking a lower rung.' },
+        { label: 'It downloads the whole video at one quality, then upgrades it after playback', why: 'ABR chooses quality segment by segment during playback based on live bandwidth — there’s no single fixed quality and no post-hoc upgrade.' },
+      ],
+    },
+    {
+      level: 'hard',
+      question: 'Why transcode each upload ahead of time into many renditions, rather than storing one master and encoding on demand — and what’s the core tradeoff?',
+      options: [
+        { label: 'Pre-encoding the ladder makes every segment a static, cacheable object ready before playback (so the CDN and ABR work); the cost is paying transcode compute once and storing every rendition forever to save bandwidth and quality at playback', correct: true, why: 'Adaptive bitrate needs the qualities to already exist and edge caching needs static objects, so you spend CPU once and storage forever up front — the classic storage-vs-bandwidth/quality trade.' },
+        { label: 'Encoding on demand is impossible; video can only ever be encoded before it’s uploaded', why: 'On-demand and even live encoding are possible — they’re just costlier and less cacheable at playback, not impossible.' },
+        { label: 'Many renditions exist mainly to make the files larger so the CDN has more to cache', why: 'Renditions exist to match viewers’ varying bandwidth and devices; the extra storage is a cost you accept, not a goal.' },
+        { label: 'Pre-transcoding lets the origin serve every viewer directly without a CDN', why: 'Pre-transcoding doesn’t change the origin’s finite pipe — you still need a CDN to serve the bytes. It enables caching and ABR; it doesn’t replace edge delivery.' },
+      ],
+    },
+  ],
 };

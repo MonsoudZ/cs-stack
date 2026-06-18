@@ -1,0 +1,156 @@
+---
+import Base from '../../layouts/Base.astro';
+import LayerSection from '../../components/LayerSection.astro';
+import RequestFlow from '../../components/RequestFlow.svelte';
+import Why from '../../components/Why.astro';
+import Takeaway from '../../components/Takeaway.astro';
+import Advanced from '../../components/Advanced.astro';
+import Quiz from '../../components/Quiz.svelte';
+import SeeAlso from '../../components/SeeAlso.astro';
+
+const sections = [
+  { id: 'TW0', num: '00', navLabel: 'Requirements', zone: 'meaning', title: 'Requirements: what are we actually building?', sub: 'post · follow · home timeline · read-fast at huge scale' },
+  { id: 'TW1', num: '01', navLabel: 'Scale', zone: 'number', title: 'Scale estimate: fan-out volume & the celebrity skew', sub: 'hundreds of millions of users · the write storm' },
+  { id: 'TW2', num: '02', navLabel: 'Timeline', zone: 'system', title: 'Hybrid timeline assembly: trace it', sub: 'push for normal · pull-and-merge for celebrities' },
+  { id: 'TW3', num: '03', navLabel: 'Storage', zone: 'system', title: 'Storage & sharding', sub: 'timelines store post IDs · shard by user id · hydrate' },
+  { id: 'TW4', num: '04', navLabel: 'Ranking', zone: 'system', title: 'Ranking the timeline', sub: 'recency · affinity · engagement signals' },
+  { id: 'TW5', num: '05', navLabel: 'Tradeoffs', zone: 'all', title: 'Tradeoffs & the whole picture', sub: 'push vs pull · eventual consistency · the hybrid line' },
+];
+const L = Object.fromEntries(sections.map((l) => [l.id, l]));
+
+const flow = {
+  nodes: [
+    { id: 'tweet', label: 'Tweet' },
+    { id: 'fanout', label: 'Fan-out' },
+    { id: 'home', label: 'Home timeline' },
+    { id: 'reader', label: 'Reader' },
+  ],
+  steps: [
+    { active: 'tweet', phase: 'WRITE', note: 'A normal user with ~500 followers posts a tweet. We persist it, then decide how it reaches followers.' },
+    { active: 'fanout', phase: 'WRITE', note: 'Fan-out-on-write: because this account is small, we push the new tweet to every follower right now.', meta: { fanout: '~500 writes' } },
+    { active: 'home', phase: 'WRITE', note: 'The tweet ID is written into each follower’s precomputed home-timeline cache. Their read later is just a lookup.', meta: { home: '+1 ID per follower' } },
+    { active: 'tweet', phase: 'WRITE', warn: 'fanout', note: 'Now a CELEBRITY posts. Same write — but this account has tens of millions of followers.' },
+    { active: 'fanout', phase: 'WRITE', warn: 'fanout', note: 'tens of millions of followers — fanning out would be a write storm', meta: { fanout: '✗ skipped' } },
+    { active: 'home', phase: 'WRITE', note: 'So celebrity tweets are NOT pushed into follower caches. They stay in the celebrity’s own tweet store, to be pulled at read time.', meta: { home: 'unchanged' } },
+    { active: 'reader', phase: 'READ', note: 'A reader opens their timeline. They follow ~1,000 normal accounts and a handful of celebrities.' },
+    { active: 'home', phase: 'READ', note: 'Read the precomputed home-timeline cache — the IDs already pushed by every normal account they follow. One fast lookup.', meta: { home: '~800 IDs cached' } },
+    { active: 'fanout', phase: 'READ', note: 'For the few celebrities they follow, pull those accounts’ recent tweets live — a tiny, bounded fetch.', meta: { fanout: 'pull ~5 feeds' } },
+    { active: 'home', phase: 'READ', note: 'MERGE the two sources: the pushed cache + the freshly pulled celebrity tweets, into one candidate set.', meta: { home: 'cache + pulled' } },
+    { active: 'reader', phase: 'READ', note: 'Rank the merged set (recency, affinity, engagement), hydrate the post IDs into full tweets, and return the timeline.', response: 'ranked home timeline' },
+  ],
+};
+
+const title = 'System design — Twitter timeline';
+const description = 'A full walkthrough of designing the Twitter home timeline at scale: requirements, the fan-out volume and the celebrity-skew problem, the hybrid push/pull-merge timeline assembly (traced step by step), how timelines store post IDs and shard by user, ranking, and the key tradeoffs — the canonical very-large system-design problem, built from the stacks.';
+---
+<Base {title} {description} layers={sections}>
+  <div slot="hero">
+    <div class="kicker">A system design · very big</div>
+    <h1 class="title">THE <em>TWITTER</em><br />TIMELINE</h1>
+    <p class="lede">It looks like a news feed — post a tweet, follow people, read your home timeline — and the core idea (fan-out) is the same. But at hundreds of millions of users one fact dominates everything: a single celebrity has tens of millions of followers, so a naive design dies on the write storm. The whole design is a hybrid built to dodge exactly that. We'll build it from the stacks you already know.</p>
+    <div class="hero-meta"><a class="back-link" href="/design">← all system designs</a> · requirements → scale → timeline → storage → ranking → tradeoffs</div>
+  </div>
+
+  <LayerSection {...L.TW0}>
+    <p class="prose">Pin the scope first. <b>Functional</b>: a user can <b>post</b> a tweet, <b>follow</b> other users, and read a <b>home timeline</b> — the merged, reverse-chronological-ish stream of tweets from everyone they follow. <b>Non-functional</b> — and this is where the design lives: <span class="hl">hundreds of millions</span> of users, the workload is <b>read-heavy</b> (people scroll far more than they post), and opening the timeline must be <span class="hl">fast</span>. A timeline that takes a second to assemble on every open is a non-starter at this scale.</p>
+    <Takeaway>The requirements already shape the design: read-heavy, latency-critical on the timeline read, at a scale where the work can't be redone on every request — which is what forces precomputation and pushes the heavy lifting onto the write path.</Takeaway>
+    <Advanced>
+      <p>The decisive non-functional fact is the <b>read:write ratio</b> combined with the <b>follow graph's fan-out</b>. "Fast timeline reads" plus "billions of reads/day" means you cannot assemble a timeline by querying every followee at read time — that's a huge scatter-gather per open. The only way to make reads cheap is to do work ahead of time, on write. Each adjective in the brief is a lever: "read-heavy" justifies spending on writes; "fast reads" justifies a precomputed per-user timeline cache.</p>
+    </Advanced>
+    <Why
+      problem="A vague brief (“build Twitter”) hides the one decision that dominates at this scale: where the timeline-assembly work happens — read time or write time."
+      idea="Separate functional requirements (post, follow, read a home timeline) from the non-functional ones (hundreds of millions of users, read-heavy, fast reads), because the non-functional ones force the architecture."
+      tradeoff="Pinning scope means deferring search, DMs, media, and notifications — a design that tries to do everything answers nothing."
+      next="Put numbers on it, and one number will jump out."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.TW1}>
+    <p class="prose">A quick estimate turns adjectives into the core problem. Say <b>500M</b> users, <b>~400M tweets/day</b> (~4,600 writes/sec), and the average user follows hundreds of accounts — so a single tweet must reach hundreds of timelines. That's the <b>fan-out</b>. The catch is the distribution: most accounts have a few hundred followers, but a <span class="hl">celebrity has tens of millions</span>. One celebrity tweet, fanned out on write, is <b>tens of millions of cache writes</b> — a write storm from a single post.</p>
+    <Takeaway>Back-of-the-envelope math says the average fan-out is fine, but the follow graph is wildly skewed — and the few accounts with tens of millions of followers turn one tweet into a write storm, which is the single fact the whole design is built around.</Takeaway>
+    <Advanced>
+      <p>The point of the estimate isn't precision — it's spotting the <b>skew</b>. The mean fan-out (a few hundred) suggests fan-out-on-write is cheap; the <b>tail</b> (tens of millions) says it's catastrophic for a handful of accounts. Designing for the average here would be a disaster. Follower counts follow a power-law, so a tiny fraction of accounts generate the overwhelming majority of fan-out work — and that fraction is exactly where naive fan-out blows up.</p>
+      <p>Note the asymmetry: fanning out a celebrity tweet to 40M caches is 40M writes per post, but those same 40M followers reading it cost almost nothing if instead they pull one celebrity feed each. The math is what motivates treating celebrities differently — it isn't an edge case, it's the load.</p>
+    </Advanced>
+    <Why
+      problem="Without numbers you can't see that the system has two completely different workloads hiding inside ‘fan-out’ — the average account and the celebrity."
+      idea="Estimate tweets/sec and average fan-out, then look at the tail of the follower distribution — the celebrity accounts are where the cost concentrates."
+      tradeoff="The numbers are guesses, but the order-of-magnitude gap between mean and tail fan-out is the real finding, and it's robust."
+      next="Now build the timeline-assembly machine that survives that skew."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.TW2}>
+    <p class="prose">The architecture is a deliberate <b>hybrid</b>. For ordinary accounts, <b>fan-out-on-write</b>: when they post, push the tweet ID into each follower's precomputed <b>home-timeline cache</b>, so the follower's read is just a lookup. For celebrities, <b>do not fan out</b> — leave their tweets in their own store and <b>pull-and-merge</b> them at read time. When a reader opens their timeline, read the pushed cache and pull the few celebrity feeds they follow, then <b>merge and rank</b>. Step a normal post, a celebrity post, and a read through it.</p>
+    <RequestFlow flow={flow} client:visible />
+    <Takeaway>Push ordinary tweets into per-follower caches on write (cheap fan-out, instant reads); skip fan-out for celebrities and pull-and-merge their tweets on read (avoids the write storm) — the read combines a precomputed cache with a small live pull, then ranks.</Takeaway>
+    <SeeAlso slug="cloud" note="the load balancer, stateless app servers, and per-user cache this assembly runs on" />
+    <Advanced>
+      <p>The hybrid line is drawn by a <b>threshold</b> on follower count: above it, an account is treated as a celebrity and its tweets are pulled, not pushed. The merge at read time is bounded — a reader follows only a handful of celebrities, so the live pull is tiny — while the bulk of their timeline is the cache that was filled cheaply by the many small accounts they follow. This keeps both the write path (no million-write storms) and the read path (one cache lookup plus a few small fetches) within budget.</p>
+      <p>The <b>write</b> phase for a normal tweet is the expensive-but-bounded part: one post becomes hundreds of cache writes, done asynchronously off the post request so the poster doesn't wait. The <b>read</b> phase is what users feel, so it must stay a lookup-plus-small-merge — never a scatter-gather across every followee.</p>
+    </Advanced>
+    <Why
+      problem="Pure fan-out-on-write dies on celebrities (write storms); pure fan-out-on-read dies on everyone (scatter-gather across hundreds of followees on every open)."
+      idea="Split the workload: push ordinary accounts' tweets into per-follower caches on write, and pull celebrities' tweets on read, then merge — each strategy where it's cheap."
+      tradeoff="The hybrid adds a code path and a celebrity threshold to maintain, and the read now merges two sources — but it's the only shape that keeps both writes and reads bounded at this scale."
+      next="Two details make the cache affordable: what you store in a timeline, and how you shard it."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.TW3}>
+    <p class="prose">A home-timeline cache holds <b>post IDs, not tweet bodies</b> — an ordered list of IDs per user. Storing the full text and media in every follower's timeline would multiply storage by the fan-out; instead you keep one copy of each tweet in a tweet store and <b>hydrate</b> the IDs into full tweets at read time. Everything is <b>sharded by user id</b>: a user's timeline and their own tweets live on a shard chosen by hashing their id, so any single user's data is found in one hop.</p>
+    <Takeaway>Timelines store post IDs (hydrate the bodies separately, from one canonical copy) so the cache stays small; shard by user id so each user's timeline and tweets are a single-shard lookup — the workload is per-user, so partition by user.</Takeaway>
+    <SeeAlso slug="database" note="the partitioning / sharding and the indexed point lookups this storage layout rests on" />
+    <Advanced>
+      <p>Storing IDs instead of bodies is the difference between a timeline cache that fits in memory and one that doesn't: a tweet ID is a few bytes, a hydrated tweet is hundreds. Hydration is a batched multi-get against the tweet store (itself cached), turning a list of IDs into a screen of content in one round trip. The cost is an extra fetch on read — paid back many times over by the storage you save and the single canonical copy you get to edit/delete in one place.</p>
+      <p>Sharding <b>by user id</b> keeps each user's timeline contiguous and load roughly even, but it means assembling a timeline touches many shards (one per followee) <i>if</i> you pulled on read — which is exactly why the normal-account path precomputes on write instead. The celebrity pull touches only a few shards, so it stays cheap. The structures and database stacks underpin this: an ordered per-user list and a sharded point lookup.</p>
+    </Advanced>
+    <Why
+      problem="Copying full tweets into every follower's timeline would explode storage by the fan-out factor, and a single store can't hold or serve hundreds of millions of users' timelines."
+      idea="Store only post IDs in per-user timelines and hydrate from one canonical tweet store; shard everything by user id so per-user access is a single-shard lookup."
+      tradeoff="Hydration adds a read-time fetch and sharding gives up cheap cross-user queries — both fine, because the access pattern is per-user and ID-keyed."
+      next="The merged list is just candidates — what decides their order?"
+    />
+  </LayerSection>
+
+  <LayerSection {...L.TW4}>
+    <p class="prose">The merged set of tweet IDs is a pool of <b>candidates</b>, not a finished timeline — something has to order them. The simplest ranking is <b>recency</b> (reverse-chronological), and that alone is a perfectly good timeline. Richer ranking layers in <span class="hl">signals</span>: <b>affinity</b> (how much you interact with the author), <b>engagement</b> (likes, replies, reposts the tweet is getting), and recency together, scored into an order that surfaces what you're most likely to care about.</p>
+    <Takeaway>Ranking turns the merged candidate pool into an ordered timeline: recency is the baseline; affinity, engagement, and recency combined produce a relevance-ranked feed — but the ranking step assumes the candidate set was already assembled cheaply.</Takeaway>
+    <SeeAlso slug="database" note="aggregating engagement counts and reading them fast enough to score at timeline-read time" />
+    <Advanced>
+      <p>Ranking is layered <i>on top of</i> assembly, not woven into it — first gather candidates cheaply (cache + celebrity pull), then score. That separation matters: it lets you change the ranking model without touching the fan-out machinery. Scoring at read time needs the signals to be cheap to read (precomputed engagement counts, a cached affinity score), or ranking itself becomes the bottleneck you were trying to avoid.</p>
+      <p>A ranked feed also relaxes ordering guarantees: if tweets are scored rather than strictly time-ordered, a tweet arriving a moment late simply scores in wherever it lands — there was never a single ‘correct’ position to be wrong about. That tolerance is what makes the eventual-consistency stance (next section) comfortable.</p>
+    </Advanced>
+    <Why
+      problem="A merged pile of tweet IDs has no inherent order, and pure recency can bury the posts a user most wants from the noise of everyone they follow."
+      idea="Rank the candidates with signals — recency, affinity to the author, and the tweet's engagement — as a step layered on top of the (cheap) assembly."
+      tradeoff="Relevance ranking improves the feed but adds complexity and needs cheap-to-read signals; many users are well served by plain reverse-chronological, so ranking is opt-in complexity."
+      next="Step back: name the tradeoffs the whole hybrid rests on."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.TW5}>
+    <p class="prose">Good designs are explicit about their tradeoffs. The sharpest here is <b>push vs pull</b>: fan-out-on-write makes reads instant but writes expensive (and impossible for celebrities); fan-out-on-read makes writes trivial but reads a scatter-gather — so the design <b>refuses to pick one</b> and runs both, drawing a celebrity threshold between them. The second is <span class="hl">consistency</span>: a timeline is fine being <b>eventually consistent</b> — a tweet showing up a second late is completely acceptable, which is what lets fan-out run async and lets the pull-merge lag slightly.</p>
+    <Takeaway>System design is choosing tradeoffs on purpose: push vs pull (resolved by a hybrid keyed on follower count), and strong vs eventual consistency (eventual is fine for a timeline) — naming them and picking deliberately is the design.</Takeaway>
+    <SeeAlso slug="cloud" note="the CAP tradeoff and eventual consistency this timeline leans on — choosing availability over strict ordering" />
+    <Advanced>
+      <p>The <b>read vs write amplification</b> math is the crux. Fan-out-on-write amplifies the <i>write</i>: one post → N follower-cache writes, ruinous when N is tens of millions. Fan-out-on-read amplifies the <i>read</i>: one open → query M followees, ruinous when M is hundreds and reads are billions/day. The hybrid puts each account on the cheaper side of its own amplification — small accounts pay write amplification (small N), celebrities pay read amplification (paid by the few followers who pull, M small per reader).</p>
+      <p>Celebrity accounts are a textbook <b>hot key</b>: their tweet feed is read by millions, so it must be heavily cached and replicated, and the pull at read time hits that cache, not a single hot shard. And reads <i>must</i> be served from cache at this QPS — billions of timeline opens/day cannot each fan out to disk; the precomputed per-user cache plus a small cached celebrity pull is the only thing that fits the latency and load budget.</p>
+    </Advanced>
+    <Why
+      problem="The remaining decisions (push vs pull, what consistency to promise) have real costs on both sides, and pretending there's one right answer hides the engineering."
+      idea="Make each tradeoff explicit: resolve push-vs-pull with a follower-count-keyed hybrid, and accept eventual consistency because a timeline tolerates a tweet arriving slightly late."
+      tradeoff="The hybrid is more moving parts than either pure strategy, and eventual consistency means a follower may see a tweet a beat late — both chosen on purpose because they buy bounded reads and writes at this scale."
+      next="Zoom out: the same six-step shape — requirements, estimate, assembly, storage, ranking, tradeoffs — scales from a URL shortener up to this."
+    />
+  </LayerSection>
+
+  <Quiz slug="twitter" client:visible />
+  <p class="prose design-back"><a href="/design">← back to all system designs</a></p>
+</Base>
+
+<style>
+  .back-link{color:var(--accent,var(--signal))}
+  .design-back{max-width:680px;margin:40px auto 0;text-align:center}
+  .design-back a{color:var(--accent,var(--signal))}
+</style>

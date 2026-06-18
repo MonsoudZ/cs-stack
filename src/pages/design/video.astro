@@ -1,0 +1,157 @@
+---
+import Base from '../../layouts/Base.astro';
+import LayerSection from '../../components/LayerSection.astro';
+import RequestFlow from '../../components/RequestFlow.svelte';
+import Why from '../../components/Why.astro';
+import Takeaway from '../../components/Takeaway.astro';
+import Advanced from '../../components/Advanced.astro';
+import Quiz from '../../components/Quiz.svelte';
+import SeeAlso from '../../components/SeeAlso.astro';
+
+const sections = [
+  { id: 'VD0', num: '00', navLabel: 'Requirements', zone: 'meaning', title: 'Requirements: what are we actually building?', sub: 'upload · stream to millions · any device · fast start · global' },
+  { id: 'VD1', num: '01', navLabel: 'Scale', zone: 'number', title: 'Scale estimate: petabytes and a bandwidth wall', sub: 'storage in petabytes · the cost is moving bytes' },
+  { id: 'VD2', num: '02', navLabel: 'Ingest', zone: 'system', title: 'Ingest & transcode: the bitrate ladder', sub: 'one upload → many renditions, chopped into segments' },
+  { id: 'VD3', num: '03', navLabel: 'Delivery', zone: 'system', title: 'Delivery: serve the bytes from the edge', sub: 'a CDN caches segments at POPs close to users' },
+  { id: 'VD4', num: '04', navLabel: 'Adaptive bitrate', zone: 'system', title: 'Adaptive bitrate: the player picks quality', sub: 'measure bandwidth · switch per segment · avoid stalls' },
+  { id: 'VD5', num: '05', navLabel: 'Tradeoffs', zone: 'all', title: 'Tradeoffs & the whole picture', sub: 'startup vs quality · storage of renditions · live vs on-demand' },
+];
+const L = Object.fromEntries(sections.map((l) => [l.id, l]));
+
+const title = 'System design — video streaming';
+const description = 'A full walkthrough of designing a video streaming platform: requirements, a back-of-the-envelope scale estimate dominated by bandwidth, transcoding into a bitrate ladder, delivery from a CDN (traced segment by segment), adaptive bitrate at the player, and the key tradeoffs — moving petabytes to millions of devices, built from the stacks.';
+
+const flow = {
+  nodes: [
+    { id: 'player', label: 'Player' },
+    { id: 'edge', label: 'CDN edge' },
+    { id: 'origin', label: 'Origin' },
+    { id: 'transcoder', label: 'Transcoder' },
+  ],
+  steps: [
+    { phase: 'STREAM', active: 'transcoder', note: 'Offline, before anyone watches: an upload arrives and the transcoder gets to work.', meta: { transcoder: 'one upload' } },
+    { phase: 'STREAM', active: 'transcoder', note: 'It produces MANY renditions — a ladder of bitrates and resolutions (240p … 1080p … 4K).', meta: { transcoder: 'bitrate ladder' } },
+    { phase: 'STREAM', active: 'transcoder', note: 'Each rendition is chopped into short SEGMENTS (a few seconds each, HLS/DASH).', meta: { transcoder: 'cut into segments' } },
+    { phase: 'STREAM', active: 'origin', note: 'All renditions and segments are written to the Origin — durable, but far from the viewer.', meta: { origin: 'segments stored' } },
+    { phase: 'STREAM', active: 'player', note: 'Now a viewer hits play. The player first fetches the manifest — the list of renditions and segments.', meta: { player: 'fetch manifest' } },
+    { phase: 'STREAM', active: 'edge', note: 'It requests the first segment from the NEAREST CDN edge, not the origin.', meta: { player: 'request segment', edge: 'cache hit' } },
+    { phase: 'STREAM', active: 'edge', note: 'Cache HIT — the edge already has this segment and serves it directly. The origin never sees it.', meta: { edge: 'cache hit' }, response: 'segment from edge' },
+    { phase: 'STREAM', active: 'origin', note: 'A less-popular segment misses: the edge has to fetch it from the Origin — just this once.', meta: { edge: 'miss → origin', origin: 'serve once' } },
+    { phase: 'STREAM', active: 'edge', note: 'The edge caches that segment, so every later viewer in this region gets a hit.', meta: { edge: 'now cached' }, response: 'segment, then cached' },
+    { phase: 'STREAM', active: 'player', note: 'ADAPTIVE BITRATE: the player measures its throughput and sees plenty of headroom.', meta: { player: 'measuring throughput' } },
+    { phase: 'STREAM', active: 'edge', note: 'So it asks the edge for the next segment at a HIGHER quality — a 1080p rendition.', meta: { player: '1080p', edge: 'cache hit' }, response: '1080p segment' },
+    { phase: 'STREAM', active: 'player', note: 'Then bandwidth drops. The buffer is at risk of draining — a stall is coming.', warn: 'player', meta: { player: 'bandwidth drops' } },
+    { phase: 'STREAM', active: 'edge', note: 'The player switches DOWN to a lower bitrate for the next segment, trading quality to keep playing.', warn: 'player', meta: { player: '480p', edge: 'cache hit' }, response: '480p segment — no stall' },
+  ],
+};
+---
+<Base {title} {description} layers={sections}>
+  <div slot="hero">
+    <div class="kicker">A system design · very big</div>
+    <h1 class="title">THE <em>VIDEO</em><br />STREAM</h1>
+    <p class="lede">Upload a video once, then stream it to millions of people on every kind of device and connection — and start playing almost instantly. The trick isn't clever logic; it's bandwidth. The whole design is about <span class="hl">not serving bytes from the origin</span>: cache video close to users, prepare it ahead of time in many qualities, and let the player choose. We'll build it from the stacks you already know.</p>
+    <div class="hero-meta"><a class="back-link" href="/design">← all system designs</a> · requirements → scale → ingest → delivery → adaptive bitrate → tradeoffs</div>
+  </div>
+
+  <LayerSection {...L.VD0}>
+    <p class="prose">Pin the scope first. <b>Functional</b>: a creator <b>uploads</b> a video; viewers <b>stream</b> it on demand across phones, TVs, and laptops, each on a different connection. <b>Non-functional</b> — where the design lives: it must scale to <span class="hl">millions of concurrent viewers</span>, <b>start fast</b> (a slow first frame loses the viewer), play smoothly without <b>stalls</b> on a shaky connection, and work <b>globally</b>. The dominant cost isn't compute or storage — it's <b>bandwidth</b>: moving enormous volumes of bytes to viewers everywhere.</p>
+    <Takeaway>The requirements already point at one fact: video is bandwidth-dominated. Scale, fast startup, smooth playback, and global reach all turn into "get the right bytes close to the viewer, cheaply" — that drives every later decision.</Takeaway>
+    <Advanced>
+      <p>Naming the <b>non-functional</b> requirements is what shapes the system. "Millions of concurrent viewers" plus "global" rules out serving from one datacenter — the bytes have to live near users. "Fast startup" and "no stalls" push intelligence to the <b>player</b> and force you to prepare multiple qualities. "Any device, any bandwidth" means a single file won't do — you need a range. Each adjective is a lever, and together they point at a CDN plus a bitrate ladder before you've drawn a box.</p>
+    </Advanced>
+    <Why
+      problem="A vague brief (“build YouTube”) hides what actually matters and tempts you to over-engineer the wrong part (the database) while ignoring the real one (bandwidth)."
+      idea="Separate functional requirements (upload, stream) from non-functional ones (millions of viewers, fast start, no stalls, global), and notice the system is bandwidth-dominated."
+      tradeoff="Pinning scope means deferring features (recommendations, comments, DRM) to design the byte-delivery core first — but that core is the whole problem."
+      next="With the shape named, put numbers on it."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.VD1}>
+    <p class="prose">A quick estimate confirms the shape. Say <b>500 hours uploaded/min</b>; encoded at a few Mbps across several renditions, raw storage grows by <span class="hl">petabytes</span> — and that's before backups. But storage is the cheap part. The expensive part is egress: <b>1M concurrent viewers</b> at ~5 Mbps each is ~<b>5 Tbps</b> of sustained bandwidth. The numbers say it plainly — this is a <b>bandwidth problem</b>, and the only affordable way to serve 5 Tbps is to <b>not</b> serve it from one place.</p>
+    <Takeaway>Back-of-the-envelope math (petabytes of storage, terabits/sec of egress) shows the cost is dominated by moving bytes, not storing or computing them — which is exactly what justifies a CDN that serves most bytes from the edge.</Takeaway>
+    <Advanced>
+      <p>The point isn't precision, it's <b>orders of magnitude</b>. Terabits per second of egress says "a single origin's network pipe cannot carry this, so push the bytes outward to many edges." Petabytes of storage says "store each video once at the origin and replicate <i>on demand</i> to edges, not eagerly everywhere."</p>
+      <p>Viewership is heavily <b>skewed</b> — a small set of videos (a viral upload, a new release) draws most of the watch-time. That skew is what makes edge caching so effective: caching the hot fraction of segments absorbs the overwhelming majority of those terabits.</p>
+    </Advanced>
+    <Why
+      problem="Without numbers, you can't tell whether the hard part is storage, compute, or bandwidth — and you'll optimize the wrong layer."
+      idea="Estimate storage growth (petabytes) and peak egress (terabits/sec), and read off that bandwidth dominates everything else."
+      tradeoff="The numbers are rough, but even the magnitudes rule out serving from one datacenter and demand a distributed delivery network."
+      next="Bytes can't be cheap to serve until they're prepared the right way — start at ingest."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.VD2}>
+    <p class="prose">Before anyone watches, the upload is <b>transcoded</b> — re-encoded into a <span class="hl">ladder</span> of bitrates and resolutions (say 240p, 480p, 720p, 1080p, 4K), because one file can't suit a phone on cellular and a TV on fiber alike. Each rendition is then <b>chopped into short segments</b> — a few seconds each — addressable individually (the HLS/DASH model). A <b>manifest</b> lists every rendition and its segments. All of it is written to the <b>origin</b> store, ready to be cached. This happens <b>offline</b>, once per upload — not during playback.</p>
+    <Takeaway>Transcode ahead of time into a ladder of qualities and cut each into a few-second segments, with a manifest tying them together — doing this once, offline, is what makes both adaptive bitrate and edge caching possible at playback time.</Takeaway>
+    <SeeAlso slug="cloud" note="the fan-out of transcode jobs across a fleet of workers, and the durable object store behind the origin" />
+    <Advanced>
+      <p>Why <b>segments</b> instead of one big file per rendition? Small, independently-addressable chunks are what let a player switch quality <b>per segment</b> (the basis of adaptive bitrate) and let a CDN cache the popular parts of a video without holding the whole thing. A segment also maps cleanly to a cacheable HTTP object — delivery is just a sequence of ordinary GETs, which any CDN already does well.</p>
+      <p>Transcoding is <b>embarrassingly parallel</b>: segments and renditions are independent, so a job fans out across a worker fleet. The cost is real — every extra rung on the ladder is more CPU now and more storage forever — so the ladder is tuned to the renditions viewers actually request.</p>
+    </Advanced>
+    <Why
+      problem="One uploaded file fits neither a phone on 3G nor a TV on fiber, and a single monolithic file can't be cached or quality-switched in pieces."
+      idea="Transcode each upload, offline, into a ladder of bitrates/resolutions and split every rendition into short, individually-addressable segments described by a manifest."
+      tradeoff="Many renditions multiply storage and burn transcode compute up front — paid once, ahead of time, to make every later playback cheap and flexible."
+      next="With segments sitting at the origin, the real question is how to serve them cheaply."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.VD3}>
+    <p class="prose">This is the heart of the system. The <b>origin</b> holds every segment but is one place with a finite pipe — serving millions from it is impossible and ruinously expensive. So a <span class="hl">CDN</span> sits in front: thousands of <b>edge POPs</b> close to users. A player fetches the manifest, then requests each segment from the <b>nearest edge</b>. On a <b>cache hit</b> the edge serves it directly; on a <b>miss</b> the edge pulls it from the origin <b>once</b>, caches it, and serves every later viewer in that region from the edge. The vast majority of bytes never touch the origin.</p>
+    <RequestFlow flow={flow} client:visible />
+    <Takeaway>Put a CDN in front of the origin: viewers fetch segments from a nearby edge, hits are served locally, and a miss costs the origin exactly one fetch before the edge caches it — so the origin's tiny pipe serves billions of viewers' worth of bytes.</Takeaway>
+    <SeeAlso slug="network" note="what an edge fetch actually is on the wire — DNS steering to a nearby POP, HTTP GETs, and cache headers" />
+    <Advanced>
+      <p>How does a player reach the <b>nearest</b> edge? DNS (and anycast) steer the request to a POP close in network terms, and the CDN picks an edge with the segment cached or able to fetch it fast. Because skew is extreme, edge <b>hit rates</b> are very high — the single most important number in the system, since every hit is a byte the origin didn't pay to send.</p>
+      <p>For unpopular long-tail content the edge misses more often, so CDNs use <b>tiered caching</b> — a mid-tier shields the origin so it answers one fetch per region, not one per edge. The failure mode to design for is a <b>cache stampede</b> on a brand-new viral segment: thousands of edges miss at once and hammer the origin. Request <b>coalescing</b> (one fetch, the rest wait) tames it. This is the cloud and network stacks' caching machinery applied to one access pattern: serve a segment by URL, fast.</p>
+    </Advanced>
+    <Why
+      problem="The origin is one place with a finite network pipe; serving terabits/sec to millions of global viewers directly from it is physically and financially impossible."
+      idea="Front the origin with a CDN of edge POPs near users; serve segments from the edge on a hit and fetch from the origin only on a miss, then cache."
+      tradeoff="The CDN adds cost, an extra hop, and cache-coherence concerns (stale segments, stampedes) — but it's the only way the origin's pipe survives, and skewed viewership makes hit rates high."
+      next="The edge has the segments. Now the player decides which quality to pull."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.VD4}>
+    <p class="prose">Delivery is dumb on purpose — the intelligence lives in the <b>player</b>. Because every rendition is cut into aligned segments, the player can choose the quality of <b>each segment independently</b>. It <span class="hl">measures its throughput</span> (and watches its buffer), then requests the highest-bitrate segment it can pull without draining the buffer. When bandwidth is plentiful it climbs the ladder toward 1080p or 4K; when the connection drops it <b>steps down</b> to a lower bitrate so playback never <b>stalls</b>. This is <b>adaptive bitrate</b> (ABR), and it's why the same video looks great on fiber and keeps playing on a train.</p>
+    <Takeaway>Adaptive bitrate puts the quality decision in the player: it measures bandwidth and picks the best segment that won't stall, switching per segment — which is only possible because transcoding produced a ladder of aligned, segment-sized renditions.</Takeaway>
+    <SeeAlso slug="network" note="the throughput and congestion signals the player is really reacting to — TCP behavior, RTT, and bandwidth estimation" />
+    <Advanced>
+      <p>ABR is a control loop: estimate available bandwidth, weigh it against the <b>buffer level</b>, and pick the next segment's rendition. The classic tension is <b>startup latency vs quality</b> — begin at a low bitrate so the first frame appears fast, then <b>ramp up</b> as the buffer fills and the bandwidth estimate firms. Pure throughput-based ABR overreacts to noisy estimates; buffer-based and hybrid schemes are steadier.</p>
+      <p>Because the decision is per-segment and client-side, the server stays a simple cache of static objects — no per-viewer session state, no transcoding on the fly. The cost is that the player must guess the network's future from its recent past, so ABR sometimes picks too high (a brief stall) or too low (needlessly soft picture).</p>
+    </Advanced>
+    <Why
+      problem="Viewers' bandwidth varies wildly and changes mid-playback; one fixed quality either stalls slow connections or wastes fast ones."
+      idea="Let the player measure throughput and buffer and choose each segment's bitrate from the ladder, switching up or down per segment to maximize quality without stalling."
+      tradeoff="The client must predict the network from recent samples, so it can pick wrong (a stall or a soft frame); in exchange the server stays a dumb, cacheable, stateless byte store."
+      next="A few decisions still have no single right answer."
+    />
+  </LayerSection>
+
+  <LayerSection {...L.VD5}>
+    <p class="prose">Good designs are explicit about their tradeoffs. <b>Startup latency vs quality</b>: start at a low bitrate for an instant first frame and ramp up, or start higher for a sharper open at the risk of a slow start. <b>Storage vs quality vs bandwidth</b>: every rung on the bitrate ladder is more transcode compute and more storage <i>forever</i>, but too few rungs means a worse match to viewers' connections and wasted bandwidth. <b>Edge freshness vs origin load</b>: long cache TTLs cut origin traffic but make updates (a re-encode, a pulled video) slower to propagate. None has a universal answer — each is a stance tied to a requirement.</p>
+    <Takeaway>System design is choosing tradeoffs on purpose: start-low-and-ramp vs start-sharp, more renditions (storage) vs better connection-matching (bandwidth), long edge TTLs (cheap) vs fast updates — name them, pick deliberately, and you've designed the system.</Takeaway>
+    <SeeAlso slug="cloud" note="the replicas, regions, and CAP-style availability tradeoffs the origin and CDN tiers are built on" />
+    <Advanced>
+      <p>The biggest <b>advanced</b> axis is <b>live vs on-demand</b>. On-demand transcodes the whole video offline, so the ladder and every segment exist before the first viewer — the easy case. <b>Live</b> can't: it must transcode and segment in <b>near-real-time</b>, which trades end-to-end latency (how far behind real time a viewer is) against encoding quality and CDN buffering. The delivery shape — segments, a manifest, CDN edges, ABR — stays the same; what changes is that ingest and transcode now run on a deadline, and the latency/quality knob becomes the dominant tradeoff.</p>
+    </Advanced>
+    <Why
+      problem="The remaining decisions (startup behavior, ladder depth, cache freshness, live vs on-demand) have real costs on both sides, and pretending there's one right answer hides the engineering."
+      idea="Make each tradeoff explicit and choose against a stated requirement — fast start vs sharp open, storage vs connection-matching, cheap edges vs fast updates."
+      tradeoff="Every choice closes a door (long TTLs forfeit fast updates; few renditions forfeit a good match) — which is why you tie each one back to a requirement."
+      next="Zoom out: this same six-step shape — requirements, estimate, ingest, delivery, the client, tradeoffs — is how every big system gets built."
+    />
+  </LayerSection>
+
+  <Quiz slug="video" client:visible />
+  <p class="prose design-back"><a href="/design">← back to all system designs</a></p>
+</Base>
+
+<style>
+  .back-link{color:var(--accent,var(--signal))}
+  .design-back{max-width:680px;margin:40px auto 0;text-align:center}
+  .design-back a{color:var(--accent,var(--signal))}
+</style>
