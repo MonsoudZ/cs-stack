@@ -5,6 +5,11 @@ on:
     branches: [main]
   pull_request:
 
+# Cancel superseded runs on the same ref so rapid pushes don't pile up.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
@@ -15,6 +20,9 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      # Fail on a known high-severity dependency advisory (security audit —
+      # distinct from `npm run audit`, which is the a11y/quality gate below).
+      - run: npm audit --audit-level=high
       - run: npm test
       # `audit` builds the site, then runs the accessibility/quality gate
       # (scripts/audit.mjs) against the generated HTML — replaces a bare build.
