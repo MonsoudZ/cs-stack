@@ -30,9 +30,18 @@ npm test         # vitest — unit tests for the trace/sim/stepper/widget logic
 npm run audit    # build + regex quality gate + axe-core a11y checks on the HTML
 npm run test:e2e # playwright — drives chromium to confirm the islands hydrate & respond
 npm run gen:og   # regenerate the social cards (og.png + og/<slug>.png per stack)
+
+# Visual regression — pixel snapshots of the key diagrams. Baselines are
+# generated and checked inside a pinned Playwright Linux container so they match
+# CI exactly (needs Docker running):
+npm run test:visual:docker         # check the diagrams against committed baselines
+npm run test:visual:docker:update  # regenerate baselines after an intended change
 ```
-CI (`.github/workflows/ci.yml`) runs `test` + `audit` on one job and `test:e2e`
-on another for every push and PR.
+CI (`.github/workflows/ci.yml`) runs `test` + `audit` on one job, `test:e2e` on
+another, and the visual snapshots in the pinned Playwright container — for every
+push and PR. The `audit` step also runs an internal link checker
+(`scripts/links.mjs`). Audit/build also fail on a high-severity `npm audit`
+advisory.
 
 ## Layout
 ```

@@ -41,3 +41,26 @@ jobs:
       # Playwright's webServer builds + previews the site, then drives chromium
       # to confirm the islands hydrate and respond to real input.
       - run: npm run test:e2e
+
+  visual:
+    runs-on: ubuntu-latest
+    # Run inside the SAME pinned Playwright image the baselines were generated in
+    # (scripts/visual.sh), so screenshots are pixel-identical — no OS/font drift.
+    # Keep this tag in sync with the @playwright/test version in package-lock.json.
+    container: mcr.microsoft.com/playwright:v1.60.0-noble
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      # Visual-regression snapshots of the key diagrams (its own config; the
+      # webServer builds + previews the real bundle).
+      - run: npm run test:visual
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: visual-diffs
+          path: test-results/
+          retention-days: 7
