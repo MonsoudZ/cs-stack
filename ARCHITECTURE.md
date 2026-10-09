@@ -74,6 +74,29 @@ while a control has focus. The scrubber reads `$version` so it re-ranges when a
 toggle rebuilds the trace. In e2e tests target the STEP button as
 `.cpu-ctrl .step-btn` (it is no longer the only button).
 
+### Per-step `detail` (the "why this step" panel)
+
+A snapshot may carry `detail: '…'` — a deeper paragraph beneath the one-line
+`note`. `Stepper` renders a "why this step" panel whenever the trace has any
+detail (so the layout doesn't jump between steps) and shows the current step's.
+Author it in the builder next to the note, so the unit tests cover it (the
+`detail` contract test asserts every step of a detailed trace has one). Builders
+with details today: the CPU, the pipeline, the cache, the hash map, the syscall,
+Diffie–Hellman, TCP, the Raft election, and the URL-shortener flow.
+
+### The SVG topology (`Diagram.svelte`)
+
+`Diagram` draws nodes, edges, and a token that slides to the `active` node;
+`src/lib/diagram.js` (`layoutDiagram`, unit-tested) does the layout. Nodes are
+`{ id, label, x?, y? }` — grid coordinates are optional; without them the nodes
+draw as a left-to-right chain, and `edges` default to that chain. On screens
+≤560px the grid is transposed so a chain reads top-to-bottom. `RequestFlow`
+(every `/design` case study) and the DNS walk are built on it: give a design's
+`flow` an `edges` list and `x/y` on its nodes to draw a real topology (the
+URL shortener's cache-beside-database, the KV store's coordinator fan-out).
+Styling is all theme tokens via classes (`.dg-node.on`, `.dg-node.warn`,
+`.dg-meta`), never inline `style=`.
+
 ### Exposing builder options as controls
 
 A builder's options object is the widget's control surface: when a `build*()`

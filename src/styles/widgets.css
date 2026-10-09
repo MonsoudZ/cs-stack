@@ -137,6 +137,10 @@
   .cpu-ctrl .btn:disabled{opacity:.38;cursor:default}
   .cpu-ctrl .btn:disabled:hover{border-color:var(--border);color:var(--ink)}
   .cpu-ctrl .rate-btn{min-width:52px;color:var(--dim)}
+  .step-detail{border:1px solid var(--border);border-left:3px solid var(--accent,var(--signal));border-radius:12px;padding:11px 14px;margin:0 0 14px;background:var(--surface)}
+  .step-detail-k{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent,var(--signal));margin-bottom:5px}
+  .step-detail-p{margin:0;font-size:13.5px;line-height:1.6;color:var(--dim)}
+  .step-detail.empty .step-detail-p{color:var(--faint);font-style:italic}
   .step-scrub{display:flex;align-items:center;gap:12px;margin-top:12px;font-family:var(--mono);font-size:12px;color:var(--faint)}
   .step-scrub .step-range{flex:1;margin:0;min-width:120px}
   .step-scrub .step-range::-webkit-slider-thumb{background:var(--accent,var(--signal));box-shadow:0 0 10px var(--accent-d,var(--signal-d))}

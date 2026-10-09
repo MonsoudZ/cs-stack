@@ -431,7 +431,7 @@ test('System design: the index links to the URL-shortener case study, which trac
   // the generic request-flow widget (section US2): stepping reaches a cache HIT
   const rf = page.locator('#US2');
   await rf.scrollIntoViewIfNeeded();
-  const hit = rf.locator('.rf-node .rf-meta', { hasText: 'HIT' });
+  const hit = rf.locator('.dg-node .dg-meta', { hasText: 'HIT' });
   for (let i = 0; i < 16; i++) {
     await rf.locator('.cpu-ctrl .step-btn').first().click();
     if (await hit.count()) break;
@@ -451,10 +451,10 @@ test('System design: the rate-limiter case study traces a request to a 429 rejec
   await rf.scrollIntoViewIfNeeded();
   for (let i = 0; i < 16; i++) {
     await rf.locator('.cpu-ctrl .step-btn').first().click();
-    if (await rf.locator('.rf-node.warn').count()) break;
+    if (await rf.locator('.dg-node.warn').count()) break;
     await page.waitForTimeout(40);
   }
-  await expect(rf.locator('.rf-node.warn')).toBeVisible();
+  await expect(rf.locator('.dg-node.warn')).toBeVisible();
 });
 
 test('System design: the distributed KV store traces a quorum write/read to a lagging replica (generic RequestFlow)', async ({ page }) => {
@@ -470,10 +470,10 @@ test('System design: the distributed KV store traces a quorum write/read to a la
   await rf.scrollIntoViewIfNeeded();
   for (let i = 0; i < 16; i++) {
     await rf.locator('.cpu-ctrl .step-btn').first().click();
-    if (await rf.locator('.rf-node.warn').count()) break;
+    if (await rf.locator('.dg-node.warn').count()) break;
     await page.waitForTimeout(40);
   }
-  await expect(rf.locator('.rf-node.warn')).toBeVisible();
+  await expect(rf.locator('.dg-node.warn')).toBeVisible();
   await expect(page.locator('.quiz .quiz-level')).toHaveCount(3);
 });
 
@@ -488,7 +488,7 @@ test('System design: search autocomplete traces a debounced query through a cold
   // the typeahead widget (section SA3): stepping reaches an edge-cache HIT
   const rf = page.locator('#SA3');
   await rf.scrollIntoViewIfNeeded();
-  const hit = rf.locator('.rf-node .rf-meta', { hasText: 'HIT' });
+  const hit = rf.locator('.dg-node .dg-meta', { hasText: 'HIT' });
   for (let i = 0; i < 16; i++) {
     await rf.locator('.cpu-ctrl .step-btn').first().click();
     if (await hit.count()) break;
@@ -1261,4 +1261,69 @@ test('Diffie–Hellman: changing a private secret still ends with both sides agr
   expect(alice).toBe(bob);
   expect(alice).not.toBe('?');
   await expect(shared.first()).toHaveClass(/on/);
+});
+
+test('Stepper detail panel: shows the current step’s deeper paragraph and follows the step', async ({ page }) => {
+  await page.goto('/');
+  const cpu = page.locator('#L6 .widget').first();
+  await cpu.scrollIntoViewIfNeeded();
+  const detail = cpu.locator('.step-detail-p');
+  await expect(detail).toContainText('program counter');
+  await expect(async () => {
+    await cpu.locator('.step-btn').click();
+    await expect(detail).toContainText('Fetch reads the word', { timeout: 400 });
+  }).toPass({ timeout: 8000 });
+  // a widget whose trace carries no detail renders no panel
+  await page.goto('/structures');
+  const da = page.locator('#S2 .widget').first();
+  await da.scrollIntoViewIfNeeded();
+  await expect(da.locator('.step-count')).toBeVisible();
+  await expect(da.locator('.step-detail')).toHaveCount(0);
+});
+
+test('RequestFlow topology: the SVG draws the fan-out, highlights the active node, and the token follows it', async ({ page }) => {
+  await page.goto('/design/url-shortener');
+  const rf = page.locator('#US2');
+  await rf.scrollIntoViewIfNeeded();
+  const svg = rf.locator('svg.dg');
+  await expect(svg).toBeVisible();
+  await expect(rf.locator('.dg-node')).toHaveCount(5);
+  await expect(rf.locator('.dg-edge')).toHaveCount(4); // client-lb, lb-app, app-cache, app-db
+  // cache and database share a column (a real topology, not a chain)
+  const tx = async (label) => {
+    const t = await rf.locator('.dg-node', { hasText: label }).getAttribute('transform');
+    return t.match(/translate\(([\d.]+),/)[1];
+  };
+  expect(await tx('Cache')).toBe(await tx('Database'));
+  await expect(rf.locator('.dg-node.on .dg-label')).toHaveText('Client');
+  await expect(async () => {
+    await rf.locator('.step-btn').click();
+    await expect(rf.locator('.dg-node.on .dg-label')).toHaveText('Load balancer', { timeout: 400 });
+  }).toPass({ timeout: 8000 });
+  await expect(rf.locator('.dg-token')).toHaveCount(1);
+  await expect(svg).toHaveAttribute('aria-label', /Load balancer active/);
+});
+
+test('RequestFlow topology: on a narrow screen the diagram turns vertical', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 800 });
+  await page.goto('/design/rate-limiter');
+  const rf = page.locator('#RL2');
+  await rf.scrollIntoViewIfNeeded();
+  const svg = rf.locator('svg.dg');
+  await expect(svg).toHaveClass(/vertical/);
+  const [, w, h] = (await svg.getAttribute('viewBox')).match(/0 0 ([\d.]+) ([\d.]+)/).map(Number);
+  expect(h).toBeGreaterThan(w); // a 3-node chain stacked top-to-bottom
+});
+
+test('DNS map: the active server follows the walk and the authoritative node carries the answer', async ({ page }) => {
+  await page.goto('/network');
+  const dns = page.locator('#N5');
+  await dns.scrollIntoViewIfNeeded();
+  await expect(dns.locator('.dg-node.on .dg-label')).toHaveText('your app');
+  for (let i = 0; i < 8; i++) {
+    await dns.locator('.step-btn').click();
+    if (await dns.locator('.dg-node.on', { hasText: 'authoritative' }).count()) break;
+    await page.waitForTimeout(40);
+  }
+  await expect(dns.locator('.dg-node.on .dg-meta')).toContainText('93.184');
 });

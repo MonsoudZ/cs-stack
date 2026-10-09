@@ -714,6 +714,27 @@ describe('computeAlu (the CPU calculator)', () => {
   });
 });
 
+describe('the per-step `detail` contract', () => {
+  const traces = {
+    cpu: buildCpu(), pipelined: buildPipeline(), serial: buildPipeline({ pipelined: false }),
+    cache: buildCache(), cacheThrash: buildCache({ accesses: CACHE_PATTERNS.thrash.accesses }),
+    hashMap: buildHashMap(), syscall: buildSyscall(), dh: buildDiffieHellman(),
+    urlShortener: buildUrlShortener(), raft: buildRaftElection(), tcp: buildTcp(),
+  };
+  for (const [name, steps] of Object.entries(traces)) {
+    it(name + ': every step carries a non-empty detail paragraph distinct from its note', () => {
+      for (const st of steps) {
+        expect(typeof st.detail).toBe('string');
+        expect(st.detail.length).toBeGreaterThan(40);
+        expect(st.detail).not.toBe(st.note);
+      }
+    });
+  }
+  it('a builder without details leaves the field absent, so the Stepper hides the panel', () => {
+    expect(buildDynamicArray().every((st) => st.detail === undefined)).toBe(true);
+  });
+});
+
 describe('widget options exposed as controls', () => {
   it('hash map: fewer buckets means more collisions, and the lookup still finds its key', () => {
     const chains = (b) => buildHashMap({ buckets: b }).at(-1).table;

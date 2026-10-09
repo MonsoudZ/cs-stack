@@ -19,8 +19,17 @@ export function buildCpu() {
   const txt = PROG.map((p) => p.t);
   let PC = 0, A = 0, B = 0, out = '';
   const steps = [];
-  const snap = (note, cur) => steps.push({ PC, A, B, out, note, prog: txt, cur });
-  snap('ready — PC = 0, registers cleared', -1);
+  // `detail` is the deeper per-step paragraph the Stepper shows under the note.
+  const DETAIL = {
+    LOADA: 'Fetch reads the word at the program counter into the instruction register. Decode recognises the LOAD-A opcode and pulls out its operand. Execute copies the operand into register A. Then the PC is incremented — that increment is what makes this a loop.',
+    LOADB: 'The same three phases, and nothing about the program’s meaning was consulted: the CPU reads a number and does whatever the opcode table says for it. Overwriting a register is free — registers keep no history.',
+    ADD: 'ADD names no operands: on this toy machine it is wired to read A and B and write the sum back to A. The ALU does the arithmetic. Real instruction sets name the registers explicitly (add rax, rbx) because they have dozens.',
+    SUB: 'The ALU again, subtracting this time. It also sets condition flags — zero, carry, signed overflow — that a conditional branch could test next. This program has no branches, so the flags go unread.',
+    OUT: 'OUT is where the CPU leaves the pure fetch–execute world: it hands A to a device. On a real machine that is a memory-mapped write or a system call into the OS, never a single instruction.',
+    HALT: 'HALT stops the clock-driven loop. Without it the CPU would fetch the word at address 7, interpret whatever is there as an instruction, and keep going — exactly what running off the end of a buffer looks like.',
+  };
+  const snap = (note, cur, detail = null) => steps.push({ PC, A, B, out, note, prog: txt, cur, detail });
+  snap('ready — PC = 0, registers cleared', -1, 'The program counter is a register like any other, with one special job: it holds the address of the next instruction. Reset clears it to 0, so execution always begins at the first word of the program.');
   while (PC < PROG.length) {
     const here = PC, ins = PROG[here]; let note;
     if (ins.op === 'LOADA') { A = ins.arg; note = 'fetch→decode→execute · LOAD A, ' + ins.arg + ' → A = ' + A; }
@@ -28,8 +37,8 @@ export function buildCpu() {
     else if (ins.op === 'ADD') { A = A + B; note = 'ADD → A = A + B = ' + A; }
     else if (ins.op === 'SUB') { A = A - B; note = 'SUB → A = A − B = ' + A; }
     else if (ins.op === 'OUT') { out = String(A); note = 'OUT → output ' + out; }
-    else { note = 'HALT — program done'; PC = PROG.length; snap(note, here); break; }
-    PC++; snap(note, here);
+    else { note = 'HALT — program done'; PC = PROG.length; snap(note, here, DETAIL.HALT); break; }
+    PC++; snap(note, here, DETAIL[ins.op]);
   }
   return steps;
 }

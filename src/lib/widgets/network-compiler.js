@@ -88,28 +88,37 @@ export function buildTcp() {
   const snap = (note, o = {}) => out.push({
     phase, cwnd, ssthresh, rtt,
     established: o.established ?? (phase !== 'handshake'),
-    event: o.event ?? null, lost: !!o.lost, note,
+    event: o.event ?? null, lost: !!o.lost, note, detail: o.detail ?? null,
   });
-  snap('SYN →  the client asks to open a connection, proposing a starting sequence number.', { established: false, event: 'SYN' });
-  snap('←  SYN-ACK   the server agrees, acknowledges, and sends its own sequence number.', { established: false, event: 'SYN-ACK' });
-  snap('ACK →  the client acknowledges back. Three messages, one round-trip — the connection is open.', { established: false, event: 'ACK' });
+  snap('SYN →  the client asks to open a connection, proposing a starting sequence number.', { established: false, event: 'SYN',
+    detail: 'Sequence numbers start at a random value rather than 0, so that stale segments from an earlier connection on the same ports cannot be mistaken for this one — and so an off-path attacker cannot easily forge a segment that will be accepted.' });
+  snap('←  SYN-ACK   the server agrees, acknowledges, and sends its own sequence number.', { established: false, event: 'SYN-ACK',
+    detail: 'The server allocates connection state here, before it knows the client is real — which is what a SYN flood exploits. SYN cookies defend by encoding that state into the sequence number so nothing is stored until the handshake completes.' });
+  snap('ACK →  the client acknowledges back. Three messages, one round-trip — the connection is open.', { established: false, event: 'ACK',
+    detail: 'Data can ride on this third packet, so the handshake costs one round trip, not two. TCP Fast Open goes further and lets a repeat client put data in the SYN itself.' });
   phase = 'slow start'; cwnd = 1; rtt = 1;
-  snap('start cautiously: congestion window cwnd = 1 segment. Send it, wait for the ack.');
+  snap('start cautiously: congestion window cwnd = 1 segment. Send it, wait for the ack.',
+    { detail: 'cwnd is the sender’s own estimate of how much data may be in flight unacknowledged. The receiver advertises a separate limit (its buffer space); the effective window is the smaller of the two.' });
   while (cwnd < ssthresh) {
     rtt++; cwnd *= 2;
-    snap('SLOW START: each round-trip of acks doubles cwnd → ' + cwnd + ' (exponential — find the ceiling fast). ssthresh = ' + ssthresh + '.');
+    snap('SLOW START: each round-trip of acks doubles cwnd → ' + cwnd + ' (exponential — find the ceiling fast). ssthresh = ' + ssthresh + '.',
+      { detail: 'Every ack for a full segment adds one segment to cwnd, so a full round trip of acks doubles it. “Slow” is relative to the 1980s practice of blasting a whole window at once, which collapsed the early Internet.' });
   }
   phase = 'congestion avoidance';
   for (let k = 0; k < 2; k++) { rtt++; cwnd += 1;
-    snap('cwnd hit ssthresh → CONGESTION AVOIDANCE: now grow by only +1 per round-trip → cwnd = ' + cwnd + ' (careful, linear).');
+    snap('cwnd hit ssthresh → CONGESTION AVOIDANCE: now grow by only +1 per round-trip → cwnd = ' + cwnd + ' (careful, linear).',
+      { detail: 'Above ssthresh each full window of acks adds just one segment. The sender is now probing gently for spare capacity rather than hunting for the ceiling.' });
   }
   rtt++; const before = cwnd; ssthresh = Math.floor(cwnd / 2); cwnd = ssthresh; phase = 'loss';
-  snap('a packet is LOST (a missing ack) → back off hard: ssthresh = ' + before + '/2 = ' + ssthresh + ', cwnd drops to ' + cwnd + '. That is AIMD’s multiplicative decrease.', { event: 'loss', lost: true });
+  snap('a packet is LOST (a missing ack) → back off hard: ssthresh = ' + before + '/2 = ' + ssthresh + ', cwnd drops to ' + cwnd + '. That is AIMD’s multiplicative decrease.', { event: 'loss', lost: true,
+    detail: 'In classic Reno, loss is the only signal that the path is full. Newer schemes add others: ECN marks set by routers before their queues overflow, or the delay-based inference BBR uses to avoid filling queues at all.' });
   phase = 'congestion avoidance';
   for (let k = 0; k < 2; k++) { rtt++; cwnd += 1;
-    snap('climb again, +1 per RTT → cwnd = ' + cwnd + '. Up slowly, down sharply: that repeating sawtooth is TCP sharing the link.');
+    snap('climb again, +1 per RTT → cwnd = ' + cwnd + '. Up slowly, down sharply: that repeating sawtooth is TCP sharing the link.',
+      { detail: 'The sawtooth is what fairness looks like: two flows sharing a link both halve on loss and both climb linearly, so their rates converge toward equal shares without any coordination.' });
   }
-  snap('additive increase, multiplicative decrease — TCP keeps nudging cwnd up until loss, then halves, finding a fair rate without ever being told the link’s capacity.');
+  snap('additive increase, multiplicative decrease — TCP keeps nudging cwnd up until loss, then halves, finding a fair rate without ever being told the link’s capacity.',
+    { detail: 'A Reno flow’s average throughput is roughly MSS / (RTT × √loss). That formula is why long, high-latency paths and lossy links hurt so much — and why satellite and mobile networks drove the newer congestion controllers.' });
   return out;
 }
 

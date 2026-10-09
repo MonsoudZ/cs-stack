@@ -98,29 +98,59 @@ export function computeAlu(op, a, b) {
 // a production line. Returns one snapshot per clock cycle, each carrying every
 // instruction's current stage, so the widget can fill the diagram diagonally.
 export const PIPE_STAGES = ['IF', 'ID', 'EX', 'MEM', 'WB'];
+const STAGE_DETAIL = {
+  IF: 'the instruction cache returns the word at the program counter and the PC advances to the next one.',
+  ID: 'the opcode is decoded into control signals and the source registers are read from the register file.',
+  EX: 'the ALU computes — an add, a compare, or the address for a load/store.',
+  MEM: 'data memory is accessed if this is a load or store; other instructions just pass through.',
+  WB: 'the result is written back to the destination register, and the instruction retires.',
+};
 export function buildPipeline({ instructions = ['lw', 'add', 'sub', 'and', 'or'], pipelined = true } = {}) {
   const n = instructions.length, S = PIPE_STAGES.length;
   const start = (i) => (pipelined ? i : i * S); // cycle an instruction enters IF
   const total = pipelined ? n + S - 1 : n * S; // total cycles to drain
   const out = [];
   const stageAt = (i, c) => { const s = c - start(i); return s >= 0 && s < S ? s : null; };
-  const snap = (cycle, note) => {
+  const snap = (cycle, note, detail = null) => {
     const lanes = instructions.map((ins, i) => ({ ins, stage: stageAt(i, cycle) }));
     const done = instructions.filter((_, i) => cycle - start(i) >= S).length;
-    out.push({ cycle, lanes, done, total, pipelined, stages: PIPE_STAGES, note });
+    out.push({ cycle, lanes, done, total, pipelined, stages: PIPE_STAGES, note, detail });
   };
   snap(-1, pipelined
     ? 'pipelined: a new instruction enters the pipe every cycle, so all five stages stay busy at once'
-    : 'unpipelined: each instruction finishes all five stages before the next one starts');
+    : 'unpipelined: each instruction finishes all five stages before the next one starts',
+    pipelined
+    ? 'Each stage is its own hardware: IF reads from the instruction cache, ID decodes and reads registers, EX runs the ALU, MEM touches data memory, WB writes the result to the register file. Separate hardware is what makes overlap possible at all.'
+    : 'Nothing stops the hardware overlapping; this design simply refuses to issue the next instruction until the current one has retired. Four of the five stages sit idle on every cycle.');
   for (let c = 0; c < total; c++) {
     const entering = instructions.findIndex((_, i) => start(i) === c);
     const finishing = instructions.findIndex((_, i) => c - start(i) === S - 1);
-    let note = 'cycle ' + (c + 1);
-    if (entering >= 0) note = 'cycle ' + (c + 1) + ': "' + instructions[entering] + '" enters the pipeline (IF)';
-    if (finishing >= 0) note = 'cycle ' + (c + 1) + ': "' + instructions[finishing] + '" reaches WB and retires';
-    snap(c, note);
+    let note = 'cycle ' + (c + 1), detail = null;
+    // a cycle with no instruction entering or retiring: describe the stage the
+    // in-flight instruction(s) are in (the serial pipeline spends most cycles here)
+    const inFlight = instructions.map((ins, i) => ({ ins, stage: stageAt(i, c) })).filter((l) => l.stage != null);
+    if (inFlight.length) {
+      const l = inFlight[0], st = PIPE_STAGES[l.stage];
+      detail = '"' + l.ins + '" is in ' + st + ' — ' + STAGE_DETAIL[st] + (inFlight.length === 1 ? ' The other four stages are idle this cycle.' : '');
+    }
+    if (entering >= 0) {
+      note = 'cycle ' + (c + 1) + ': "' + instructions[entering] + '" enters the pipeline (IF)';
+      detail = c === 0
+        ? 'A pipeline register (a row of flip-flops) sits between every pair of stages, holding an instruction’s partial state. On each clock edge every in-flight instruction advances exactly one stage at once.'
+        : (pipelined
+          ? 'Issuing while earlier instructions are still mid-flight is only safe if they are independent. If "' + instructions[entering] + '" needed a result an earlier instruction has not written back yet, that is a data hazard — the next layer.'
+          : 'Serial issue: "' + instructions[entering] + '" waited for the previous instruction to fully retire. The latency of one instruction is the same five cycles either way; only how many are in flight differs.');
+    }
+    if (finishing >= 0) {
+      note = 'cycle ' + (c + 1) + ': "' + instructions[finishing] + '" reaches WB and retires';
+      detail = '"' + instructions[finishing] + '" is written back to the register file and is now architecturally complete — even though ' + (pipelined ? 'later instructions are still in earlier stages' : 'the next instruction has not even been fetched') + '. Retirement in program order is what keeps the illusion of one-at-a-time execution.';
+    }
+    snap(c, note, detail);
   }
-  snap(total, n + ' instructions in ' + total + ' cycles' + (pipelined ? ' — vs ' + n * S + ' unpipelined: same work, far less idle silicon' : ' — every stage sat idle 4 of every 5 cycles'));
+  snap(total, n + ' instructions in ' + total + ' cycles' + (pipelined ? ' — vs ' + n * S + ' unpipelined: same work, far less idle silicon' : ' — every stage sat idle 4 of every 5 cycles'),
+    pipelined
+    ? 'The speedup is in total cycles: ' + n * S + ' → ' + total + '. For a long instruction stream it approaches ' + S + '× (one retirement per cycle), minus whatever stalls hazards introduce. Per-instruction latency is still ' + S + ' cycles; only throughput changed.'
+    : 'Switch pipelining ON to watch the same ' + n + ' instructions retire in ' + (n + S - 1) + ' cycles instead of ' + total + '.');
   return out;
 }
 

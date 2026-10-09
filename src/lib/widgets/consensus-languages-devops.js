@@ -18,31 +18,42 @@ export function buildRaftElection() {
   const snap = (note, o = {}) => out.push({
     nodes: ids.map((id) => ({ ...node[id], granted: (o.granted || []).includes(id) })),
     leader: o.leader ?? null, candidate: o.candidate ?? null, votes: o.votes ?? null,
-    majority: MAJORITY, event: o.event ?? null, note,
+    majority: MAJORITY, event: o.event ?? null, note, detail: o.detail ?? null,
   });
-  snap('Five servers, all followers in term 0 — no leader yet. Each one waits a random election timeout for a heartbeat that never comes.');
+  snap('Five servers, all followers in term 0 — no leader yet. Each one waits a random election timeout for a heartbeat that never comes.',
+    { detail: 'Election timeouts are randomised (150–300 ms in the paper) precisely so that one server usually times out clearly before the others. Without the randomness, several would become candidates at once and split the vote.' });
   // --- election of N0 for term 1 ---
   node.N0 = { id: 'N0', role: 'candidate', term: 1, votedFor: 'N0' };
-  snap('N0’s timeout fires first → it becomes a CANDIDATE, bumps to term 1, and votes for itself (1 vote).', { candidate: 'N0', votes: 1, granted: ['N0'], event: 'timeout' });
-  snap('N0 sends RequestVote(term 1) to the other four and waits for replies.', { candidate: 'N0', votes: 1, granted: ['N0'], event: 'request' });
+  snap('N0’s timeout fires first → it becomes a CANDIDATE, bumps to term 1, and votes for itself (1 vote).', { candidate: 'N0', votes: 1, granted: ['N0'], event: 'timeout',
+    detail: 'A term is a logical clock. Every message carries the sender’s term, and a server that sees a higher term immediately adopts it and steps down. Terms are how Raft orders the eras of leadership without any shared wall clock.' });
+  snap('N0 sends RequestVote(term 1) to the other four and waits for replies.', { candidate: 'N0', votes: 1, granted: ['N0'], event: 'request',
+    detail: 'RequestVote carries the candidate’s term plus the index and term of its last log entry, so each voter can check the candidate’s log is at least as up to date as its own before granting.' });
   node.N1.votedFor = 'N0'; node.N1.term = 1;
-  snap('N1 hasn’t voted this term → it grants its vote and advances to term 1 (2 votes).', { candidate: 'N0', votes: 2, granted: ['N0', 'N1'], event: 'grant' });
+  snap('N1 hasn’t voted this term → it grants its vote and advances to term 1 (2 votes).', { candidate: 'N0', votes: 2, granted: ['N0', 'N1'], event: 'grant',
+    detail: 'votedFor is written to disk before the reply goes out. If N1 crashed and restarted mid-election it must still remember it voted in term 1 — otherwise it could vote twice and two leaders could emerge.' });
   node.N2.votedFor = 'N0'; node.N2.term = 1;
-  snap('N2 grants too → that’s 3 of 5, a MAJORITY. One vote per server per term is what stops two leaders.', { candidate: 'N0', votes: 3, granted: ['N0', 'N1', 'N2'], event: 'grant' });
+  snap('N2 grants too → that’s 3 of 5, a MAJORITY. One vote per server per term is what stops two leaders.', { candidate: 'N0', votes: 3, granted: ['N0', 'N1', 'N2'], event: 'grant',
+    detail: 'A majority of 5 is 3. Any two majorities overlap in at least one server, and that server can only have voted once — so at most one candidate can win a given term. That is the whole safety argument for election.' });
   node.N0.role = 'leader';
-  snap('N0 has a majority → it becomes LEADER for term 1.', { leader: 'N0', candidate: 'N0', votes: 3, granted: ['N0', 'N1', 'N2'], event: 'win' });
+  snap('N0 has a majority → it becomes LEADER for term 1.', { leader: 'N0', candidate: 'N0', votes: 3, granted: ['N0', 'N1', 'N2'], event: 'win',
+    detail: 'Becoming leader is a local decision from counted votes — there is no further handshake. The new leader immediately sends heartbeats so the others stop their timers before any of them can start a rival election.' });
   ids.forEach((id) => { if (id !== 'N0') { node[id].role = 'follower'; node[id].term = 1; } });
-  snap('N0 sends heartbeats (empty AppendEntries) to all → everyone resets their timeout and stays a follower. The cluster is stable.', { leader: 'N0', event: 'heartbeat' });
+  snap('N0 sends heartbeats (empty AppendEntries) to all → everyone resets their timeout and stays a follower. The cluster is stable.', { leader: 'N0', event: 'heartbeat',
+    detail: 'Heartbeats are AppendEntries messages with no entries. Besides resetting timers they carry the leader’s commit index, which is how followers learn which log entries are safe to apply to their state machines.' });
   // --- the leader crashes; the cluster re-elects ---
   node.N0.role = 'down';
-  snap('Now N0 CRASHES. Its heartbeats stop, so the followers’ election timeouts start counting down again.', { event: 'crash' });
+  snap('Now N0 CRASHES. Its heartbeats stop, so the followers’ election timeouts start counting down again.', { event: 'crash',
+    detail: 'Followers cannot tell a crashed leader from a partitioned one — both just look like silence. The election timeout is what bounds how long the cluster stays leaderless, and so unavailable for writes.' });
   node.N2 = { id: 'N2', role: 'candidate', term: 2, votedFor: 'N2' };
-  snap('N2 times out first → CANDIDATE for term 2 (a higher term always wins), voting for itself.', { candidate: 'N2', votes: 1, granted: ['N2'], event: 'timeout' });
+  snap('N2 times out first → CANDIDATE for term 2 (a higher term always wins), voting for itself.', { candidate: 'N2', votes: 1, granted: ['N2'], event: 'timeout',
+    detail: 'Term 2 now exists. If N0 came back still believing it leads term 1, the first message it receives from anyone in term 2 would make it step down to follower — a stale leader cannot do damage.' });
   node.N1.votedFor = 'N2'; node.N1.term = 2;
   node.N3.votedFor = 'N2'; node.N3.term = 2;
-  snap('N1 and N3 grant votes for term 2 → 3 of 5 again (N0 is down and can’t reply).', { candidate: 'N2', votes: 3, granted: ['N1', 'N2', 'N3'], event: 'grant' });
+  snap('N1 and N3 grant votes for term 2 → 3 of 5 again (N0 is down and can’t reply).', { candidate: 'N2', votes: 3, granted: ['N1', 'N2', 'N3'], event: 'grant',
+    detail: 'N4 has not voted either, so N2 could collect a fourth vote. Three is enough; waiting for more only adds latency. A cluster of 5 tolerates 2 failures because 3 can still form a majority.' });
   node.N2.role = 'leader'; node.N4.term = 2;
-  snap('N2 wins → new LEADER for term 2. A crash cost one timeout, and Raft healed itself with no human in the loop. (Not shown here: voters also refuse any candidate whose log is behind theirs, so a re-election can never drop a committed entry.)', { leader: 'N2', candidate: 'N2', votes: 3, granted: ['N1', 'N2', 'N3'], event: 'win' });
+  snap('N2 wins → new LEADER for term 2. A crash cost one timeout, and Raft healed itself with no human in the loop. (Not shown here: voters also refuse any candidate whose log is behind theirs, so a re-election can never drop a committed entry.)', { leader: 'N2', candidate: 'N2', votes: 3, granted: ['N1', 'N2', 'N3'], event: 'win',
+    detail: 'That log-comparison rule — the election restriction — is what makes re-election safe: a committed entry lives on a majority, any majority of voters includes one of them, and that voter refuses a candidate whose log lacks it.' });
   return out;
 }
 

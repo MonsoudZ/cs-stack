@@ -54,6 +54,7 @@ src/
   styles/                 global.css just @imports base.css + widgets.css + mobile.css
   lib/
     stepper.svelte.js     shared step store (index, auto-play + rate, rebuild) — every step widget uses it
+    diagram.js            pure layout for Diagram.svelte (grid → positions + viewBox)
     traces.js             the capstone: 16 traced algorithms + the layer-touch maps
     sim.js                scheduler simulation + factorial call-stack builder
     widgets.js            pure build*() functions for the CPU/network/cloud widgets
@@ -70,6 +71,8 @@ src/
     StackNav.astro        cross-stack footer (the deep-dive map) — on every page via Base
     Tracer.svelte         the multi-method capstone
     Struct.svelte         renders a trace step's data structure (hash/window/array/graph/stack)
+    Diagram.svelte        shared SVG topology (nodes, edges, a sliding token) — RequestFlow + DNS draw with it
+    RequestFlow.svelte    the system-design request tracer: a `flow` ({nodes, edges?, steps}) on top of Diagram
   layouts/Base.astro      hero, SEO + JSON-LD, spine nav, guided tour, scroll script
   pages/
     index.astro           the main stack — composes the layer sections, hydrates each island

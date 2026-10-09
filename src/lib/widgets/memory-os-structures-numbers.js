@@ -23,24 +23,33 @@ export function buildCache({ accesses = [0, 1, 2, 3, 8, 12, 16, 20, 0], lineSize
   const out = [];
   let cache = []; // block ids, least-recently-used first
   let hits = 0, misses = 0;
-  const snap = (addr, block, hit, evicted, note) => out.push({ addr, block, hit, evicted, cache: cache.slice(), hits, misses, note });
-  snap(null, null, null, null, 'a cache holds a few ' + lineSize + '-address lines; a miss loads a whole line, betting you will want its neighbours next');
+  const snap = (addr, block, hit, evicted, note, detail = null) => out.push({ addr, block, hit, evicted, cache: cache.slice(), hits, misses, note, detail });
+  snap(null, null, null, null, 'a cache holds a few ' + lineSize + '-address lines; a miss loads a whole line, betting you will want its neighbours next',
+    'Address → line is a division: the hardware drops the low bits of the address, so addresses 0–' + (lineSize - 1) + ' share line 0, ' + lineSize + '–' + (2 * lineSize - 1) + ' share line 1, and so on. Each slot is tagged with the line number it currently holds.');
+  let seen = new Set();
   for (const addr of accesses) {
     const block = Math.floor(addr / lineSize);
     const idx = cache.indexOf(block);
     if (idx >= 0) {
       hits++; cache.splice(idx, 1); cache.push(block);
-      snap(addr, block, true, null, 'read address ' + addr + ' → line ' + block + ' is cached → HIT');
+      snap(addr, block, true, null, 'read address ' + addr + ' → line ' + block + ' is cached → HIT',
+        'A hit is a tag match: the address’s line number is compared against every slot at once (this cache is fully associative) and the byte is served from SRAM in a few cycles. LRU bookkeeping marks line ' + block + ' as the most recently used.');
     } else {
       misses++;
       let evicted = null;
       if (cache.length >= ways) evicted = cache.shift();
+      const cold = !seen.has(block);
       cache.push(block);
       snap(addr, block, false, evicted,
-        'read address ' + addr + ' → line ' + block + ' not cached → MISS, load it' + (evicted != null ? ' (evict line ' + evicted + ', least-recently-used)' : ''));
+        'read address ' + addr + ' → line ' + block + ' not cached → MISS, load it' + (evicted != null ? ' (evict line ' + evicted + ', least-recently-used)' : ''),
+        evicted != null
+          ? 'All ' + ways + ' slots are full, so something has to go. LRU evicts the line untouched for longest (line ' + evicted + '), betting it is least likely to be needed again.' + (!cold ? ' Line ' + block + ' was here before and got evicted — a capacity miss: the working set is bigger than the cache.' : '')
+          : 'A miss costs a trip to main memory — hundreds of cycles — but it brings back the whole line, so the neighbouring addresses come along for free. That bet on spatial locality is the reason lines exist.');
     }
+    seen.add(block);
   }
-  snap(null, null, null, null, hits + ' hits, ' + misses + ' misses — one miss covers a whole line, but a line you evict has to be fetched again');
+  snap(null, null, null, null, hits + ' hits, ' + misses + ' misses — one miss covers a whole line, but a line you evict has to be fetched again',
+    'Misses come in kinds: cold (first touch of a line), capacity (the working set exceeds the cache), and conflict (set-associative caches only). Try the patterns: sequential has only cold misses; thrash cycles through five lines in four slots, so LRU evicts exactly the line the next access needs.');
   return out;
 }
 
@@ -84,14 +93,22 @@ export function buildAddressTranslation({ pageBits = 4 } = {}) {
 export function buildSyscall() {
   const out = [];
   const snap = (mode, loc, note, o = {}) => out.push({ mode, loc, note, ...o });
-  snap('user', 'program', 'your program runs in user mode — it cannot touch the disk directly');
-  snap('user', 'program', 'it calls read(fd) — which is really a TRAP instruction, a deliberate request to the kernel');
-  snap('kernel', 'trap', 'the CPU switches to kernel mode and saves the user program’s registers', { switched: true });
-  snap('kernel', 'handler', 'the kernel’s syscall handler validates the arguments (is fd really open? is the buffer yours?)');
-  snap('kernel', 'io', 'the kernel asks the disk for the data and blocks this process until it arrives', { blocked: true });
-  snap('kernel', 'handler', 'the bytes arrive; the kernel copies them into your buffer and sets the return value');
-  snap('user', 'program', 'return-from-trap: restore the saved registers, switch back to user mode', { switched: true });
-  snap('user', 'program', 'your program resumes with the bytes — never having seen the disk itself');
+  snap('user', 'program', 'your program runs in user mode — it cannot touch the disk directly',
+    { detail: 'The mode is a bit in a CPU status register. In user mode, privileged instructions — talk to a device, change the page tables, disable interrupts — fault instead of running. The kernel is the only code that ever runs with that bit set.' });
+  snap('user', 'program', 'it calls read(fd) — which is really a TRAP instruction, a deliberate request to the kernel',
+    { detail: 'read() in the C library is a thin wrapper: it places the syscall number and the arguments in registers and executes the trap instruction (syscall on x86-64, svc on ARM). The program cannot jump into the kernel any other way.' });
+  snap('kernel', 'trap', 'the CPU switches to kernel mode and saves the user program’s registers',
+    { switched: true, detail: 'The trap is a controlled jump: the CPU switches to the kernel stack, saves the user registers, and lands at one fixed entry point the kernel registered at boot. User code chooses to enter, but never where it lands.' });
+  snap('kernel', 'handler', 'the kernel’s syscall handler validates the arguments (is fd really open? is the buffer yours?)',
+    { detail: 'Validation is what makes the boundary safe. The kernel never trusts a user pointer: it checks the descriptor belongs to this process, that the buffer lies in the process’s own address space, and that the file permits reading.' });
+  snap('kernel', 'io', 'the kernel asks the disk for the data and blocks this process until it arrives',
+    { blocked: true, detail: 'Blocking means the scheduler runs something else. This process is marked as waiting on the device; the disk controller transfers the data by DMA and raises an interrupt when it is done, which wakes the process.' });
+  snap('kernel', 'handler', 'the bytes arrive; the kernel copies them into your buffer and sets the return value',
+    { detail: 'The data landed in a kernel buffer (the page cache); now it is copied into the user buffer. That copy is the cost zero-copy techniques — mmap, sendfile, io_uring — are designed to avoid.' });
+  snap('user', 'program', 'return-from-trap: restore the saved registers, switch back to user mode',
+    { switched: true, detail: 'sysret / eret restores the saved registers and flips the mode bit back. A full round trip is on the order of 100 ns to 1 µs, which is why hot loops avoid syscalls and batch their I/O.' });
+  snap('user', 'program', 'your program resumes with the bytes — never having seen the disk itself',
+    { detail: 'From the program’s point of view, read() was an ordinary function call that took a while. The entire excursion into the kernel is invisible — which is exactly the point of the abstraction.' });
   return out;
 }
 
@@ -179,17 +196,24 @@ export function buildHashMap({ keys = ['cat', 'dog', 'bird', 'fish', 'ant', 'bee
   const table = Array.from({ length: buckets }, () => []);
   const hash = (k) => { let h = 0; for (let i = 0; i < k.length; i++) h += k.charCodeAt(i); return h % buckets; };
   const snap = (note, o = {}) => out.push({ table: table.map((b) => b.slice()), buckets, note, ...o });
-  snap('a hash map turns a key into a bucket index, so lookups skip straight there instead of scanning everything');
+  snap('a hash map turns a key into a bucket index, so lookups skip straight there instead of scanning everything',
+    { detail: 'The hash here sums the characters’ codes and takes the remainder modulo ' + buckets + '. Real maps use a stronger mix (SipHash, for instance) so that an attacker who controls the keys cannot make them all land in one bucket.' });
   for (const k of keys) {
     const b = hash(k);
     const collision = table[b].length > 0;
     table[b].push(k);
-    snap('insert "' + k + '": hash → bucket ' + b + (collision ? ' — already occupied, so chain it onto the bucket' : ''), { key: k, bucket: b, op: 'insert', collision });
+    snap('insert "' + k + '": hash → bucket ' + b + (collision ? ' — already occupied, so chain it onto the bucket' : ''), { key: k, bucket: b, op: 'insert', collision,
+      detail: collision
+        ? 'Two keys hashed to the same bucket. Separate chaining just links them into a short list; the alternative, open addressing, would probe the next free slot instead. With a decent hash and a load factor around 1, chains average under one extra link.'
+        : 'The bucket was empty, so this is a constant-time append — the map never compared "' + k + '" with any other key.' });
   }
   const lb = hash(lookup);
-  snap('look up "' + lookup + '": hash → bucket ' + lb + ', then scan just that chain', { key: lookup, bucket: lb, op: 'lookup' });
+  const load = (keys.length / buckets).toFixed(1);
+  snap('look up "' + lookup + '": hash → bucket ' + lb + ', then scan just that chain', { key: lookup, bucket: lb, op: 'lookup',
+    detail: 'Lookup repeats the hash and then compares the key only against the chain in bucket ' + lb + '. The load factor is ' + keys.length + ' keys / ' + buckets + ' buckets = ' + load + ', so the expected cost is O(1 + ' + load + ') — independent of how many keys the map holds.' });
   const found = table[lb].includes(lookup);
-  snap('bucket ' + lb + ' holds [' + table[lb].join(', ') + '] → ' + (found ? 'found "' + lookup + '" after a tiny scan, not a full sweep' : 'not present'), { key: lookup, bucket: lb, op: 'lookup', found });
+  snap('bucket ' + lb + ' holds [' + table[lb].join(', ') + '] → ' + (found ? 'found "' + lookup + '" after a tiny scan, not a full sweep' : 'not present'), { key: lookup, bucket: lb, op: 'lookup', found,
+    detail: 'The worst case — every key in one bucket — degrades to O(n), which is why maps resize (rehash into more buckets) when the load factor grows, and why language runtimes randomise their hash seed per process.' });
   return out;
 }
 

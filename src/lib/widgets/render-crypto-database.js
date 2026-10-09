@@ -103,15 +103,23 @@ export function buildDiffieHellman({ p = 23, g = 5, a = 6, b = 15 } = {}) {
   let alice = { secret: '?', pub: '?', shared: '?' };
   let bob = { secret: '?', pub: '?', shared: '?' };
   let wire = null;
-  const snap = (note) => out.push({ alice: { ...alice }, bob: { ...bob }, wire, note });
-  snap('Out in the open: a prime p = ' + p + ' and a base g = ' + g + '. Anyone (including an eavesdropper) can see these.');
-  alice = { ...alice, secret: a }; snap('Alice picks a private secret a = ' + a + ' and tells no one.');
-  bob = { ...bob, secret: b }; snap('Bob picks a private secret b = ' + b + ' and tells no one.');
-  alice = { ...alice, pub: A }; wire = 'A = ' + A; snap('Alice sends A = g^a mod p = ' + g + '^' + a + ' mod ' + p + ' = ' + A + ' — over the public wire.');
-  bob = { ...bob, pub: B }; wire = 'B = ' + B; snap('Bob sends B = g^b mod p = ' + g + '^' + b + ' mod ' + p + ' = ' + B + ' — over the public wire.');
-  alice = { ...alice, shared: sA }; snap('Alice computes B^a mod p = ' + B + '^' + a + ' mod ' + p + ' = ' + sA + '.');
-  bob = { ...bob, shared: sB }; snap('Bob computes A^b mod p = ' + A + '^' + b + ' mod ' + p + ' = ' + sB + '.');
-  snap('Both now hold the same secret ' + sA + ' — but an eavesdropper saw only p, g, A and B, and recovering it means solving a discrete logarithm.');
+  const snap = (note, detail = null) => out.push({ alice: { ...alice }, bob: { ...bob }, wire, note, detail });
+  snap('Out in the open: a prime p = ' + p + ' and a base g = ' + g + '. Anyone (including an eavesdropper) can see these.',
+    'The whole scheme rests on a trapdoor: computing g^x mod p is fast, but recovering x from g^x mod p — the discrete logarithm — has no known efficient algorithm for a large p. With p = ' + p + ' you could brute-force it in seconds; with a 2048-bit p, nobody can.');
+  alice = { ...alice, secret: a }; snap('Alice picks a private secret a = ' + a + ' and tells no one.',
+    'a is never transmitted and never needs to be. It is used once and can then be forgotten — ephemeral Diffie–Hellman — which is what gives TLS forward secrecy: a key stolen next year cannot decrypt today’s traffic.');
+  bob = { ...bob, secret: b }; snap('Bob picks a private secret b = ' + b + ' and tells no one.',
+    'Bob’s b is chosen independently; neither side needs to know anything about the other beyond the public p and g. Move the sliders: any pair of secrets works.');
+  alice = { ...alice, pub: A }; wire = 'A = ' + A; snap('Alice sends A = g^a mod p = ' + g + '^' + a + ' mod ' + p + ' = ' + A + ' — over the public wire.',
+    'An eavesdropper now knows g^a mod p = ' + A + '. To undo the exponent they would have to solve ' + g + '^x ≡ ' + A + ' (mod ' + p + ') for x — the hard direction of the trapdoor.');
+  bob = { ...bob, pub: B }; wire = 'B = ' + B; snap('Bob sends B = g^b mod p = ' + g + '^' + b + ' mod ' + p + ' = ' + B + ' — over the public wire.',
+    'Both public values are on the wire. Everything the eavesdropper will ever see is now visible: p, g, A and B.');
+  alice = { ...alice, shared: sA }; snap('Alice computes B^a mod p = ' + B + '^' + a + ' mod ' + p + ' = ' + sA + '.',
+    'B^a = (g^b)^a = g^(ab) mod p. Alice never learns b; she only needs Bob’s public value and her own secret.');
+  bob = { ...bob, shared: sB }; snap('Bob computes A^b mod p = ' + A + '^' + b + ' mod ' + p + ' = ' + sB + '.',
+    'A^b = (g^a)^b = g^(ab) mod p — the same number, because exponents commute. That symmetry is the entire trick.');
+  snap('Both now hold the same secret ' + sA + ' — but an eavesdropper saw only p, g, A and B, and recovering it means solving a discrete logarithm.',
+    'The shared value is hashed into a symmetric key for the actual traffic. Note what DH does not do: authenticate. A man-in-the-middle could run two separate exchanges, one with each side — which is why TLS signs the handshake with the server’s certificate.');
   return out;
 }
 

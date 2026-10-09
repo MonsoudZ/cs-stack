@@ -2,15 +2,30 @@
   import { useStepper } from '../lib/stepper.svelte.js';
   import { buildDns } from '../lib/widgets.js';
   import Stepper from './Stepper.svelte';
+  import Diagram from './Diagram.svelte';
+  // The name hierarchy as a topology: your app talks only to the resolver,
+  // which walks root → TLD → authoritative on its behalf.
+  const NODES = [
+    { id: 'app', label: 'your app', x: 0, y: 1 },
+    { id: 'resolver', label: 'resolver', x: 1, y: 1 },
+    { id: 'root', label: 'root (.)', x: 2, y: 0 },
+    { id: 'tld', label: '.dev TLD', x: 2, y: 1 },
+    { id: 'auth', label: 'authoritative', x: 2, y: 2 },
+  ];
+  const EDGES = [['app', 'resolver'], ['resolver', 'root'], ['resolver', 'tld'], ['resolver', 'auth']];
+  const NODE_OF = { 'your app': 'app', 'root (.)': 'root', '.dev TLD': 'tld', authoritative: 'auth', resolver: 'resolver' };
   const stepper = useStepper(() => buildDns(), { speed: 1100 });
   const { idx } = stepper;
   let steps = $derived(stepper.all());
   let i = $derived($idx);
   let s = $derived(steps[i]);
+  let active = $derived(NODE_OF[s.server] || null);
+  let meta = $derived(s.answer ? { [active]: s.answer } : { [active]: s.kind });
 </script>
 <div class="widget">
   <div class="csbar"><span class="csmini">resolving thestack.dev → an IP address</span></div>
   <div class="w-label">step the lookup — the resolver walks down the name hierarchy until something answers</div>
+  <div class="dns-map"><Diagram nodes={NODES} edges={EDGES} {active} {meta} label="DNS resolution" /></div>
   <div class="dnswalk">
     {#each steps.slice(0, i + 1) as st, k}
       <div class="dns-row" class:active={k === i} aria-current={k === i ? 'true' : undefined}>
@@ -25,6 +40,8 @@
 </div>
 
 <style>
+  .dns-map{position:relative;z-index:1;margin-bottom:14px}
+  .dns-map :global(.dg){max-width:560px}
   .dnswalk{display:flex;flex-direction:column;gap:7px;font-family:var(--mono);min-height:60px;margin-bottom:6px}
   .dns-row{display:flex;align-items:center;gap:10px;border:1px solid var(--border);border-radius:10px;padding:10px 13px;
     background:var(--surface);animation:framein .2s ease}

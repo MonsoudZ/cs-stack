@@ -24,12 +24,14 @@ const L = Object.fromEntries(sections.map((l) => [l.id, l]));
 // read quorum always overlaps the write quorum on a fresh replica.
 const flow = {
   nodes: [
-    { id: 'client', label: 'Client' },
-    { id: 'coord', label: 'Coordinator' },
-    { id: 'ra', label: 'Replica A' },
-    { id: 'rb', label: 'Replica B' },
-    { id: 'rc', label: 'Replica C' },
+    { id: 'client', label: 'Client', x: 0, y: 1 },
+    { id: 'coord', label: 'Coordinator', x: 1, y: 1 },
+    { id: 'ra', label: 'Replica A', x: 2, y: 0 },
+    { id: 'rb', label: 'Replica B', x: 2, y: 1 },
+    { id: 'rc', label: 'Replica C', x: 2, y: 2 },
   ],
+  // the coordinator fans every write and read out to all three replicas
+  edges: [['client', 'coord'], ['coord', 'ra'], ['coord', 'rb'], ['coord', 'rc']],
   steps: [
     { active: 'coord', phase: 'SETUP', meta: { ra: 'k=v0', rb: 'k=v0', rc: 'k=v0' }, note: 'Key k is replicated on N=3 nodes, all holding v0. The cluster requires W=2 acks to call a write durable and R=2 replies to answer a read. W+R > N (2+2 > 3) — the key guarantee to remember.' },
     { active: 'client', phase: 'WRITE · W=2', meta: { ra: 'k=v0', rb: 'k=v0', rc: 'k=v0' }, note: 'A client sends PUT k = v1 to the coordinator — any node can coordinate; it’s just the one that received this request.' },

@@ -8,6 +8,11 @@
   // `$version` is read so the count recomputes when the steps array is rebuilt
   // (a toggle rebuilding at step 0 would otherwise leave the scrubber stale).
   let count = $derived(($version, stepper.all().length));
+  // Optional per-step `detail`: a deeper paragraph a builder can attach to a
+  // snapshot. The panel is rendered whenever the trace carries any detail (so
+  // the layout doesn't jump between steps) and reads the current step's.
+  let s = $derived(($version, stepper.all()[$idx]));
+  let hasDetail = $derived(($version, stepper.all().some((st) => st && st.detail)));
   let last = $derived($idx >= count - 1);
   let first = $derived($idx <= 0);
   const RATES = [1, 2, 0.5];
@@ -28,6 +33,12 @@
   }
 </script>
 <div class="stepper" onkeydown={onKey} aria-keyshortcuts="ArrowLeft ArrowRight Home End">
+  {#if hasDetail}
+    <div class="step-detail" class:empty={!s?.detail}>
+      <div class="step-detail-k">why this step</div>
+      <p class="step-detail-p">{s?.detail || 'nothing extra on this step — keep going'}</p>
+    </div>
+  {/if}
   <div class="cpu-ctrl">
     <button type="button" class="btn step-btn" onclick={() => stepper.stepOrRestart()}>{last ? 'RESTART ↺' : stepLabel}</button>
     <button type="button" class="btn back-btn" onclick={() => stepper.move(-1)} disabled={first}>◂ BACK</button>
