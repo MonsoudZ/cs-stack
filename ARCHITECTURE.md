@@ -61,8 +61,28 @@ The interactive diagrams keep their logic out of the UI:
   refresh on rebuild-at-step-0. Toggle widgets (Doping, ALU, Isolation, …) rebuild
   via `stepper.rebuild(fn)` and read `$version`.
 - Shared presentational components: `LayerSection` (section wrapper + heading),
-  `Stepper` (STEP/AUTO/RESET controls), `Why`, `Takeaway`, `GoDeeper`, `SeeAlso`,
+  `Stepper` (the step controls), `Why`, `Takeaway`, `GoDeeper`, `SeeAlso`,
   `PrevNext`, `Quiz`, `StackNav`.
+
+### The step controls (`Stepper.svelte`)
+
+Every step widget renders `<Stepper {stepper} />` and gets the same controls:
+STEP (relabels to RESTART on the last frame), BACK, AUTO/STOP, an AUTO speed
+cycler (1× → 2× → ½×, via `stepper.setRate`), RESET, a scrubber (`<input
+type="range">` bound to the step index), a "step n / m" counter, and ←/→/Home/End
+while a control has focus. The scrubber reads `$version` so it re-ranges when a
+toggle rebuilds the trace. In e2e tests target the STEP button as
+`.cpu-ctrl .step-btn` (it is no longer the only button).
+
+### Exposing builder options as controls
+
+A builder's options object is the widget's control surface: when a `build*()`
+takes `{ pipelined }`, `{ buckets }`, `{ target }`, `{ source }`, … the component
+holds that option in `$state`, renders a control in the `.csbar` (a `.csbtn`
+toggle/picker, a `.cspick` slider, or a `.csinput` text field — shared chrome in
+`widgets.css`), and calls `stepper.rebuild(() => buildX({ option }))` on change.
+Keep the option's logic in the builder (and its unit test), never in the
+component, so the compare mode is tested like any other trace.
 
 Client state lives in two localStorage keys: `theme` and `stack:progress` (the
 set of completed lesson keys; a correct quiz answer adds its slug).

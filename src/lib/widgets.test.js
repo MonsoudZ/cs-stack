@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { quizzes } from '../data/quizzes.js';
 import { stacks } from '../data/stacks.js';
 import { designs } from '../data/designs.js';
-import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, RSA, buildSignature, buildMerkle, buildBTreeSearch, buildTransaction, buildCache, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum, DOPING, buildDiode, cmosInverter, nand, buildUniversal, mux2, ALU_OPS, computeAlu, PIPE_STAGES, buildPipeline, buildDeadlock, buildCas, buildLoadBalancer, buildReplication, buildRaftElection, buildRaftLog, LANGS, buildLangRun, buildLangMemory, CI_STAGES, buildCiPipeline, buildDeploy, URL_NODES, buildUrlShortener, buildLinkedList, buildStackQueue, GRAPH, buildGraphTraversal, buildStackHeap, buildAllocator, buildGc, ISOLATION_LEVELS, buildIsolation, buildTypeCheck, buildEventLoop, buildCrp, FS, buildPathResolve, buildJournal, buildSockets, buildHttp, buildTcp, buildJoin,
+import { buildCpu, buildEnc, buildPkt, buildCloudHops, PACKET_FRAGMENTS, decodeMiniFloat, buildRace, buildRouting, buildDns, buildLex, buildVm, invalidatedStages, toyHash, modpow, buildDiffieHellman, RSA, buildSignature, buildMerkle, buildBTreeSearch, buildTransaction, buildCache, CACHE_PATTERNS, buildAddressTranslation, buildSyscall, buildDynamicArray, buildHashMap, twosValue, buildTwosComplement, buildFloatGrid, buildFloatSum, DOPING, buildDiode, cmosInverter, nand, buildUniversal, mux2, ALU_OPS, computeAlu, PIPE_STAGES, buildPipeline, buildDeadlock, buildCas, buildLoadBalancer, buildReplication, buildRaftElection, buildRaftLog, LANGS, buildLangRun, buildLangMemory, CI_STAGES, buildCiPipeline, buildDeploy, URL_NODES, buildUrlShortener, buildLinkedList, buildStackQueue, GRAPH, buildGraphTraversal, buildStackHeap, buildAllocator, buildGc, ISOLATION_LEVELS, buildIsolation, buildTypeCheck, buildEventLoop, buildCrp, FS, buildPathResolve, buildJournal, buildSockets, buildHttp, buildTcp, buildJoin,
   computeNeuron, buildGradientDescent, EMBEDDINGS, nearestWords, cosineSim, buildAttention, softmaxTemp, nextTokenDist,
   tokenize, TOK_VOCAB, buildTraining, buildRag, RAG_DOCS, buildOptimize, buildAst, buildRuntimes, buildRegisters, REG_COUNT, buildScopes } from './widgets.js';
 
@@ -179,6 +179,17 @@ describe('buildLex (tokenizer)', () => {
     const toks = steps.at(-1).tokens;
     expect(toks.map((t) => t.text)).toEqual(['3', '+', '4', '*', '2']);
     expect(toks.map((t) => t.type)).toEqual(['num', 'plus', 'num', 'star', 'num']);
+  });
+});
+
+describe('buildLex with a typed expression', () => {
+  it('lexes identifiers, all four operators, and parentheses', () => {
+    const toks = buildLex({ source: '(a - b) / 7' }).at(-1).tokens;
+    expect(toks.map((t) => t.text)).toEqual(['(', 'a', '-', 'b', ')', '/', '7']);
+    expect(toks.map((t) => t.type)).toEqual(['paren', 'ident', 'minus', 'ident', 'paren', 'slash', 'num']);
+  });
+  it('an unknown character still lexes (as a generic op) rather than throwing', () => {
+    expect(buildLex({ source: '1 % 2' }).at(-1).tokens.map((t) => t.type)).toEqual(['num', 'op', 'num']);
   });
 });
 
@@ -556,6 +567,22 @@ describe('buildDynamicArray (amortized growth)', () => {
   });
 });
 
+describe('CACHE_PATTERNS (the cache widget presets)', () => {
+  it('local: the default trace is the local pattern', () => {
+    expect(buildCache()).toEqual(buildCache({ accesses: CACHE_PATTERNS.local.accesses }));
+  });
+  it('sequential: one miss per line, every neighbour hits', () => {
+    const last = buildCache({ accesses: CACHE_PATTERNS.sequential.accesses }).at(-1);
+    expect(last.misses).toBe(3); // lines 0, 1, 2
+    expect(last.hits).toBe(6);
+  });
+  it('thrash: five lines cycling through a four-line LRU cache miss every time', () => {
+    const last = buildCache({ accesses: CACHE_PATTERNS.thrash.accesses }).at(-1);
+    expect(last.hits).toBe(0);
+    expect(last.misses).toBe(10);
+  });
+});
+
 describe('buildHashMap (separate chaining)', () => {
   const steps = buildHashMap();
   const last = steps[steps.length - 1];
@@ -684,6 +711,47 @@ describe('computeAlu (the CPU calculator)', () => {
   });
   it('every advertised op is implemented', () => {
     for (const op of ALU_OPS) expect(typeof computeAlu(op, 5, 3).result).toBe('number');
+  });
+});
+
+describe('widget options exposed as controls', () => {
+  it('hash map: fewer buckets means more collisions, and the lookup still finds its key', () => {
+    const chains = (b) => buildHashMap({ buckets: b }).at(-1).table;
+    const longest = (t) => Math.max(...t.map((c) => c.length));
+    expect(longest(chains(3))).toBeGreaterThan(longest(chains(8)));
+    for (const b of [3, 5, 8]) expect(buildHashMap({ buckets: b }).at(-1).found).toBe(true);
+  });
+  it('B-tree: a key the index does not hold still walks to exactly one leaf and reports not found', () => {
+    const steps = buildBTreeSearch({ target: 16 });
+    const last = steps.at(-1);
+    expect(last.found).toBe(false);
+    expect(last.path).toEqual(['root', 'n3']);
+    expect(last.note).toMatch(/does not contain 16/);
+    expect(buildBTreeSearch({ target: 2 }).at(-1)).toMatchObject({ found: true, foundKey: 2, current: 'n0' });
+  });
+  it('BFS: every start node visits all five nodes exactly once', () => {
+    for (const start of GRAPH.nodes) {
+      const visited = buildGraphTraversal({ start }).at(-1).visited;
+      expect(visited[0]).toBe(start);
+      expect([...visited].sort()).toEqual([...GRAPH.nodes].sort());
+    }
+  });
+  it("two's complement: negating any 1…7 lands on its negative, and the flip-then-add-one reads back", () => {
+    for (let v = 1; v <= 7; v++) {
+      const steps = buildTwosComplement({ value: v });
+      expect(steps[1].value).toBe(v);
+      expect(steps[3].value).toBe(-v);
+    }
+  });
+  it('dynamic array: n appends copy n − 1 items in total (the doublings sum to one less than n)', () => {
+    for (const n of [4, 8, 16]) expect(buildDynamicArray({ n }).at(-1).copies).toBe(n - 1);
+  });
+  it('Diffie–Hellman: any pair of private secrets agrees on the same shared value', () => {
+    for (const [a, b] of [[1, 1], [3, 20], [22, 7]]) {
+      const last = buildDiffieHellman({ a, b }).at(-1);
+      expect(last.alice.shared).toBe(last.bob.shared);
+      expect(last.alice.shared).toBeGreaterThan(0);
+    }
   });
 });
 

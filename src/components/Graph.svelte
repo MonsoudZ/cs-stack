@@ -1,19 +1,24 @@
 <script>
   import { useStepper } from '../lib/stepper.svelte.js';
-  import { buildGraphTraversal } from '../lib/widgets.js';
+  import { buildGraphTraversal, GRAPH } from '../lib/widgets.js';
   import Stepper from './Stepper.svelte';
-  const stepper = useStepper(() => buildGraphTraversal(), { speed: 1000 });
-  const { idx } = stepper;
-  let s = $derived(stepper.all()[$idx]);
+  let start = $state('A');
+  const stepper = useStepper(() => buildGraphTraversal({ start }), { speed: 1000 });
+  const { idx, version } = stepper;
+  let s = $derived(($version, stepper.all()[$idx]));
+  function pick(n) { start = n; stepper.rebuild(() => buildGraphTraversal({ start })); }
   const POS = { A: [55, 100], B: [150, 38], C: [150, 162], D: [255, 70], E: [270, 160] };
   const EDGES = [['A', 'B'], ['A', 'C'], ['B', 'D'], ['C', 'D'], ['C', 'E']];
-  const state = (n) => (n === s.current ? 'cur' : s.visited.includes(n) ? 'seen' : s.queue.includes(n) ? 'queued' : 'unseen');
+  const nodeState = (n) => (n === s.current ? 'cur' : s.visited.includes(n) ? 'seen' : s.queue.includes(n) ? 'queued' : 'unseen');
 </script>
 <div class="widget">
   <div class="csbar">
     <span class="csmini">graph · breadth-first search</span>
     <span class="spacer"></span>
     <span class="csmini">visited: {s.visited.length ? s.visited.join(' ') : '—'}</span>
+    <span class="cspick" role="group" aria-label="start node">start
+      {#each GRAPH.nodes as n}<button type="button" class="csbtn" aria-pressed={start === n} onclick={() => pick(n)}>{n}</button>{/each}
+    </span>
   </div>
   <div class="w-label">step the BFS — a queue holds the frontier, exploring level by level</div>
   <svg class="gr" viewBox="0 0 320 200" role="img" aria-label="graph traversal">
@@ -21,7 +26,7 @@
       <line x1={POS[a][0]} y1={POS[a][1]} x2={POS[b][0]} y2={POS[b][1]} class="gr-edge" />
     {/each}
     {#each Object.entries(POS) as [n, [x, y]]}
-      <g class="gr-node {state(n)}">
+      <g class="gr-node {nodeState(n)}">
         <circle cx={x} cy={y} r="18" />
         <text {x} y={y + 5} text-anchor="middle">{n}</text>
       </g>

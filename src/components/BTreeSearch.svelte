@@ -2,13 +2,22 @@
   import { useStepper } from '../lib/stepper.svelte.js';
   import { buildBTreeSearch, BTREE } from '../lib/widgets.js';
   import Stepper from './Stepper.svelte';
-  const stepper = useStepper(() => buildBTreeSearch({ target: 10 }), { speed: 950 });
-  const { idx } = stepper;
-  let s = $derived(stepper.all()[$idx]);
+  const TARGETS = [2, 6, 10, 14, 16]; // 16 is not in the index — the walk still ends at one leaf
+  let target = $state(10);
+  const stepper = useStepper(() => buildBTreeSearch({ target }), { speed: 950 });
+  const { idx, version } = stepper;
+  let s = $derived(($version, stepper.all()[$idx]));
+  function pick(t) { target = t; stepper.rebuild(() => buildBTreeSearch({ target })); }
   const leaves = ['n0', 'n1', 'n2', 'n3'];
 </script>
 <div class="widget">
-  <div class="csbar"><span class="csmini">an index on the key column · finding the row with key 10</span></div>
+  <div class="csbar">
+    <span class="csmini">an index on the key column · finding the row with key {target}</span>
+    <span class="spacer"></span>
+    <span class="cspick" role="group" aria-label="key to find">key
+      {#each TARGETS as t}<button type="button" class="csbtn" aria-pressed={target === t} onclick={() => pick(t)}>{t}</button>{/each}
+    </span>
+  </div>
   <div class="w-label">step the lookup — descend the tree instead of scanning all 15 rows</div>
   <div class="btree">
     <div class="bt-row">

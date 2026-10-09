@@ -2,15 +2,21 @@
   import { useStepper } from '../lib/stepper.svelte.js';
   import { buildDynamicArray } from '../lib/widgets.js';
   import Stepper from './Stepper.svelte';
-  const stepper = useStepper(() => buildDynamicArray(), { speed: 900 });
-  const { idx } = stepper;
-  let s = $derived(stepper.all()[$idx]);
+  const SIZES = [4, 8, 16];
+  let n = $state(8);
+  const stepper = useStepper(() => buildDynamicArray({ n }), { speed: 900 });
+  const { idx, version } = stepper;
+  let s = $derived(($version, stepper.all()[$idx]));
+  function pick(k) { n = k; stepper.rebuild(() => buildDynamicArray({ n })); }
 </script>
 <div class="widget">
   <div class="csbar">
     <span class="csmini">dynamic array · grow by doubling</span>
     <span class="spacer"></span>
     <span class="csmini">length {s.len} / capacity {s.cap} · {s.copies} copies</span>
+    <span class="cspick" role="group" aria-label="number of appends">appends
+      {#each SIZES as k}<button type="button" class="csbtn" aria-pressed={n === k} onclick={() => pick(k)}>{k}</button>{/each}
+    </span>
   </div>
   <div class="w-label">step the appends — most are cheap; a full array doubles and copies</div>
   <div class="da-cells" class:grew={s.grew}>

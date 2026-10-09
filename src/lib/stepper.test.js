@@ -98,4 +98,25 @@ describe('createStepper', () => {
     expect(get(s.autoOn)).toBe(false);
     vi.useRealTimers();
   });
+
+  it('setRate scales the auto-play cadence and re-arms a running timer', () => {
+    vi.useFakeTimers();
+    const build5 = () => [{ x: 0 }, { x: 1 }, { x: 2 }, { x: 3 }, { x: 4 }];
+    const s = createStepper(build5, { speed: 200 });
+    expect(get(s.rate)).toBe(1);
+    s.setRate(2);                      // set before playing: 100ms per step
+    expect(get(s.rate)).toBe(2);
+    s.toggleAuto();
+    vi.advanceTimersByTime(200);
+    expect(get(s.idx)).toBe(2);
+    s.setRate(0.5);                    // while playing: re-armed at 400ms
+    vi.advanceTimersByTime(390);
+    expect(get(s.idx)).toBe(2);        // not yet
+    vi.advanceTimersByTime(20);
+    expect(get(s.idx)).toBe(3);
+    s.setRate(0);                      // nonsense rate falls back to 1×
+    expect(get(s.rate)).toBe(1);
+    s.destroy();
+    vi.useRealTimers();
+  });
 });

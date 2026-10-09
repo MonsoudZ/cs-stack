@@ -2,9 +2,12 @@
   import { useStepper } from '../lib/stepper.svelte.js';
   import { buildPipeline } from '../lib/widgets.js';
   import Stepper from './Stepper.svelte';
-  const stepper = useStepper(() => buildPipeline(), { speed: 800 });
-  const { idx } = stepper;
-  let s = $derived(stepper.all()[$idx]);
+  let pipelined = $state(true);
+  const stepper = useStepper(() => buildPipeline({ pipelined }), { speed: 800 });
+  const { idx, version } = stepper;
+  // $version so the step recomputes when the toggle rebuilds at step 0
+  let s = $derived(($version, stepper.all()[$idx]));
+  function toggle() { pipelined = !pipelined; stepper.rebuild(() => buildPipeline({ pipelined })); }
   const SCLASS = { IF: 'st-if', ID: 'st-id', EX: 'st-ex', MEM: 'st-mem', WB: 'st-wb' };
 </script>
 <div class="widget">
@@ -12,8 +15,9 @@
     <span class="csmini">5-stage pipeline · {s.stages.join(' · ')}</span>
     <span class="spacer"></span>
     <span class="csmini pl-done">{s.done}/{s.lanes.length} retired · cycle {Math.max(0, s.cycle + 1)}/{s.total}</span>
+    <button type="button" class="csbtn" aria-pressed={pipelined} onclick={toggle}>pipelining: {pipelined ? 'ON' : 'OFF'}</button>
   </div>
-  <div class="w-label">step the clock — one instruction enters each cycle, so the stages overlap</div>
+  <div class="w-label">{pipelined ? 'step the clock — one instruction enters each cycle, so the stages overlap' : 'step the clock — each instruction finishes all five stages before the next starts'}</div>
   <div class="pl-lanes">
     {#each s.lanes as lane}
       <div class="pl-lane">

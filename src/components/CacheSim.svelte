@@ -1,10 +1,12 @@
 <script>
   import { useStepper } from '../lib/stepper.svelte.js';
-  import { buildCache } from '../lib/widgets.js';
+  import { buildCache, CACHE_PATTERNS as PATTERNS } from '../lib/widgets.js';
   import Stepper from './Stepper.svelte';
-  const stepper = useStepper(() => buildCache(), { speed: 850 });
-  const { idx } = stepper;
-  let s = $derived(stepper.all()[$idx]);
+  let pattern = $state('local');
+  const stepper = useStepper(() => buildCache({ accesses: PATTERNS[pattern].accesses }), { speed: 850 });
+  const { idx, version } = stepper;
+  let s = $derived(($version, stepper.all()[$idx]));
+  function pick(p) { pattern = p; stepper.rebuild(() => buildCache({ accesses: PATTERNS[pattern].accesses })); }
   let lines = $derived([...s.cache].sort((a, b) => a - b)); // stable display order
 </script>
 <div class="widget">
@@ -12,6 +14,9 @@
     <span class="csmini">a 4-line cache · each line holds 4 consecutive addresses</span>
     <span class="spacer"></span>
     <span class="csmini">{s.hits} hits · {s.misses} misses</span>
+    <span class="cspick" role="group" aria-label="access pattern">
+      {#each Object.entries(PATTERNS) as [k, p]}<button type="button" class="csbtn" aria-pressed={pattern === k} onclick={() => pick(k)}>{p.label}</button>{/each}
+    </span>
   </div>
   <div class="w-label">step the accesses — a miss loads a whole line, so its neighbours then hit</div>
   <div class="cache-access">

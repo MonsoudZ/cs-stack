@@ -66,7 +66,7 @@ test('Database page: own nav, B-tree finds the key, a crash without a txn loses 
   const bt = page.locator('#D1');
   await bt.scrollIntoViewIfNeeded();
   for (let i = 0; i < 4; i++) {
-    await bt.locator('.cpu-ctrl button').first().click();
+    await bt.locator('.cpu-ctrl .step-btn').first().click();
     if (await bt.locator('.bt-key.found').count()) break;
     await page.waitForTimeout(40);
   }
@@ -75,7 +75,7 @@ test('Database page: own nav, B-tree finds the key, a crash without a txn loses 
   const jn = page.locator('#D3');
   await jn.scrollIntoViewIfNeeded();
   for (let i = 0; i < 12; i++) {
-    await jn.locator('.cpu-ctrl button').first().click();
+    await jn.locator('.cpu-ctrl .step-btn').first().click();
     if (await jn.locator('.jn-tbl.out tbody tr').count() >= 3) break;
     await page.waitForTimeout(40);
   }
@@ -89,7 +89,7 @@ test('Database page: own nav, B-tree finds the key, a crash without a txn loses 
     await expect(txBtn).toContainText('OFF', { timeout: 400 });
   }).toPass({ timeout: 8000 });
   for (let i = 0; i < 5; i++) {
-    await tx.locator('.cpu-ctrl button').first().click();
+    await tx.locator('.cpu-ctrl .step-btn').first().click();
     if (await tx.locator('.txn-acct.total.lost').count()) break;
     await page.waitForTimeout(40);
   }
@@ -102,7 +102,7 @@ test('Database page: own nav, B-tree finds the key, a crash without a txn loses 
     await expect(iso.getByRole('button', { name: 'READ UNCOMMITTED' })).toHaveAttribute('aria-pressed', 'true', { timeout: 400 });
   }).toPass({ timeout: 8000 });
   for (let i = 0; i < 8; i++) {
-    await iso.locator('.cpu-ctrl button').first().click();
+    await iso.locator('.cpu-ctrl .step-btn').first().click();
     if (await iso.locator('.iso-flag').count()) break;
     await page.waitForTimeout(40);
   }
@@ -117,7 +117,7 @@ test('Memory page: own nav, fragmentation fails a malloc, a cache hits, an addre
   const al = page.locator('#M2');
   await al.scrollIntoViewIfNeeded();
   for (let i = 0; i < 7; i++) {
-    await al.locator('.cpu-ctrl button').first().click();
+    await al.locator('.cpu-ctrl .step-btn').first().click();
     if (await al.locator('.al-heap.failed').count()) break;
     await page.waitForTimeout(40);
   }
@@ -126,7 +126,7 @@ test('Memory page: own nav, fragmentation fails a malloc, a cache hits, an addre
   const cache = page.locator('#M4');
   await cache.scrollIntoViewIfNeeded();
   for (let i = 0; i < 9; i++) {
-    await cache.locator('.cpu-ctrl button').first().click();
+    await cache.locator('.cpu-ctrl .step-btn').first().click();
     if (await cache.locator('.ca-badge.hit').count()) break;
     await page.waitForTimeout(40);
   }
@@ -135,7 +135,7 @@ test('Memory page: own nav, fragmentation fails a malloc, a cache hits, an addre
   const vm = page.locator('#M6');
   await vm.scrollIntoViewIfNeeded();
   for (let i = 0; i < 4; i++) {
-    await vm.locator('.cpu-ctrl button').first().click();
+    await vm.locator('.cpu-ctrl .step-btn').first().click();
     if (await vm.locator('.vmt-phys.show').count()) break;
     await page.waitForTimeout(40);
   }
@@ -199,7 +199,7 @@ test('Reduced motion: the global reset neutralizes animations and transitions', 
   const di = page.locator('#SI2');
   await di.scrollIntoViewIfNeeded();
   for (let i = 0; i < 6; i++) {
-    await di.locator('.cpu-ctrl button').first().click();
+    await di.locator('.cpu-ctrl .step-btn').first().click();
     if (await di.locator('.di-flow').count()) break;
     await page.waitForTimeout(40);
   }
@@ -328,7 +328,7 @@ test('Cloud page: own nav, the balancer fails over, a replica read goes stale', 
   const lb = page.locator('#CD1');
   await lb.scrollIntoViewIfNeeded();
   for (let i = 0; i < 6; i++) {
-    await lb.locator('.cpu-ctrl button').first().click();
+    await lb.locator('.cpu-ctrl .step-btn').first().click();
     if (await lb.locator('.lb-server.down').count()) break;
     await page.waitForTimeout(40);
   }
@@ -337,7 +337,7 @@ test('Cloud page: own nav, the balancer fails over, a replica read goes stale', 
   const rp = page.locator('#CD4');
   await rp.scrollIntoViewIfNeeded();
   for (let i = 0; i < 4; i++) {
-    await rp.locator('.cpu-ctrl button').first().click();
+    await rp.locator('.cpu-ctrl .step-btn').first().click();
     if (await rp.locator('.rp-read.stale').count()) break;
     await page.waitForTimeout(40);
   }
@@ -352,7 +352,7 @@ test('Raft page: own nav, an election produces a leader, a log entry commits on 
   const el = page.locator('#RF1');
   await el.scrollIntoViewIfNeeded();
   for (let i = 0; i < 8; i++) {
-    await el.locator('.cpu-ctrl button').first().click();
+    await el.locator('.cpu-ctrl .step-btn').first().click();
     if (await el.locator('.rft-node.leader').count()) break;
     await page.waitForTimeout(40);
   }
@@ -361,7 +361,7 @@ test('Raft page: own nav, an election produces a leader, a log entry commits on 
   const lg = page.locator('#RF2');
   await lg.scrollIntoViewIfNeeded();
   for (let i = 0; i < 8; i++) {
-    await lg.locator('.cpu-ctrl button').first().click();
+    await lg.locator('.cpu-ctrl .step-btn').first().click();
     if (await lg.locator('.rl-entry.committed').count()) break;
     await page.waitForTimeout(40);
   }
@@ -376,7 +376,7 @@ test('Languages page: own nav, the run-model widget reveals JIT, the memory widg
   const run = page.locator('#LA1');
   await run.scrollIntoViewIfNeeded();
   for (let i = 0; i < 8; i++) {
-    await run.locator('.cpu-ctrl button').first().click();
+    await run.locator('.cpu-ctrl .step-btn').first().click();
     if (await run.locator('.lr-lane.m-JIT.shown').count()) break;
     await page.waitForTimeout(40);
   }
@@ -385,7 +385,7 @@ test('Languages page: own nav, the run-model widget reveals JIT, the memory widg
   const mem = page.locator('#LA3');
   await mem.scrollIntoViewIfNeeded();
   for (let i = 0; i < 6; i++) {
-    await mem.locator('.cpu-ctrl button').first().click();
+    await mem.locator('.cpu-ctrl .step-btn').first().click();
     if (await mem.locator('.lm-block.leaked').count()) break;
     await page.waitForTimeout(40);
   }
@@ -402,7 +402,7 @@ test('DevOps page: own nav, a CI gate fails and blocks the commit, a canary depl
   const ci = page.locator('#DV1');
   await ci.scrollIntoViewIfNeeded();
   for (let i = 0; i < 8; i++) {
-    await ci.locator('.cpu-ctrl button').first().click();
+    await ci.locator('.cpu-ctrl .step-btn').first().click();
     if (await ci.locator('.ci-stage.fail').count()) break;
     await page.waitForTimeout(40);
   }
@@ -411,7 +411,7 @@ test('DevOps page: own nav, a CI gate fails and blocks the commit, a canary depl
   const dp = page.locator('#DV2');
   await dp.scrollIntoViewIfNeeded();
   for (let i = 0; i < 10; i++) {
-    await dp.locator('.cpu-ctrl button').first().click();
+    await dp.locator('.cpu-ctrl .step-btn').first().click();
     if (await dp.locator('.dp-flag.bad').count()) break;
     await page.waitForTimeout(40);
   }
@@ -433,7 +433,7 @@ test('System design: the index links to the URL-shortener case study, which trac
   await rf.scrollIntoViewIfNeeded();
   const hit = rf.locator('.rf-node .rf-meta', { hasText: 'HIT' });
   for (let i = 0; i < 16; i++) {
-    await rf.locator('.cpu-ctrl button').first().click();
+    await rf.locator('.cpu-ctrl .step-btn').first().click();
     if (await hit.count()) break;
     await page.waitForTimeout(40);
   }
@@ -450,7 +450,7 @@ test('System design: the rate-limiter case study traces a request to a 429 rejec
   const rf = page.locator('#RL2');
   await rf.scrollIntoViewIfNeeded();
   for (let i = 0; i < 16; i++) {
-    await rf.locator('.cpu-ctrl button').first().click();
+    await rf.locator('.cpu-ctrl .step-btn').first().click();
     if (await rf.locator('.rf-node.warn').count()) break;
     await page.waitForTimeout(40);
   }
@@ -469,7 +469,7 @@ test('System design: the distributed KV store traces a quorum write/read to a la
   const rf = page.locator('#KV3');
   await rf.scrollIntoViewIfNeeded();
   for (let i = 0; i < 16; i++) {
-    await rf.locator('.cpu-ctrl button').first().click();
+    await rf.locator('.cpu-ctrl .step-btn').first().click();
     if (await rf.locator('.rf-node.warn').count()) break;
     await page.waitForTimeout(40);
   }
@@ -490,7 +490,7 @@ test('System design: search autocomplete traces a debounced query through a cold
   await rf.scrollIntoViewIfNeeded();
   const hit = rf.locator('.rf-node .rf-meta', { hasText: 'HIT' });
   for (let i = 0; i < 16; i++) {
-    await rf.locator('.cpu-ctrl button').first().click();
+    await rf.locator('.cpu-ctrl .step-btn').first().click();
     if (await hit.count()) break;
     await page.waitForTimeout(40);
   }
@@ -506,7 +506,7 @@ test('Concurrency page: own nav, two locks deadlock, compare-and-swap stays corr
   const dl = page.locator('#CC2');
   await dl.scrollIntoViewIfNeeded();
   for (let i = 0; i < 7; i++) {
-    await dl.locator('.cpu-ctrl button').first().click();
+    await dl.locator('.cpu-ctrl .step-btn').first().click();
     if (await dl.locator('.dl-banner').count()) break;
     await page.waitForTimeout(40);
   }
@@ -515,13 +515,13 @@ test('Concurrency page: own nav, two locks deadlock, compare-and-swap stays corr
   const cas = page.locator('#CC3');
   await cas.scrollIntoViewIfNeeded();
   for (let i = 0; i < 8; i++) {
-    await cas.locator('.cpu-ctrl button').first().click();
+    await cas.locator('.cpu-ctrl .step-btn').first().click();
     if (await cas.locator('.cas-attempt.fail').count()) break;
     await page.waitForTimeout(40);
   }
   await expect(cas.locator('.cas-attempt.fail')).toBeVisible();
   // step to the end and confirm both increments landed
-  for (let i = 0; i < 3; i++) await cas.locator('.cpu-ctrl button').first().click();
+  for (let i = 0; i < 3; i++) await cas.locator('.cpu-ctrl .step-btn').first().click();
   await expect(cas.locator('.cas-counter')).toContainText('2');
 });
 
@@ -542,7 +542,7 @@ test('CPU page: own nav, the ALU computes AND, the pipeline overlaps five stages
   const pl = page.locator('#CP3');
   await pl.scrollIntoViewIfNeeded();
   for (let i = 0; i < 6; i++) {
-    await pl.locator('.cpu-ctrl button').first().click();
+    await pl.locator('.cpu-ctrl .step-btn').first().click();
     if (await pl.locator('.st-wb').count()) break;
     await page.waitForTimeout(40);
   }
@@ -568,7 +568,7 @@ test('Silicon page: own nav, doping adds carriers, the diode conducts forward, C
   const di = page.locator('#SI2');
   await di.scrollIntoViewIfNeeded();
   for (let i = 0; i < 5; i++) {
-    await di.locator('.cpu-ctrl button').first().click();
+    await di.locator('.cpu-ctrl .step-btn').first().click();
     if (await di.locator('.di-junction.flow').count()) break;
     await page.waitForTimeout(40);
   }
@@ -592,7 +592,7 @@ test('Numbers page: own nav, two’s complement negates to −5, and 0.1 + 0.2 �
   const tc = page.locator('#NB1');
   await tc.scrollIntoViewIfNeeded();
   for (let i = 0; i < 4; i++) {
-    await tc.locator('.cpu-ctrl button').first().click();
+    await tc.locator('.cpu-ctrl .step-btn').first().click();
     if ((await tc.locator('.tc-val').textContent())?.includes('-5')) break;
     await page.waitForTimeout(40);
   }
@@ -601,7 +601,7 @@ test('Numbers page: own nav, two’s complement negates to −5, and 0.1 + 0.2 �
   const fs = page.locator('#NB4');
   await fs.scrollIntoViewIfNeeded();
   for (let i = 0; i < 6; i++) {
-    await fs.locator('.cpu-ctrl button').first().click();
+    await fs.locator('.cpu-ctrl .step-btn').first().click();
     if (await fs.locator('.fs-verdict').count()) break;
     await page.waitForTimeout(40);
   }
@@ -617,7 +617,7 @@ test('Structures page: own nav, the array grows by doubling, a hash lookup finds
   const da = page.locator('#S2');
   await da.scrollIntoViewIfNeeded();
   for (let i = 0; i < 6; i++) {
-    await da.locator('.cpu-ctrl button').first().click();
+    await da.locator('.cpu-ctrl .step-btn').first().click();
     if (await da.locator('.da-cells.grew').count()) break;
     await page.waitForTimeout(40);
   }
@@ -626,7 +626,7 @@ test('Structures page: own nav, the array grows by doubling, a hash lookup finds
   const hm = page.locator('#S4');
   await hm.scrollIntoViewIfNeeded();
   for (let i = 0; i < 8; i++) {
-    await hm.locator('.cpu-ctrl button').first().click();
+    await hm.locator('.cpu-ctrl .step-btn').first().click();
     if (await hm.locator('.hm-key.hit').count()) break;
     await page.waitForTimeout(40);
   }
@@ -635,7 +635,7 @@ test('Structures page: own nav, the array grows by doubling, a hash lookup finds
   const gr = page.locator('#S6');
   await gr.scrollIntoViewIfNeeded();
   for (let i = 0; i < 7; i++) {
-    await gr.locator('.cpu-ctrl button').first().click();
+    await gr.locator('.cpu-ctrl .step-btn').first().click();
     if (await gr.locator('.gr-node.seen').count() >= 5) break;
     await page.waitForTimeout(40);
   }
@@ -650,7 +650,7 @@ test('OS page: own nav, the scheduler runs a process, a syscall traps, a path re
   const sch = page.locator('#O1');
   await sch.scrollIntoViewIfNeeded();
   for (let i = 0; i < 3; i++) {
-    await sch.locator('.cpu-ctrl button').first().click();
+    await sch.locator('.cpu-ctrl .step-btn').first().click();
     if (await sch.locator('.proc-core').count()) break;
     await page.waitForTimeout(40);
   }
@@ -659,7 +659,7 @@ test('OS page: own nav, the scheduler runs a process, a syscall traps, a path re
   const sc = page.locator('#O3');
   await sc.scrollIntoViewIfNeeded();
   for (let i = 0; i < 6; i++) {
-    await sc.locator('.cpu-ctrl button').first().click();
+    await sc.locator('.cpu-ctrl .step-btn').first().click();
     if (await sc.locator('.sc-marker.blocked').count()) break;
     await page.waitForTimeout(40);
   }
@@ -668,8 +668,10 @@ test('OS page: own nav, the scheduler runs a process, a syscall traps, a path re
   // filesystem (section O5): stepping resolves /docs/notes.txt down to its data blocks
   const fs = page.locator('#O5');
   await fs.scrollIntoViewIfNeeded();
-  for (let i = 0; i < 6; i++) {
-    await fs.locator('.cpu-ctrl button').first().click();
+  // the blocks appear only on the terminal (7th) frame, so leave headroom for
+  // clicks dropped before hydration — the loop stops as soon as they show
+  for (let i = 0; i < 12; i++) {
+    await fs.locator('.cpu-ctrl .step-btn').first().click();
     if (await fs.locator('.pr-block').count()) break;
     await page.waitForTimeout(40);
   }
@@ -693,7 +695,7 @@ test('Crypto page: own nav, hash avalanches, DH agrees on a shared secret', asyn
   const dh = page.locator('#X3');
   await dh.scrollIntoViewIfNeeded();
   for (let i = 0; i < 9; i++) {
-    await dh.locator('.cpu-ctrl button').first().click();
+    await dh.locator('.cpu-ctrl .step-btn').first().click();
     if (await dh.locator('.dh-shared.on').count()) break;
     await page.waitForTimeout(40);
   }
@@ -703,7 +705,7 @@ test('Crypto page: own nav, hash avalanches, DH agrees on a shared secret', asyn
   const mk = page.locator('#X6 .widget').nth(1); // the second widget is the Merkle tree
   await mk.scrollIntoViewIfNeeded();
   for (let i = 0; i < 12; i++) {
-    await mk.locator('.cpu-ctrl button').first().click();
+    await mk.locator('.cpu-ctrl .step-btn').first().click();
     if (await mk.locator('.mk-node.root.bad').count()) break;
     await page.waitForTimeout(40);
   }
@@ -718,7 +720,7 @@ test('Render page: own nav, transform re-runs only composite, the event loop ren
   const crp = page.locator('#R4');
   await crp.scrollIntoViewIfNeeded();
   for (let i = 0; i < 8; i++) {
-    await crp.locator('.cpu-ctrl button').first().click();
+    await crp.locator('.cpu-ctrl .step-btn').first().click();
     if (await crp.locator('.crp-paint.on').count()) break;
     await page.waitForTimeout(40);
   }
@@ -736,7 +738,7 @@ test('Render page: own nav, transform re-runs only composite, the event loop ren
   const el = page.locator('#R6');
   await el.scrollIntoViewIfNeeded();
   for (let i = 0; i < 9; i++) {
-    await el.locator('.cpu-ctrl button').first().click();
+    await el.locator('.cpu-ctrl .step-btn').first().click();
     if (await el.locator('.el-render.done').count()) break;
     await page.waitForTimeout(40);
   }
@@ -791,7 +793,7 @@ test('Compiler page: own nav, tokenizer emits tokens, type checking rejects a bu
   const lex = page.locator('#K1');
   await lex.scrollIntoViewIfNeeded();
   for (let i = 0; i < 5; i++) {
-    await lex.locator('.cpu-ctrl button').first().click();
+    await lex.locator('.cpu-ctrl .step-btn').first().click();
     if (await lex.locator('.lex-tok').count()) break;
     await page.waitForTimeout(40);
   }
@@ -804,7 +806,7 @@ test('Compiler page: own nav, tokenizer emits tokens, type checking rejects a bu
     await expect(tc.getByRole('button', { name: /program:/ })).toContainText('has a bug', { timeout: 400 });
   }).toPass({ timeout: 8000 });
   for (let i = 0; i < 6; i++) {
-    await tc.locator('.cpu-ctrl button').first().click();
+    await tc.locator('.cpu-ctrl .step-btn').first().click();
     if (await tc.locator('.tc-verdict.bad').count()) break;
     await page.waitForTimeout(40);
   }
@@ -814,7 +816,7 @@ test('Compiler page: own nav, tokenizer emits tokens, type checking rejects a bu
   const scope = page.locator('#K3 .widget').nth(1);
   await scope.scrollIntoViewIfNeeded();
   for (let i = 0; i < 8; i++) {
-    await scope.locator('.cpu-ctrl button').first().click();
+    await scope.locator('.cpu-ctrl .step-btn').first().click();
     if (await scope.locator('.sc-result.bad').count()) break;
     await page.waitForTimeout(40);
   }
@@ -823,7 +825,7 @@ test('Compiler page: own nav, tokenizer emits tokens, type checking rejects a bu
   const vm = page.locator('#K4');
   await vm.scrollIntoViewIfNeeded();
   for (let i = 0; i < 8; i++) {
-    await vm.locator('.cpu-ctrl button').first().click();
+    await vm.locator('.cpu-ctrl .step-btn').first().click();
     if (await vm.locator('.vm-result.show').count()) break;
     await page.waitForTimeout(40);
   }
@@ -833,7 +835,7 @@ test('Compiler page: own nav, tokenizer emits tokens, type checking rejects a bu
   await opt.scrollIntoViewIfNeeded();
   await expect(opt.locator('.opt-line')).toHaveCount(5); // starts at the 5-line program
   for (let i = 0; i < 10; i++) {
-    await opt.locator('.cpu-ctrl button').first().click();
+    await opt.locator('.cpu-ctrl .step-btn').first().click();
     if ((await opt.locator('.opt-line').count()) === 1) break;
     await page.waitForTimeout(40);
   }
@@ -844,7 +846,7 @@ test('Compiler page: own nav, tokenizer emits tokens, type checking rejects a bu
   await ast.scrollIntoViewIfNeeded();
   await expect(ast.locator('.ast-val')).toHaveCount(5); // +, 3, ×, 4, 2
   for (let i = 0; i < 10; i++) {
-    await ast.locator('.cpu-ctrl button').first().click();
+    await ast.locator('.cpu-ctrl .step-btn').first().click();
     if ((await ast.locator('.ast-val').count()) === 1) break;
     await page.waitForTimeout(40);
   }
@@ -855,7 +857,7 @@ test('Compiler page: own nav, tokenizer emits tokens, type checking rejects a bu
   await rt.scrollIntoViewIfNeeded();
   await expect(rt.locator('.rt-lead')).toContainText('interpreter');
   for (let i = 0; i < 8; i++) {
-    await rt.locator('.cpu-ctrl button').first().click();
+    await rt.locator('.cpu-ctrl .step-btn').first().click();
     if (/after 100/.test(await rt.locator('.rt-iters').innerText())) break;
     await page.waitForTimeout(40);
   }
@@ -865,7 +867,7 @@ test('Compiler page: own nav, tokenizer emits tokens, type checking rejects a bu
   const reg = page.locator('#KR');
   await reg.scrollIntoViewIfNeeded();
   for (let i = 0; i < 8; i++) {
-    await reg.locator('.cpu-ctrl button').first().click();
+    await reg.locator('.cpu-ctrl .step-btn').first().click();
     if (await reg.locator('.reg-badge.b-spill', { hasText: 'stack' }).count()) break;
     await page.waitForTimeout(40);
   }
@@ -882,7 +884,7 @@ test('Network page: own nav, routing TTL counts down, DNS resolves, HTTP returns
   await routing.scrollIntoViewIfNeeded();
   const ttl = routing.locator('.ttlval');
   await expect(ttl).toHaveText('6');
-  const rstep = () => routing.locator('.cpu-ctrl button').first();
+  const rstep = () => routing.locator('.cpu-ctrl .step-btn').first();
   await expect(async () => {
     await rstep().click();
     await expect(ttl).toHaveText('5', { timeout: 400 });
@@ -892,7 +894,7 @@ test('Network page: own nav, routing TTL counts down, DNS resolves, HTTP returns
   const tcp = page.locator('#N4');
   await tcp.scrollIntoViewIfNeeded();
   for (let i = 0; i < 12; i++) {
-    await tcp.locator('.cpu-ctrl button').first().click();
+    await tcp.locator('.cpu-ctrl .step-btn').first().click();
     if (await tcp.locator('.tcp-cwnd.lost').count()) break;
     await page.waitForTimeout(40);
   }
@@ -901,7 +903,7 @@ test('Network page: own nav, routing TTL counts down, DNS resolves, HTTP returns
   const dns = page.locator('#N5');
   await dns.scrollIntoViewIfNeeded();
   for (let i = 0; i < 8; i++) {
-    await dns.locator('.cpu-ctrl button').first().click();
+    await dns.locator('.cpu-ctrl .step-btn').first().click();
     if (await dns.locator('.dns-ans').count()) break;
     await page.waitForTimeout(40);
   }
@@ -910,7 +912,7 @@ test('Network page: own nav, routing TTL counts down, DNS resolves, HTTP returns
   const http = page.locator('#N7');
   await http.scrollIntoViewIfNeeded();
   for (let i = 0; i < 8; i++) {
-    await http.locator('.cpu-ctrl button').first().click();
+    await http.locator('.cpu-ctrl .step-btn').first().click();
     if (await http.locator('.http-line.status').count()) break;
     await page.waitForTimeout(40);
   }
@@ -922,7 +924,7 @@ test('RaceCondition island: no lock loses an update; a lock prevents it', async 
   const race = page.locator('#L8a');
   await race.scrollIntoViewIfNeeded();
   const counter = race.locator('.counter');
-  const step = () => race.locator('.cpu-ctrl button').first();
+  const step = () => race.locator('.cpu-ctrl .step-btn').first();
   // step the racy interleaving until the lost-update appears (loop absorbs hydration, breaks before restart)
   for (let i = 0; i < 14; i++) {
     await step().click();
@@ -1091,4 +1093,172 @@ test('Guided tour: reveals, starts, advances with Next, and stops', async ({ pag
   await expect(status).not.toHaveText(first ?? ''); // advanced to the next layer
   await page.locator('#tourStop').click();
   await expect(bar).toBeHidden();
+});
+
+// --- the shared stepper controls + the newly exposed widget options ---
+
+// Drive a <input type="range"> the way a user would: set the value and fire
+// `input`, which is what the scrubber listens to.
+async function scrubTo(range, value) {
+  await range.evaluate((el, v) => {
+    el.value = String(v);
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  }, value);
+}
+
+test('Stepper: BACK, the scrubber, the counter, the speed cycler, and arrow keys all drive the same step', async ({ page }) => {
+  await page.goto('/');
+  const cpu = page.locator('#L6 .widget').first();
+  await cpu.scrollIntoViewIfNeeded();
+  const step = cpu.locator('.step-btn');
+  const back = cpu.locator('.back-btn');
+  const count = cpu.locator('.step-count b');
+  await expect(count).toHaveText('1');
+  await expect(back).toBeDisabled(); // nothing to go back to on step 1
+  await expect(async () => {
+    await step.click();
+    await expect(count).toHaveText('2', { timeout: 400 });
+  }).toPass({ timeout: 8000 });
+  await expect(back).toBeEnabled();
+  await back.click();
+  await expect(count).toHaveText('1');
+  await expect(back).toBeDisabled();
+  // the scrubber jumps straight to the terminal frame, which relabels STEP
+  const range = cpu.locator('.step-range');
+  const max = Number(await range.getAttribute('max'));
+  expect(max).toBeGreaterThan(2);
+  await scrubTo(range, max);
+  await expect(count).toHaveText(String(max + 1));
+  await expect(step).toContainText('RESTART');
+  // arrow keys step while a control has focus: Home → first, → → second
+  await step.focus();
+  await page.keyboard.press('Home');
+  await expect(count).toHaveText('1');
+  await page.keyboard.press('ArrowRight');
+  await expect(count).toHaveText('2');
+  await page.keyboard.press('ArrowLeft');
+  await expect(count).toHaveText('1');
+  await page.keyboard.press('End');
+  await expect(count).toHaveText(String(max + 1));
+  // the speed cycler rotates 1× → 2× → ½× → 1×
+  const rate = cpu.locator('.rate-btn');
+  await expect(rate).toHaveText('1×');
+  await rate.click();
+  await expect(rate).toHaveText('2×');
+  await rate.click();
+  await expect(rate).toHaveText('½×');
+  await rate.click();
+  await expect(rate).toHaveText('1×');
+  // RESET returns to step 1 with BACK disabled again
+  await cpu.locator('.reset-btn').click();
+  await expect(count).toHaveText('1');
+  await expect(back).toBeDisabled();
+});
+
+test('Stepper: ← inside the Tracer region steps once, not twice', async ({ page }) => {
+  await page.goto('/');
+  const tracer = page.locator('.trace-widget');
+  await tracer.scrollIntoViewIfNeeded();
+  const counter = page.locator('.trace-progress span').first();
+  const step = tracer.getByRole('button', { name: /STEP/ });
+  await expect(async () => {
+    await step.click();
+    await expect(counter).toHaveText('2', { timeout: 400 });
+  }).toPass({ timeout: 8000 });
+  await step.click();
+  await expect(counter).toHaveText('3');
+  // focus is on the STEP button inside the Stepper, which is inside the
+  // Tracer's own keyboard region — the event must be handled exactly once
+  await step.focus();
+  await page.keyboard.press('ArrowLeft');
+  await expect(counter).toHaveText('2');
+  await page.keyboard.press('ArrowLeft');
+  await expect(counter).toHaveText('1');
+});
+
+test('Pipeline: turning pipelining OFF rebuilds the trace to 25 serial cycles', async ({ page }) => {
+  await page.goto('/cpu');
+  const pl = page.locator('#CP3');
+  await pl.scrollIntoViewIfNeeded();
+  const toggle = pl.getByRole('button', { name: /pipelining:/ });
+  await expect(toggle).toContainText('ON');
+  await expect(pl.locator('.pl-done')).toContainText('/9');
+  await expect(async () => {
+    await toggle.click();
+    await expect(toggle).toContainText('OFF', { timeout: 400 });
+  }).toPass({ timeout: 8000 });
+  await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+  await expect(pl.locator('.pl-done')).toContainText('/25');
+  await expect(pl.locator('.step-count')).toContainText('/ 27'); // 25 cycles + intro + summary
+  // serial: step a few cycles and never more than one stage is lit
+  for (let i = 0; i < 7; i++) await pl.locator('.step-btn').click();
+  await expect(pl.locator('.pl-stage').filter({ hasText: /^(IF|ID|EX|MEM|WB)$/ })).toHaveCount(1);
+});
+
+test('Cache: the thrash pattern misses on every access', async ({ page }) => {
+  await page.goto('/memory');
+  const cache = page.locator('#M4');
+  await cache.scrollIntoViewIfNeeded();
+  const thrash = cache.getByRole('button', { name: 'thrash' });
+  await expect(async () => {
+    await thrash.click();
+    await expect(thrash).toHaveAttribute('aria-pressed', 'true', { timeout: 400 });
+  }).toPass({ timeout: 8000 });
+  const range = cache.locator('.step-range');
+  await scrubTo(range, Number(await range.getAttribute('max')));
+  await expect(cache.locator('.csbar')).toContainText('0 hits · 10 misses');
+});
+
+test('Hash map: 3 buckets chains more keys than 8, and the lookup still finds "bird"', async ({ page }) => {
+  await page.goto('/structures');
+  const hm = page.locator('#S4');
+  await hm.scrollIntoViewIfNeeded();
+  const three = hm.getByRole('button', { name: '3', exact: true });
+  await expect(async () => {
+    await three.click();
+    await expect(three).toHaveAttribute('aria-pressed', 'true', { timeout: 400 });
+  }).toPass({ timeout: 8000 });
+  await expect(hm.locator('.hm-bucket')).toHaveCount(3);
+  const range = hm.locator('.step-range');
+  await scrubTo(range, Number(await range.getAttribute('max')));
+  await expect(hm.locator('.hm-key.hit')).toHaveText('bird');
+});
+
+test('Tokenizer: a typed expression re-lexes into identifier, operator, and paren tokens', async ({ page }) => {
+  await page.goto('/compiler');
+  const lex = page.locator('#K1');
+  await lex.scrollIntoViewIfNeeded();
+  const input = lex.locator('.lex-input');
+  await expect(async () => {
+    await input.fill('(a-b)');
+    await expect(lex.locator('.lex-ch')).toHaveCount(5, { timeout: 400 });
+  }).toPass({ timeout: 8000 });
+  const range = lex.locator('.step-range');
+  await scrubTo(range, Number(await range.getAttribute('max')));
+  await expect(lex.locator('.lex-tok')).toHaveCount(5);
+  await expect(lex.locator('.lex-tok.tok-ident')).toHaveCount(2);
+  await expect(lex.locator('.lex-tok.tok-minus')).toHaveCount(1);
+  await expect(lex.locator('.lex-tok.tok-paren')).toHaveCount(2);
+  // characters outside the toy alphabet are dropped from the input
+  await input.fill('1 % 2');
+  await expect(input).toHaveValue('1  2');
+});
+
+test('Diffie–Hellman: changing a private secret still ends with both sides agreeing', async ({ page }) => {
+  await page.goto('/crypto');
+  const dh = page.locator('#X3');
+  await dh.scrollIntoViewIfNeeded();
+  const a = dh.getByLabel(/Alice's private secret/);
+  await expect(async () => {
+    await scrubTo(a, 3);
+    await expect(dh.locator('.cspick b').first()).toHaveText('3', { timeout: 400 });
+  }).toPass({ timeout: 8000 });
+  const range = dh.locator('.step-range');
+  await scrubTo(range, Number(await range.getAttribute('max')));
+  const shared = dh.locator('.dh-shared');
+  await expect(shared).toHaveCount(2);
+  const [alice, bob] = await shared.allTextContents();
+  expect(alice).toBe(bob);
+  expect(alice).not.toBe('?');
+  await expect(shared.first()).toHaveClass(/on/);
 });

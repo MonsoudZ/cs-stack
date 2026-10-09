@@ -2,13 +2,23 @@
   import { useStepper } from '../lib/stepper.svelte.js';
   import { buildDiffieHellman } from '../lib/widgets.js';
   import Stepper from './Stepper.svelte';
-  const stepper = useStepper(() => buildDiffieHellman(), { speed: 1100 });
-  const { idx } = stepper;
-  let s = $derived(stepper.all()[$idx]);
+  // p = 23 is the toy prime, so each private secret ranges over 1…22.
+  let a = $state(6), b = $state(15);
+  const stepper = useStepper(() => buildDiffieHellman({ a, b }), { speed: 1100 });
+  const { idx, version } = stepper;
+  let s = $derived(($version, stepper.all()[$idx]));
+  function rebuild() { stepper.rebuild(() => buildDiffieHellman({ a, b })); }
   let agreed = $derived(s.alice.shared !== '?' && s.alice.shared === s.bob.shared);
 </script>
 <div class="widget">
-  <div class="csbar"><span class="csmini">agreeing on a secret over a public wire — never sending it</span></div>
+  <div class="csbar">
+    <span class="csmini">agreeing on a secret over a public wire — never sending it</span>
+    <span class="spacer"></span>
+    <span class="cspick">
+      <label>Alice’s a <input type="range" class="slider" min="1" max="22" step="1" value={a} aria-label="Alice's private secret a" oninput={(e) => { a = Number(e.currentTarget.value); rebuild(); }} /> <b>{a}</b></label>
+      <label>Bob’s b <input type="range" class="slider" min="1" max="22" step="1" value={b} aria-label="Bob's private secret b" oninput={(e) => { b = Number(e.currentTarget.value); rebuild(); }} /> <b>{b}</b></label>
+    </span>
+  </div>
   <div class="w-label">step the exchange — each side computes the same shared secret from its own private number</div>
   <div class="dh">
     <div class="dh-party">

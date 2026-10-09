@@ -21,7 +21,7 @@ import { test, expect } from '@playwright/test';
 // state is immune to that — the final frame is always the same, and we never
 // click RESTART (which would reset to step 0).
 async function stepToEnd(widget) {
-  const btn = widget.locator('.cpu-ctrl button').first();
+  const btn = widget.locator('.cpu-ctrl .step-btn').first();
   for (let i = 0; i < 40; i++) {
     const label = ((await btn.textContent()) || '').trim();
     if (label.startsWith('RESTART')) break;

@@ -116,10 +116,13 @@ export function buildTcp() {
 // --- COMPILER STACK (/compiler) ---
 
 // Lexing: scan source text left to right, grouping characters into tokens.
+// One character per token keeps the trace legible; the alphabet covers digits,
+// identifiers, the four operators, and parentheses so a typed expression lexes.
+const LEX_TYPES = { '+': 'plus', '*': 'star', '-': 'minus', '/': 'slash', '(': 'paren', ')': 'paren' };
 export function buildLex({ source = '3 + 4 * 2' } = {}) {
   const out = [];
   const tokens = [];
-  const typeOf = (c) => (/[0-9]/.test(c) ? 'num' : c === '+' ? 'plus' : c === '*' ? 'star' : 'op');
+  const typeOf = (c) => (/[0-9]/.test(c) ? 'num' : /[a-zA-Z_]/.test(c) ? 'ident' : LEX_TYPES[c] || 'op');
   const snap = (pos, note) => out.push({ pos, source, tokens: tokens.map((t) => ({ ...t })), note });
   snap(-1, 'the scanner reads "' + source + '" left to right, grouping characters into tokens');
   for (let i = 0; i < source.length; i++) {

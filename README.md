@@ -53,14 +53,14 @@ src/
   data/stacks.js          single source of truth for the deep-dive list — drives StackNav
   styles/                 global.css just @imports base.css + widgets.css + mobile.css
   lib/
-    stepper.svelte.js     shared STEP / AUTO / RESET store — every step widget uses it
+    stepper.svelte.js     shared step store (index, auto-play + rate, rebuild) — every step widget uses it
     traces.js             the capstone: 16 traced algorithms + the layer-touch maps
     sim.js                scheduler simulation + factorial call-stack builder
     widgets.js            pure build*() functions for the CPU/network/cloud widgets
     *.test.js             unit tests (answers, termination, shape, stepper lifecycle)
   components/
     LayerSection.astro    section wrapper + standard head (metadata via props)
-    Stepper.svelte        shared STEP/AUTO/RESET controls (props: a stepper)
+    Stepper.svelte        shared controls: STEP/BACK/AUTO/speed/RESET + a scrubber, counter, ←/→ keys (props: a stepper)
     Voltage / Transistor  .astro, CSS-only interactive (no JS)
     Mosfet / LogicGate / Bits / Adder / NumbersThings   Svelte island widgets
     Cpu / CallStack / Scheduler / Encapsulation / Packets / Cloud   step-through islands

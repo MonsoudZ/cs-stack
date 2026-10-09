@@ -2,17 +2,23 @@
   import { useStepper } from '../lib/stepper.svelte.js';
   import { buildHashMap } from '../lib/widgets.js';
   import Stepper from './Stepper.svelte';
-  const stepper = useStepper(() => buildHashMap(), { speed: 1000 });
-  const { idx } = stepper;
-  let s = $derived(stepper.all()[$idx]);
+  const BUCKET_OPTIONS = [3, 5, 8];
+  let buckets = $state(5);
+  const stepper = useStepper(() => buildHashMap({ buckets }), { speed: 1000 });
+  const { idx, version } = stepper;
+  let s = $derived(($version, stepper.all()[$idx]));
+  function pick(b) { buckets = b; stepper.rebuild(() => buildHashMap({ buckets })); }
 </script>
 <div class="widget">
   <div class="csbar">
     <span class="csmini">hash map · {s.buckets} buckets · separate chaining</span>
     <span class="spacer"></span>
     {#if s.key}<span class="csmini hm-op" class:lookup={s.op === 'lookup'}>{s.op} "{s.key}"{#if s.bucket != null} → bucket {s.bucket}{/if}</span>{/if}
+    <span class="cspick" role="group" aria-label="bucket count">buckets
+      {#each BUCKET_OPTIONS as b}<button type="button" class="csbtn" aria-pressed={buckets === b} onclick={() => pick(b)}>{b}</button>{/each}
+    </span>
   </div>
-  <div class="w-label">step inserts and a lookup — a key hashes to a bucket; collisions chain</div>
+  <div class="w-label">step inserts and a lookup — a key hashes to a bucket; collisions chain (fewer buckets → longer chains)</div>
   <div class="hm-buckets">
     {#each s.table as chain, i}
       <div class="hm-bucket" class:target={i === s.bucket} class:collision={i === s.bucket && s.collision}>

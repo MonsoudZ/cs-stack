@@ -2,9 +2,11 @@
   import { useStepper } from '../lib/stepper.svelte.js';
   import { buildTwosComplement } from '../lib/widgets.js';
   import Stepper from './Stepper.svelte';
-  const stepper = useStepper(() => buildTwosComplement(), { speed: 1100 });
-  const { idx } = stepper;
-  let s = $derived(stepper.all()[$idx]);
+  let value = $state(5);
+  const stepper = useStepper(() => buildTwosComplement({ value }), { speed: 1100 });
+  const { idx, version } = stepper;
+  let s = $derived(($version, stepper.all()[$idx]));
+  function setValue(v) { value = v; stepper.rebuild(() => buildTwosComplement({ value })); }
   const PLACE = ['−8', '4', '2', '1']; // place values; the top bit is negative
 </script>
 <div class="widget">
@@ -12,8 +14,9 @@
     <span class="csmini">two’s complement · 4-bit signed · range −8…7</span>
     <span class="spacer"></span>
     <span class="csmini tc-val" class:neg={s.value < 0}>value = {s.value}</span>
+    <span class="cspick"><label>negate <input type="range" class="slider" min="1" max="7" step="1" value={value} aria-label="value to negate" oninput={(e) => setValue(Number(e.currentTarget.value))} /> <b>+{value}</b></label></span>
   </div>
-  <div class="w-label">step the negation — flip every bit, then add one</div>
+  <div class="w-label">step the negation of +{value} — flip every bit, then add one</div>
   <div class="tc-bits">
     {#each s.bits as b, i}
       <div class="tc-bit" class:on={b === 1} class:sign={i === 0} class:hot={i === 0 && s.signBit}>

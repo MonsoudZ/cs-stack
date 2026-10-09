@@ -5,6 +5,17 @@ import { decodeMiniFloat } from './core.js';
 
 // --- MEMORY STACK (/memory) ---
 
+// Access patterns for the cache widget: the same 4-line cache run by different
+// programs. `local` reuses a line's neighbours (spatial locality); `sequential`
+// streams through memory (one miss per line, then hits); `thrash` cycles
+// through five lines in a four-line cache, so LRU evicts exactly the line the
+// next access needs — every access misses.
+export const CACHE_PATTERNS = {
+  local: { label: 'local', accesses: [0, 1, 2, 3, 8, 12, 16, 20, 0] },
+  sequential: { label: 'sequential', accesses: [0, 1, 2, 3, 4, 5, 6, 7, 8] },
+  thrash: { label: 'thrash', accesses: [0, 4, 8, 12, 16, 0, 4, 8, 12, 16] },
+};
+
 // A fully-associative cache, LRU eviction. A miss loads a whole line of
 // `lineSize` consecutive addresses (spatial locality), so neighbours then hit;
 // an evicted line misses again (a capacity miss). Returns the access trace.

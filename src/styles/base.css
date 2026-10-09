@@ -204,7 +204,7 @@
     body{background:#fff;color:var(--ink)}
     /* drop the decorations and interactive-only chrome */
     .bg-grid,.bg-glow,.scan,nav.spine,.tourbar,.tour-start,.kbd-hint,.noscript-note,
-    .cpu-ctrl,.trace-controls,.trace-share,.trace-keys{display:none!important}
+    .stepper,.cpu-ctrl,.trace-controls,.trace-share,.trace-keys{display:none!important}
     .stage{display:block;padding:0;max-width:none}
     header.hero{padding:0 0 16px}
     section.layer{break-inside:avoid-page}
