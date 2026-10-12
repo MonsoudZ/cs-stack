@@ -9,7 +9,7 @@ import Adder from '../components/Adder.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
 import Advanced from '../components/Advanced.astro';
-import Quiz from '../components/Quiz.svelte';
+import Quiz from '../components/Quiz.astro';
 import PrevNext from '../components/PrevNext.astro';
 import SeeAlso from '../components/SeeAlso.astro';
 const L = Object.fromEntries(logicLayers.map((l) => [l.id, l]));
@@ -121,7 +121,7 @@ const description = 'A deep dive into the logic between a transistor and a CPU: 
     />
   </LayerSection>
 
-  <Quiz slug="logic" client:visible />
+  <Quiz slug="logic" />
   <PrevNext slug="logic" />
 </Base>
 

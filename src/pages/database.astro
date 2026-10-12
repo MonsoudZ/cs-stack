@@ -9,7 +9,7 @@ import Isolation from '../components/Isolation.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
 import Advanced from '../components/Advanced.astro';
-import Quiz from '../components/Quiz.svelte';
+import Quiz from '../components/Quiz.astro';
 import PrevNext from '../components/PrevNext.astro';
 import SeeAlso from '../components/SeeAlso.astro';
 const L = Object.fromEntries(dbLayers.map((l) => [l.id, l]));
@@ -151,7 +151,7 @@ const description = 'A deep dive into a database: rows in pages, B-tree indexes,
     />
   </LayerSection>
 
-  <Quiz slug="database" client:visible />
+  <Quiz slug="database" />
   <PrevNext slug="database" />
 </Base>
 

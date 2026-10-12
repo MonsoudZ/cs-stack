@@ -8,7 +8,7 @@ import LangMemory from '../components/LangMemory.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
 import Advanced from '../components/Advanced.astro';
-import Quiz from '../components/Quiz.svelte';
+import Quiz from '../components/Quiz.astro';
 import PrevNext from '../components/PrevNext.astro';
 import SeeAlso from '../components/SeeAlso.astro';
 const L = Object.fromEntries(langLayers.map((l) => [l.id, l]));
@@ -138,7 +138,7 @@ const description = 'A deep dive into what separates C, Rust, Go, Python, and Ja
     />
   </LayerSection>
 
-  <Quiz slug="languages" client:visible />
+  <Quiz slug="languages" />
   <PrevNext slug="languages" />
 </Base>
 

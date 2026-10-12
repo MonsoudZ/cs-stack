@@ -1,0 +1,16 @@
+---
+// Build-time wrapper for the quiz island. Looks up this page's questions from
+// the single source of truth (data/quizzes.js) while rendering, and hands just
+// that list to the Svelte island as a prop. The island therefore ships no quiz
+// data in its JS — every page used to download the whole quiz bank (~29 KB
+// gzipped) for its one quiz. A legacy single-question entry ({question,
+// options}) is normalized to a one-element list so older stacks keep working.
+import QuizIsland from './QuizIsland.svelte';
+import { quizzes } from '../data/quizzes.js';
+const { slug } = Astro.props;
+const raw = quizzes[slug];
+const questions = Array.isArray(raw)
+  ? raw
+  : raw ? [{ level: 'check', question: raw.question, options: raw.options }] : [];
+---
+<QuizIsland {slug} {questions} client:visible />

@@ -9,7 +9,7 @@ import CmosInverter from '../components/CmosInverter.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
 import Advanced from '../components/Advanced.astro';
-import Quiz from '../components/Quiz.svelte';
+import Quiz from '../components/Quiz.astro';
 import PrevNext from '../components/PrevNext.astro';
 const L = Object.fromEntries(siliconLayers.map((l) => [l.id, l]));
 const title = 'THE STACK — silicon';
@@ -102,7 +102,7 @@ const description = 'A deep dive into the physics under the stack: doping, the P
     />
   </LayerSection>
 
-  <Quiz slug="silicon" client:visible />
+  <Quiz slug="silicon" />
   <PrevNext slug="silicon" />
 </Base>
 

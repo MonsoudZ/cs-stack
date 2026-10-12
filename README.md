@@ -67,6 +67,7 @@ src/
     Cpu / CallStack / Scheduler / Encapsulation / Packets / Cloud   step-through islands
     MemoryHierarchy / DataStructures / SecurityBoundaries /
       RuntimePipeline / DatabaseSystem / BrowserUi   static .astro explainers
+    Quiz.astro            build-time wrapper: looks up the page's quiz and hydrates QuizIsland.svelte with just it
     Why / Takeaway        small presentational components used per layer
     StackNav.astro        cross-stack footer (the deep-dive map) — on every page via Base
     Tracer.svelte         the multi-method capstone

@@ -5,7 +5,7 @@ import RequestFlow from '../../components/RequestFlow.svelte';
 import Why from '../../components/Why.astro';
 import Takeaway from '../../components/Takeaway.astro';
 import Advanced from '../../components/Advanced.astro';
-import Quiz from '../../components/Quiz.svelte';
+import Quiz from '../../components/Quiz.astro';
 import SeeAlso from '../../components/SeeAlso.astro';
 
 const sections = [
@@ -145,7 +145,7 @@ const description = 'A full walkthrough of designing the Twitter home timeline a
     />
   </LayerSection>
 
-  <Quiz slug="twitter" client:visible />
+  <Quiz slug="twitter" />
   <p class="prose design-back"><a href="/design">← back to all system designs</a></p>
 </Base>
 

@@ -8,7 +8,7 @@ import Pipeline from '../components/Pipeline.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
 import Advanced from '../components/Advanced.astro';
-import Quiz from '../components/Quiz.svelte';
+import Quiz from '../components/Quiz.astro';
 import PrevNext from '../components/PrevNext.astro';
 import SeeAlso from '../components/SeeAlso.astro';
 const L = Object.fromEntries(cpuLayers.map((l) => [l.id, l]));
@@ -118,7 +118,7 @@ const description = 'A deep dive into the processor: registers, the fetch-decode
     />
   </LayerSection>
 
-  <Quiz slug="cpu" client:visible />
+  <Quiz slug="cpu" />
   <PrevNext slug="cpu" />
 </Base>
 

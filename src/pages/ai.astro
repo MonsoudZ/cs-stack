@@ -14,7 +14,7 @@ import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
 import Advanced from '../components/Advanced.astro';
 import SeeAlso from '../components/SeeAlso.astro';
-import Quiz from '../components/Quiz.svelte';
+import Quiz from '../components/Quiz.astro';
 import PrevNext from '../components/PrevNext.astro';
 const L = Object.fromEntries(aiLayers.map((l) => [l.id, l]));
 const title = 'THE STACK — AI';
@@ -175,7 +175,7 @@ const description = 'A deep dive into how AI works, from the bottom up: the neur
     />
   </LayerSection>
 
-  <Quiz slug="ai" client:visible />
+  <Quiz slug="ai" />
   <PrevNext slug="ai" />
 </Base>
 

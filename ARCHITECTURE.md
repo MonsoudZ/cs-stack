@@ -36,7 +36,7 @@ place its facts live:
 | `<x>Layers.js` | one per deep dive (`cpuLayers`, `memLayers`, …) | that page's nav + sections |
 | `stacks.js` | the 18 deep dives: `slug, name, kind, layer, accent, blurb` | `StackNav` footer, `GoDeeper`, `SeeAlso`, per-stack OG cards, `curriculum` |
 | `curriculum.js` | the guided-path order (overview + 18), derived from `stacks.js`; `key` = localStorage progress id | `/learn`, `PrevNext` |
-| `quizzes.js` | tiered questions (easy→medium→hard) per stack **and** per design, keyed by slug | `Quiz.svelte` |
+| `quizzes.js` | tiered questions (easy→medium→hard) per stack **and** per design, keyed by slug | `Quiz.astro` (build time), which hands one page's list to `QuizIsland.svelte` as a prop |
 | `designs.js` | the System Design case studies (`slug, name, tier, ready, blurb`) + each design's section list | `/design` index + the design pages |
 
 A second content type, **System Design** (`/design`), reuses the same engine: a
@@ -141,11 +141,11 @@ and is regression-tested in e2e.
 3. **Page** — `src/pages/foo.astro`: `import Base, LayerSection, widgets, Why,
    Takeaway, GoDeeper/SeeAlso, Quiz, PrevNext`; `<Base {title} {description}
    layers={fooLayers}>` with a `slot="hero"` and one `<LayerSection {...L.FO0}>`
-   per layer. End with `<Quiz slug="foo" client:visible />` then `<PrevNext slug="foo" />`.
+   per layer. End with `<Quiz slug="foo" />` then `<PrevNext slug="foo" />`.
 4. **Register** — add the entry to `src/data/stacks.js` (footer/OG/curriculum/PrevNext all follow).
 5. **Link in** — a `<GoDeeper slug="foo" />` under the relevant layer in
    `index.astro`, plus any `<SeeAlso slug="foo" />` cross-references.
-6. **Quiz** — add a `foo` entry to `src/data/quizzes.js` (one correct option, a `why` on each).
+6. **Quiz** — add a `foo` entry to `src/data/quizzes.js` (one correct option, a `why` on each). The page renders `<Quiz slug="foo" />` (an Astro wrapper — no `client:` directive; it hydrates `QuizIsland.svelte` itself with only that page's questions).
 7. **a11y gate** — append `'dist/foo/index.html'` to `PAGES` in `scripts/a11y.mjs`.
 8. **OG card** — `npm run gen:og`, then commit `public/og/foo.png`.
 9. **e2e** — add a test in `e2e/widgets.spec.js`; bump the footer-count assertions.

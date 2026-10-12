@@ -7,7 +7,7 @@ import { URL_NODES, URL_EDGES, buildUrlShortener } from '../../lib/widgets.js';
 import Why from '../../components/Why.astro';
 import Takeaway from '../../components/Takeaway.astro';
 import Advanced from '../../components/Advanced.astro';
-import Quiz from '../../components/Quiz.svelte';
+import Quiz from '../../components/Quiz.astro';
 import SeeAlso from '../../components/SeeAlso.astro';
 const L = Object.fromEntries(urlShortenerSections.map((l) => [l.id, l]));
 const title = 'System design — URL shortener';
@@ -114,7 +114,7 @@ const description = 'A full walkthrough of designing a URL shortener: requiremen
     />
   </LayerSection>
 
-  <Quiz slug="url-shortener" client:visible />
+  <Quiz slug="url-shortener" />
   <p class="prose design-back"><a href="/design">← back to all system designs</a></p>
 </Base>
 

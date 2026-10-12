@@ -7,7 +7,7 @@ import RaftLog from '../components/RaftLog.svelte';
 import Why from '../components/Why.astro';
 import Takeaway from '../components/Takeaway.astro';
 import Advanced from '../components/Advanced.astro';
-import Quiz from '../components/Quiz.svelte';
+import Quiz from '../components/Quiz.astro';
 import PrevNext from '../components/PrevNext.astro';
 import SeeAlso from '../components/SeeAlso.astro';
 const L = Object.fromEntries(raftLayers.map((l) => [l.id, l]));
@@ -116,7 +116,7 @@ const description = 'A deep dive into distributed consensus through Raft: replic
     />
   </LayerSection>
 
-  <Quiz slug="raft" client:visible />
+  <Quiz slug="raft" />
   <PrevNext slug="raft" />
 </Base>
 

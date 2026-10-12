@@ -1,13 +1,9 @@
 <script>
-  import { quizzes } from '../data/quizzes.js';
-  let { slug } = $props();
-  const raw = quizzes[slug];
-  // Normalize to a list of questions. A legacy single-question entry
-  // ({question, options}) becomes a one-element list, so stacks that haven't
-  // been given tiered quizzes yet keep working unchanged.
-  const questions = Array.isArray(raw)
-    ? raw
-    : raw ? [{ level: 'check', question: raw.question, options: raw.options }] : [];
+  // The hydrated quiz. It receives ONLY this page's questions as a prop (see
+  // Quiz.astro, which looks them up from data/quizzes.js at build time), so the
+  // island's JS chunk no longer bundles every stack's quiz for every page —
+  // the questions ride along in the page HTML instead.
+  let { slug, questions = [] } = $props();
   const multi = questions.length > 1;
 
   let active = $state(0);
