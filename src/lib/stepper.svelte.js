@@ -1,11 +1,18 @@
 import { writable } from 'svelte/store';
 import { onDestroy } from 'svelte';
 
-// createStepper(buildFn, {speed}) ->
-//   { idx, autoOn, version, rate (stores), stepOrRestart, reset, toggleAuto,
-//     rebuild, move, setIndex, setRate, current, isLast, all, destroy }
+/** @import { Snapshot, StepBuilder, Stepper } from './types.js' */
+
+/**
+ * The pure step store every widget drives (see Stepper in types.js).
+ * @template {Snapshot} S
+ * @param {StepBuilder<S>} buildFn   returns the whole trace; called again on reset/rebuild
+ * @param {{ speed?: number }} [opts] AUTO cadence in ms at rate 1×
+ * @returns {Stepper<S>}
+ */
 export function createStepper(buildFn, { speed = 900 } = {}) {
   let steps = buildFn();
+  /** @type {import('svelte/store').Writable<number>} */
   const idx = writable(0);
   const autoOn = writable(false);
   // Playback rate for AUTO as a multiplier of the widget's base `speed`
@@ -18,7 +25,9 @@ export function createStepper(buildFn, { speed = 900 } = {}) {
   // derived views reading all()[idx] would keep showing the old steps. Reading
   // `version` gives those views a dependency that always changes on rebuild.
   const version = writable(0);
-  let i = 0, timer = null;
+  let i = 0;
+  /** @type {ReturnType<typeof setInterval> | null} */
+  let timer = null;
   const unsubscribe = idx.subscribe((v) => (i = v));
 
   function render() { idx.set(i); }
@@ -64,9 +73,15 @@ export function createStepper(buildFn, { speed = 900 } = {}) {
   return { idx, autoOn, version, rate, stepOrRestart, reset, toggleAuto, rebuild, move, setIndex, setRate, current, isLast, all, destroy };
 }
 
-// Component-facing wrapper: same as createStepper, but registers destroy() on
-// the current component's onDestroy so a widget can never leak its timer or
-// subscription. Call it at the top of a Svelte <script> (component init).
+/**
+ * Component-facing wrapper: same as createStepper, but registers destroy() on
+ * the current component's onDestroy so a widget can never leak its timer or
+ * subscription. Call it at the top of a Svelte <script> (component init).
+ * @template {Snapshot} S
+ * @param {StepBuilder<S>} buildFn
+ * @param {{ speed?: number }} [opts]
+ * @returns {Stepper<S>}
+ */
 export function useStepper(buildFn, opts) {
   const stepper = createStepper(buildFn, opts);
   onDestroy(() => stepper.destroy());

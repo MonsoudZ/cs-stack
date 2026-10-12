@@ -1,6 +1,8 @@
 // Part of the widgets builder set, split by area. The barrel at
 // src/lib/widgets.js re-exports every module so existing imports keep working.
 
+/** @import { Snapshot } from '../types.js' */
+
 // --- RENDER PIPELINE (/render) ---
 
 // Which pipeline stages a style change forces to re-run. A geometry change
@@ -18,6 +20,7 @@ export function invalidatedStages(kind) {
 // render — so CSS is render-blocking. A plain <script> also blocks the HTML
 // parser; a deferred one doesn't, so first paint can land earlier. `defer`
 // toggles the two and shows first paint move.
+/** @param {{ defer?: boolean }} [opts] @returns {Snapshot[]} */
 export function buildCrp({ defer = false } = {}) {
   const out = [];
   const snap = (note, o = {}) => out.push({ defer, note, parsing: !!o.parsing, cssBlocking: !!o.cssBlocking, scriptBlocking: !!o.scriptBlocking, scriptRan: !!o.scriptRan, painted: !!o.painted });
@@ -42,6 +45,7 @@ export function buildCrp({ defer = false } = {}) {
 // (Promises), then — if a frame is due — run requestAnimationFrame callbacks and
 // render (style → layout → paint). A setTimeout queued during the task waits for
 // a later turn. Returns the phase-by-phase trace, with each queue's contents.
+/** @returns {Snapshot[]} */
 export function buildEventLoop() {
   const out = [];
   let stack = [], micro = [], tasks = ['click handler'], raf = [], rendered = false;
@@ -96,13 +100,15 @@ export function modpow(base, exp, mod) {
 
 // Diffie–Hellman: Alice and Bob agree on a shared secret over a public channel,
 // never sending it. Small numbers for clarity. Returns the step trace.
+/** @param {{ p?: number, g?: number, a?: number, b?: number }} [opts] @returns {Snapshot[]} */
 export function buildDiffieHellman({ p = 23, g = 5, a = 6, b = 15 } = {}) {
   const A = modpow(g, a, p), B = modpow(g, b, p);
   const sA = modpow(B, a, p), sB = modpow(A, b, p);
   const out = [];
-  let alice = { secret: '?', pub: '?', shared: '?' };
-  let bob = { secret: '?', pub: '?', shared: '?' };
-  let wire = null;
+  /** @typedef {{ secret: number|string, pub: number|string, shared: number|string }} Party */
+  /** @type {Party} */ let alice = { secret: '?', pub: '?', shared: '?' };
+  /** @type {Party} */ let bob = { secret: '?', pub: '?', shared: '?' };
+  /** @type {string|null} */ let wire = null;
   const snap = (note, detail = null) => out.push({ alice: { ...alice }, bob: { ...bob }, wire, note, detail });
   snap('Out in the open: a prime p = ' + p + ' and a base g = ' + g + '. Anyone (including an eavesdropper) can see these.',
     'The whole scheme rests on a trapdoor: computing g^x mod p is fast, but recovering x from g^x mod p — the discrete logarithm — has no known efficient algorithm for a large p. With p = ' + p + ' you could brute-force it in seconds; with a 2048-bit p, nobody can.');
@@ -134,6 +140,7 @@ export const RSA = { n: 143, e: 7, d: 103 };
 // forgery without the private key is caught. The hash is squashed into 0..n-1
 // so the toy modulus can sign it. Returns the step trace, ending with a tamper
 // attempt that is rejected.
+/** @returns {Snapshot[]} */
 export function buildSignature() {
   const { n, e, d } = RSA;
   const digest = (msg) => parseInt(toyHash(msg), 16) % n;
@@ -163,6 +170,7 @@ export function buildSignature() {
 // a single root, so any change to any block changes the root — the idea behind
 // content-addressing (git commits, IPFS, blockchains). Toy 4-leaf tree with
 // short digests; the final steps tamper with one block and show the root break.
+/** @returns {Snapshot[]} */
 export function buildMerkle() {
   const blocks = ['alice→bob: 5', 'bob→cy: 2', 'cy→dan: 9', 'dan→eve: 1'];
   const h = (s) => toyHash(s).slice(0, 6);
@@ -195,6 +203,7 @@ export function buildMerkle() {
 // an index or hash join exists to avoid).
 export const JOIN_USERS = [{ id: 1, name: 'Ana' }, { id: 2, name: 'Bo' }, { id: 3, name: 'Cy' }];
 export const JOIN_ORDERS = [{ id: 91, user_id: 1, item: 'book' }, { id: 92, user_id: 1, item: 'pen' }, { id: 93, user_id: 3, item: 'lamp' }];
+/** @returns {Snapshot[]} */
 export function buildJoin() {
   const out = [];
   const result = [];
@@ -222,6 +231,7 @@ export const BTREE = {
 };
 // Index lookup: descend the tree by comparing to separator keys, then scan one
 // leaf — O(log n) node reads instead of scanning every row. Returns the trace.
+/** @param {{ target?: number }} [opts] @returns {Snapshot[]} */
 export function buildBTreeSearch({ target = 10 } = {}) {
   const out = [];
   const snap = (path, current, found, note, foundKey = null) => out.push({ path: path.slice(), current, found, note, foundKey });
@@ -244,6 +254,7 @@ export function buildBTreeSearch({ target = 10 } = {}) {
 // A transfer (Alice → Bob, 100) that crashes mid-way. With a transaction the
 // crash rolls back (atomic, total preserved); without one, the debit sticks and
 // $100 vanishes. Returns the trace; last step carries the final balances.
+/** @param {{ atomic?: boolean }} [opts] @returns {Snapshot[]} */
 export function buildTransaction({ atomic = true } = {}) {
   const out = [];
   let A = 300, B = 50;
@@ -267,6 +278,7 @@ export function buildTransaction({ atomic = true } = {}) {
 // reads it three times around T2's commit) yields different reads — exposing a
 // dirty read, a non-repeatable read, or neither. Returns the trace per level.
 export const ISOLATION_LEVELS = ['READ UNCOMMITTED', 'READ COMMITTED', 'REPEATABLE READ'];
+/** @param {{ level?: string }} [opts] @returns {Snapshot[]} */
 export function buildIsolation({ level = 'READ COMMITTED' } = {}) {
   let committed = 100, pending = null;
   const snapshot = 100; // T1's view as of its start (for REPEATABLE READ)

@@ -11,6 +11,8 @@
   //   label  string                    accessible name for the drawing
   // On narrow screens the grid is transposed so a chain reads top-to-bottom.
   import { layoutDiagram, NODE_W, NODE_H } from '../lib/diagram.js';
+  /** @import { FlowNode, FlowEdge } from '../lib/types.js' */
+  /** @type {{ nodes: FlowNode[], edges?: FlowEdge[] | null, active?: string | null, warn?: string | null, meta?: Record<string, string> | null, label?: string }} */
   let { nodes, edges = null, active = null, warn = null, meta = null, label = 'system diagram' } = $props();
   let vertical = $state(false);
   $effect(() => {

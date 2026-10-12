@@ -110,10 +110,25 @@ component, so the compare mode is tested like any other trace.
 Client state lives in two localStorage keys: `theme` and `stack:progress` (the
 set of completed lesson keys; a correct quiz answer adds its slug).
 
+## Types without a rewrite
+
+The engine is plain JavaScript with **JSDoc types**, checked by `npm run
+typecheck` (`tsc -p jsconfig.json`, `checkJs` over `src/lib` + `src/data`; CI
+runs it before the tests). `src/lib/types.js` holds the shared shapes —
+`Snapshot` (the base step: `note` + optional `detail`), `StepBuilder`,
+`Stepper`, `FlowNode`/`FlowEdge`/`FlowStep`/`Flow` (the RequestFlow contract),
+`DiagramLayout`, `QuizQuestion`, `Layer`, `Stack` — and every `build*()` carries
+a one-line `@param {{ … }} [opts] @returns {Snapshot[]}` so a widget passing a
+mistyped option is flagged in the editor. Svelte components annotate their
+`$props()` with `@type` for the same editor checking (they are not part of the
+tsc run). Add types where they pay for themselves; nothing needs converting to
+`.ts`.
+
 ## Quality gates
 
 | Command | What it checks |
 |---|---|
+| `npm run typecheck` | tsc over the JSDoc-typed engine + data (see "Types without a rewrite") |
 | `npm test` | vitest over the pure builders — the logic is correct |
 | `npm run audit` | builds, then `scripts/audit.mjs` (regex source/HTML gate: no static `style=`, every `<button>` typed, no removed focus outlines, no placeholder copy) + `scripts/a11y.mjs` (axe-core over **every** built page; `color-contrast` is off because jsdom can't render — verify contrast separately) |
 | `npm run test:e2e` | Playwright — islands actually hydrate and respond; nav, quizzes, the path, reduced motion |

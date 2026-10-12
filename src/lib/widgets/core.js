@@ -1,11 +1,14 @@
 // Part of the widgets builder set, split by area. The barrel at
 // src/lib/widgets.js re-exports every module so existing imports keep working.
 
+/** @import { Snapshot } from '../types.js' */
+
 // Pure step-builders for the system widgets. Extracted verbatim from the
 // components so the logic can be unit-tested — the components import these and
 // only render the current step.
 
 // --- 06 CPU: a tiny fetch/decode/execute loop ---
+/** @returns {Snapshot[]} */
 export function buildCpu() {
   const PROG = [
     {op:'LOADA',arg:5,t:'LOAD A, 5'},
@@ -44,6 +47,7 @@ export function buildCpu() {
 }
 
 // --- 09 Network: encapsulation down the stack and back up ---
+/** @returns {Snapshot[]} */
 export function buildEnc() {
   const PAYLOAD = {cls:'payload',sl:'HTTP payload',sd:'GET /cases/42 HTTP/1.1',bytes:22};
   const TCP = {cls:'tcp',sl:'TCP header',sd:'sport 54321 → dport 443 · seq#',bytes:20};
@@ -67,6 +71,7 @@ export function buildEnc() {
 // --- 09 Network: packets dropped on a lossy link, then retransmitted ---
 export const PACKET_FRAGMENTS = ['GET ','/cas','es/','42 ','HTTP','/1.1'];
 
+/** @returns {Snapshot[]} */
 export function buildPkt() {
   const FRAG = PACKET_FRAGMENTS;
   const N = FRAG.length, dropFirst = new Set([2,5]), slots = Array(N).fill(null), out = [];
@@ -85,6 +90,7 @@ export function buildPkt() {
 // --- 10 Cloud: a Rails request lifecycle. `server` is the round-robin app
 // index (0-2); `cacheHit` chooses the Redis hit (skip DB) vs miss path. Pure:
 // the component owns the server-rotation state and passes it in. ---
+/** @param {{ cacheHit?: boolean, server?: number }} [opts] @returns {Snapshot[]} */
 export function buildCloudHops({ cacheHit = false, server = 0 } = {}) {
   const sv = server, h = [], add = (loc, ms, note, async) => h.push({ loc, ms, note, async: !!async });
   add('browser', 0, 'a user clicks — the browser fires GET /cases/42');
@@ -131,9 +137,13 @@ export function decodeMiniFloat(bits) {
 // on shared memory. Without a lock, a bad interleaving loses an update (final 1
 // instead of 2); a lock serializes the critical section (final 2). Pure: the
 // component owns the `locked` toggle and steps through the returned snapshots. ---
+/** @param {{ locked?: boolean }} [opts] @returns {Snapshot[]} */
 export function buildRace({ locked = false } = {}) {
   const out = [];
-  let counter = 0, tmpA = '–', tmpB = '–', held = null;
+  let counter = 0;
+  /** @type {number|string} */ let tmpA = '–';
+  /** @type {number|string} */ let tmpB = '–';
+  /** @type {string|null} */ let held = null;
   const snap = (note, o = {}) => out.push({ thread: o.thread ?? null, op: o.op ?? null, tmpA, tmpB, counter, held, lost: !!o.lost, note });
   if (locked) {
     snap('Each thread must grab the lock before touching counter — only one inside the critical section at a time.');

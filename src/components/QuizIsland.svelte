@@ -3,6 +3,8 @@
   // Quiz.astro, which looks them up from data/quizzes.js at build time), so the
   // island's JS chunk no longer bundles every stack's quiz for every page —
   // the questions ride along in the page HTML instead.
+  /** @import { QuizQuestion } from '../lib/types.js' */
+  /** @type {{ slug: string, questions?: QuizQuestion[] }} */
   let { slug, questions = [] } = $props();
   const multi = questions.length > 1;
 

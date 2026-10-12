@@ -1,0 +1,21 @@
+{
+  // Editor + `npm run typecheck` config: type-checks the pure engine (src/lib)
+  // and the data registries (src/data) from their JSDoc, without a TypeScript
+  // rewrite. Svelte/Astro files are not covered here (they'd need svelte-check);
+  // their props are still annotated for editors.
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022", "DOM"],
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "strict": false,
+    "noImplicitAny": false,
+    "skipLibCheck": true,
+    "types": []
+  },
+  "include": ["src/lib/**/*.js", "src/data/**/*.js"],
+  "exclude": ["src/lib/**/*.test.js"]
+}

@@ -1,6 +1,8 @@
 // Part of the widgets builder set, split by area. The barrel at
 // src/lib/widgets.js re-exports every module so existing imports keep working.
 
+/** @import { Snapshot } from '../types.js' */
+
 // --- CONSENSUS STACK (/raft) ---
 
 // Raft leader election. Five servers start as followers in term 0. When one
@@ -9,6 +11,7 @@
 // that collects a majority of votes becomes leader and sends heartbeats. The
 // trace runs a clean election, then crashes the leader and shows the cluster
 // heal itself with a fresh election in a higher term. Majority of 5 is 3.
+/** @returns {Snapshot[]} */
 export function buildRaftElection() {
   const MAJORITY = 3;
   const ids = ['N0', 'N1', 'N2', 'N3', 'N4'];
@@ -62,6 +65,7 @@ export function buildRaftElection() {
 // Once a majority have stored an entry the leader COMMITS it, applies it to its
 // state machine, and tells the followers to apply it too — so every replica runs
 // the same commands in the same order. Three nodes here, so a majority is 2.
+/** @returns {Snapshot[]} */
 export function buildRaftLog() {
   const ids = ['N0', 'N1', 'N2'];
   const log = { N0: [], N1: [], N2: [] };
@@ -114,6 +118,7 @@ export const LANGS = [
 // Reveal each language's path from source to running, one at a time — so the
 // three execution models (AOT-native, bytecode-interpreted, JIT) line up side
 // by side. Returns the step trace (the component accumulates revealed lanes).
+/** @returns {Snapshot[]} */
 export function buildLangRun() {
   const out = [];
   const snap = (note, o = {}) => out.push({ active: o.active ?? null, note });
@@ -134,6 +139,7 @@ export function buildLangRun() {
 // forget and it leaks), ownership (freed automatically when the owner leaves
 // scope, proven at compile time), and a garbage collector (freed later, when
 // the collector notices it's unreachable). Returns the step trace.
+/** @returns {Snapshot[]} */
 export function buildLangMemory() {
   const out = [];
   const snap = (regime, langs, note, o = {}) => out.push({
@@ -164,6 +170,7 @@ export function buildLangMemory() {
 // commit that fails its tests (pipeline halts — nothing ships), then a fix that
 // passes every gate and becomes a deployable artifact.
 export const CI_STAGES = ['checkout', 'install', 'build', 'unit tests', 'audit', 'e2e'];
+/** @returns {Snapshot[]} */
 export function buildCiPipeline() {
   const out = [];
   let commit = 'a1b2c3', verdict = null;
@@ -194,6 +201,7 @@ export function buildCiPipeline() {
 // a new version at once, shift a small slice first and watch its error rate —
 // catch a bad release on 5–25% of users and auto-roll-back, then ramp a fixed
 // version to 100%. Returns the step trace (traffic split + health per step).
+/** @returns {Snapshot[]} */
 export function buildDeploy() {
   const out = [];
   let v1 = 100, v2 = 0, health = 'ok', phase = 'steady', rolledBack = false;
@@ -216,6 +224,7 @@ export function buildDeploy() {
 // to the next. Inserting in the middle is two pointer writes — O(1) — where an
 // array would shift every later element. Returns the trace of inserting 15
 // between 10 and 20; `chain` is the ordered values, `staged` the new node.
+/** @returns {Snapshot[]} */
 export function buildLinkedList() {
   const out = [];
   const snap = (chain, note, o = {}) => out.push({ chain: chain.slice(), staged: o.staged ?? null, highlight: o.highlight ?? null, note });
@@ -231,6 +240,7 @@ export function buildLinkedList() {
 // (pop the last in); a queue is FIFO (dequeue the first in). Runs identical
 // inputs through both so the divergence is the whole point. Returns snapshots
 // with both containers plus what each just removed.
+/** @returns {Snapshot[]} */
 export function buildStackQueue() {
   const out = [];
   let stack = [], queue = [];
@@ -254,6 +264,7 @@ export const GRAPH = {
 // Breadth-first search from a start node: visit a node, enqueue its unseen
 // neighbours, repeat — exploring level by level using a queue (the same FIFO
 // from the stacks-and-queues section). Returns the visiting order trace.
+/** @param {{ start?: string }} [opts] @returns {Snapshot[]} */
 export function buildGraphTraversal({ start = 'A' } = {}) {
   const out = [];
   const visited = [], queue = [start], enqueued = new Set([start]);
@@ -276,6 +287,7 @@ export function buildGraphTraversal({ start = 'A' } = {}) {
 // on return); the heap holds things that must outlive the call (manual, freed
 // explicitly). Returns the trace of main() calling f(), which heap-allocates a
 // block and returns — the frame vanishes, the heap block survives.
+/** @returns {Snapshot[]} */
 export function buildStackHeap() {
   const out = [];
   let stack = [], heap = [];
@@ -297,6 +309,7 @@ export function buildStackHeap() {
 // of cells; free releases one, leaving a hole. After frees, the total free
 // space can exceed a request yet still not fit, because it’s split into
 // non-adjacent gaps. Returns the trace; `cells` is the heap (owner or null).
+/** @param {{ size?: number }} [opts] @returns {Snapshot[]} */
 export function buildAllocator({ size = 8 } = {}) {
   const out = [];
   const cells = Array(size).fill(null);
@@ -323,6 +336,7 @@ export function buildAllocator({ size = 8 } = {}) {
 // reference, marking what’s reachable; then sweep away everything unmarked.
 // Objects 4 and 5 are allocated but unreachable, so they’re collected — no
 // manual free, at the cost of a tracing pause. Returns the trace.
+/** @returns {Snapshot[]} */
 export function buildGc() {
   const objs = {
     1: { refs: [2] }, 2: { refs: [3] }, 3: { refs: [] }, 4: { refs: [5] }, 5: { refs: [] },

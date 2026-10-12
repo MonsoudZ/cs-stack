@@ -1,10 +1,13 @@
 // Part of the widgets builder set, split by area. The barrel at
 // src/lib/widgets.js re-exports every module so existing imports keep working.
 
+/** @import { Snapshot } from '../types.js' */
+
 // --- NETWORK STACK (/network) ---
 
 // IP routing: a packet hops node to node toward its destination, its TTL (a hop
 // budget) decreasing each hop until it's delivered. Returns {nodes, steps}.
+/** @returns {{ nodes: string[], steps: (Snapshot & { at: number, ttl: number, delivered: boolean })[] }} */
 export function buildRouting() {
   const nodes = ['your laptop', 'home router', 'ISP', 'backbone', 'datacenter', 'server'];
   const out = [];
@@ -25,6 +28,7 @@ export function buildRouting() {
 
 // DNS resolution: a recursive resolver walks root → TLD → authoritative to turn
 // a name into an IP, then caches it. Returns the step list (last step = answer).
+/** @param {{ name?: string, ip?: string }} [opts] @returns {Snapshot[]} */
 export function buildDns({ name = 'thestack.dev', ip = '93.184.216.34' } = {}) {
   const out = [];
   const snap = (server, kind, note, answer = null) => out.push({ server, kind, note, answer });
@@ -40,6 +44,7 @@ export function buildDns({ name = 'thestack.dev', ip = '93.184.216.34' } = {}) {
 // port (443), yet serves thousands of clients at once — the OS tells the
 // connections apart by the full 4-tuple (client ip:port ↔ server ip:port) and
 // demultiplexes each arriving packet to the right socket. Returns the trace.
+/** @returns {Snapshot[]} */
 export function buildSockets() {
   const SERVER = '203.0.113.5:443';
   const conns = [
@@ -62,6 +67,7 @@ export function buildSockets() {
 // request then response. The client sends a method + path + headers; the server
 // replies with a status code + headers + body. Stateless: one exchange stands
 // alone. Returns the line-by-line trace of a GET that returns 200.
+/** @returns {Snapshot[]} */
 export function buildHttp() {
   const out = [];
   const snap = (side, line, note, o = {}) => out.push({ side, line, note, status: o.status ?? null, done: !!o.done });
@@ -82,6 +88,7 @@ export function buildHttp() {
 // SLOW START until it hits ssthresh, then grows by one per RTT in CONGESTION
 // AVOIDANCE. A loss halves ssthresh and drops cwnd to it (AIMD's multiplicative
 // decrease) — the classic TCP sawtooth. Returns the step trace.
+/** @returns {Snapshot[]} */
 export function buildTcp() {
   const out = [];
   let cwnd = 0, ssthresh = 8, rtt = 0, phase = 'handshake';
@@ -128,6 +135,7 @@ export function buildTcp() {
 // One character per token keeps the trace legible; the alphabet covers digits,
 // identifiers, the four operators, and parentheses so a typed expression lexes.
 const LEX_TYPES = { '+': 'plus', '*': 'star', '-': 'minus', '/': 'slash', '(': 'paren', ')': 'paren' };
+/** @param {{ source?: string }} [opts] @returns {Snapshot[]} */
 export function buildLex({ source = '3 + 4 * 2' } = {}) {
   const out = [];
   const tokens = [];
@@ -150,6 +158,7 @@ export function buildLex({ source = '3 + 4 * 2' } = {}) {
 // A naive left-to-right parse nests + deeper, reducing it first → 14. Stepping
 // either tree reduces it bottom-up (deepest operator first), showing that depth
 // on the tree *is* the order of evaluation. `leftToRight` switches the parse.
+/** @param {{ leftToRight?: boolean }} [opts] @returns {Snapshot[]} */
 export function buildAst({ leftToRight = false } = {}) {
   let nid = 0;
   const num = (v) => ({ id: nid++, kind: 'num', text: String(v), value: v });
@@ -198,6 +207,7 @@ export function buildAst({ leftToRight = false } = {}) {
 
 // Bytecode VM: run `3 + 4 * 2` as stack-machine ops (postfix 3 4 2 * +). Operands
 // push; operators pop two and push the result. Returns steps; last carries the value.
+/** @returns {Snapshot[]} */
 export function buildVm() {
   const PROG = [
     { op: 'PUSH', arg: 3 }, { op: 'PUSH', arg: 4 }, { op: 'PUSH', arg: 2 }, { op: 'MUL' }, { op: 'ADD' },
@@ -227,6 +237,7 @@ export function buildVm() {
 // the crossovers show: interpreter wins cold, JIT bends down after warmup, AOT
 // wins the long run. Pure: returns one snapshot per milestone.
 export const RUNTIME_STRATEGIES = ['interpreter', 'AOT compiler', 'JIT'];
+/** @returns {Snapshot[]} */
 export function buildRuntimes() {
   const MILESTONES = [1, 5, 10, 20, 50, 100];
   const C_INTERP = 10, C_NATIVE = 1, AOT_STARTUP = 30, HOT = 10, JIT_COMPILE = 25;
@@ -256,6 +267,7 @@ export function buildRuntimes() {
 // infer a type for every node, checking each operator's operands. A well-typed
 // expression yields a type; an ill-typed one (here, string × int) is rejected
 // before any code is generated. `buggy` switches between the two programs.
+/** @param {{ buggy?: boolean }} [opts] @returns {Snapshot[]} */
 export function buildTypeCheck({ buggy = false } = {}) {
   const out = [];
   const checked = [];
@@ -288,6 +300,7 @@ export function buildTypeCheck({ buggy = false } = {}) {
 // Scopes here nest linearly: global ⊃ function f ⊃ inner block. Each snapshot
 // resolves one reference and records the `path` walked, the `foundIn` scope (or
 // null), and how many `hops` outward it took. Pure.
+/** @returns {Snapshot[]} */
 export function buildScopes() {
   const scopes = [
     { id: 'global', label: 'global', symbols: ['x', 'f'] },
@@ -332,6 +345,7 @@ export function buildScopes() {
 // Each line carries a `mark`: 'change' (rewritten this pass) or 'cut' (about to
 // be removed, shown struck through, gone next pass). Two costs shrink alongside:
 // `lines` (instructions left) and `ops` (arithmetic done at runtime).
+/** @returns {Snapshot[]} */
 export function buildOptimize() {
   const out = [];
   const L = (text, mark = '') => ({ text, mark });
@@ -375,6 +389,7 @@ export function buildOptimize() {
 // [from,to], its assigned `reg`, a `spilled` flag, and a transient `nofit` flag
 // for the value that just failed to get a register.
 export const REG_COUNT = 2;
+/** @returns {Snapshot[]} */
 export function buildRegisters() {
   const cols = 5;
   const V = (name, from, to, o = {}) => ({ name, from, to, reg: o.reg ?? null, spilled: !!o.spilled, nofit: !!o.nofit });

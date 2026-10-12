@@ -11,6 +11,8 @@
   import { useStepper } from '../lib/stepper.svelte.js';
   import Stepper from './Stepper.svelte';
   import Diagram from './Diagram.svelte';
+  /** @import { Flow } from '../lib/types.js' */
+  /** @type {{ flow: Flow, label?: string }} */
   let { flow, label = 'step a request through the system — watch what each component does' } = $props();
   const stepper = useStepper(() => flow.steps, { speed: 1150 });
   const { idx } = stepper;

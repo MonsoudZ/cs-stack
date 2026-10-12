@@ -1,6 +1,8 @@
 // Part of the widgets builder set, split by area. The barrel at
 // src/lib/widgets.js re-exports every module so existing imports keep working.
 
+/** @import { Snapshot } from '../types.js' */
+
 import { decodeMiniFloat } from './core.js';
 
 // --- MEMORY STACK (/memory) ---
@@ -19,6 +21,7 @@ export const CACHE_PATTERNS = {
 // A fully-associative cache, LRU eviction. A miss loads a whole line of
 // `lineSize` consecutive addresses (spatial locality), so neighbours then hit;
 // an evicted line misses again (a capacity miss). Returns the access trace.
+/** @param {{ accesses?: number[], lineSize?: number, ways?: number }} [opts] @returns {Snapshot[]} */
 export function buildCache({ accesses = [0, 1, 2, 3, 8, 12, 16, 20, 0], lineSize = 4, ways = 4 } = {}) {
   const out = [];
   let cache = []; // block ids, least-recently-used first
@@ -56,6 +59,7 @@ export function buildCache({ accesses = [0, 1, 2, 3, 8, 12, 16, 20, 0], lineSize
 // Virtual → physical address translation. A virtual address splits into a page
 // number + offset; the MMU finds the physical frame via the TLB (fast) or a
 // page-table walk (slow), then combines frame × pageSize + offset.
+/** @param {{ pageBits?: number }} [opts] @returns {Snapshot[]} */
 export function buildAddressTranslation({ pageBits = 4 } = {}) {
   const pageSize = 1 << pageBits;
   const table = { 0: 5, 1: 2, 2: 7, 3: 1 }; // virtual page → physical frame
@@ -90,6 +94,7 @@ export function buildAddressTranslation({ pageBits = 4 } = {}) {
 // directly, so read() is really a TRAP that switches the CPU into kernel mode,
 // runs the privileged handler, then returns. Snapshots track the mode (ring),
 // so the widget can show control crossing the line and coming back.
+/** @returns {Snapshot[]} */
 export function buildSyscall() {
   const out = [];
   const snap = (mode, loc, note, o = {}) => out.push({ mode, loc, note, ...o });
@@ -121,6 +126,7 @@ export const FS = {
   7: { type: 'dir', name: 'docs', entries: { 'notes.txt': 9, 'todo.txt': 5 } },
   9: { type: 'file', name: 'notes.txt', blocks: [12, 27, 33] },
 };
+/** @param {{ path?: string }} [opts] @returns {Snapshot[]} */
 export function buildPathResolve({ path = '/docs/notes.txt' } = {}) {
   const segs = path.split('/').filter(Boolean); // ['docs','notes.txt']
   const out = [];
@@ -145,6 +151,7 @@ export function buildPathResolve({ path = '/docs/notes.txt' } = {}) {
 // between them leaves the disk inconsistent. A journal write-aheads the intent
 // and a commit marker, so a crash either replays a committed change or discards
 // an incomplete one — never a half-applied mess. `journaled` toggles the two.
+/** @param {{ journaled?: boolean }} [opts] @returns {Snapshot[]} */
 export function buildJournal({ journaled = true } = {}) {
   const out = [];
   const snap = (note, o = {}) => out.push({ journaled, journal: o.journal ?? [], applied: !!o.applied, crashed: !!o.crashed, consistent: o.consistent, note });
@@ -169,6 +176,7 @@ export function buildJournal({ journaled = true } = {}) {
 // it fills, it allocates a block twice as big and copies everything over. Most
 // appends are O(1); the rare doubling is O(n) but, spread out, it amortizes to
 // O(1). Returns the append trace with capacity, length, and total copies made.
+/** @param {{ n?: number }} [opts] @returns {Snapshot[]} */
 export function buildDynamicArray({ n = 8 } = {}) {
   const out = [];
   let cap = 1, len = 0, copies = 0;
@@ -191,6 +199,7 @@ export function buildDynamicArray({ n = 8 } = {}) {
 // A hash map with separate chaining. A key is hashed to a bucket index; keys
 // that collide share a bucket as a short list. Lookup hashes, then scans that
 // one short chain. Returns insert + lookup snapshots with the bucket array.
+/** @param {{ keys?: string[], buckets?: number, lookup?: string }} [opts] @returns {Snapshot[]} */
 export function buildHashMap({ keys = ['cat', 'dog', 'bird', 'fish', 'ant', 'bee'], buckets = 5, lookup = 'bird' } = {}) {
   const out = [];
   const table = Array.from({ length: buckets }, () => []);
@@ -232,6 +241,7 @@ export function twosValue(bits) {
 // Negating is "flip every bit, then add 1"; the top bit ends up worth −2^(n−1),
 // so +x and −x add to zero (the overflow bit falls off). Returns the trace for
 // negating +5 in 4 bits, then shows the wraparound at the top of the range.
+/** @param {{ value?: number, width?: number }} [opts] @returns {Snapshot[]} */
 export function buildTwosComplement({ value = 5, width = 4 } = {}) {
   const out = [];
   const toBits = (v) => { const b = []; for (let i = width - 1; i >= 0; i--) b.push((v >> i) & 1); return b; };
@@ -258,6 +268,7 @@ export function buildTwosComplement({ value = 5, width = 4 } = {}) {
 // DOUBLES every octave (it scales with the exponent). So floats are dense near
 // zero and sparse far from it. Uses the toy 8-bit float; returns the list of
 // representable positive values plus per-octave snapshots showing the gap grow.
+/** @returns {Snapshot[]} */
 export function buildFloatGrid() {
   const values = [];
   for (let e = 0; e < 15; e++) for (let m = 0; m < 8; m++) {
@@ -281,6 +292,7 @@ export function buildFloatGrid() {
 // round to the nearest double (a hair too big); their sum rounds again, landing
 // on a double just past 0.3 — which is itself a *different* double. Values are
 // taken live from JS doubles so the trace is exactly what the hardware does.
+/** @returns {Snapshot[]} */
 export function buildFloatSum() {
   const p = (x) => Number(x).toPrecision(17);
   const out = [];

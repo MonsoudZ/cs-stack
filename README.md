@@ -26,6 +26,7 @@ that runs a real algorithm through every layer at once.
 npm install
 npm run dev      # http://localhost:4321
 npm run build    # static site -> dist/ (deploy anywhere)
+npm run typecheck # tsc over the JSDoc-typed engine (src/lib + src/data), no .ts needed
 npm test         # vitest — unit tests for the trace/sim/stepper/widget logic
 npm run audit    # build + regex quality gate + axe-core a11y checks on the HTML
 npm run test:e2e # playwright — drives chromium to confirm the islands hydrate & respond
@@ -53,6 +54,7 @@ src/
   data/stacks.js          single source of truth for the deep-dive list — drives StackNav
   styles/                 global.css just @imports base.css + widgets.css + mobile.css
   lib/
+    types.js              shared JSDoc typedefs (Snapshot, Stepper, Flow, Layer, Stack…) — no runtime code
     stepper.svelte.js     shared step store (index, auto-play + rate, rebuild) — every step widget uses it
     diagram.js            pure layout for Diagram.svelte (grid → positions + viewBox)
     traces.js             the capstone: 16 traced algorithms + the layer-touch maps

@@ -1,6 +1,8 @@
 // Part of the widgets builder set, split by area. The barrel at
 // src/lib/widgets.js re-exports every module so existing imports keep working.
 
+/** @import { Snapshot } from '../types.js' */
+
 // --- AI STACK (/ai): the application that runs on top of the whole stack ---
 
 // A neuron (perceptron): weigh each input, sum, add a bias, then fire through an
@@ -15,6 +17,7 @@ export function computeNeuron(inputs, weights, bias) {
 // data point (x, y). The loss (ŷ − y)² is a parabola in w; its gradient points
 // uphill, so stepping w against the gradient walks downhill to the best weight
 // (here w → y/x = 3). Returns the trace; loss falls every step.
+/** @param {{ x?: number, y?: number, w?: number, lr?: number, steps?: number }} [opts] @returns {Snapshot[]} */
 export function buildGradientDescent({ x = 2, y = 6, w = 0, lr = 0.05, steps = 10 } = {}) {
   const out = [];
   const pred = (w) => w * x;
@@ -75,6 +78,7 @@ const ATTN_VECS = {
   because: [0.0, 0.2], it: [1.0, 0.05], was: [0.05, 0.15], thirsty: [0.5, 0.4],
 };
 const ATTN_SCALE = 2.5;
+/** @param {{ query?: string }} [opts] @returns {{ query: string, weights: { token: string, weight: number }[] }} */
 export function buildAttention({ query = 'it' } = {}) {
   const q = ATTN_VECS[query];
   const scores = ATTN_TOKENS.map((t) => ATTN_SCALE * (q[0] * ATTN_VECS[t][0] + q[1] * ATTN_VECS[t][1]));
@@ -133,6 +137,7 @@ export function tokenize(phrase) {
 // supervised fine-tuning on curated instruction→response pairs teaches it to
 // answer; preference tuning (RLHF) teaches it what people find helpful. Returns
 // the phases with how the model behaves after each.
+/** @returns {Snapshot[]} */
 export function buildTraining() {
   const prompt = 'Explain photosynthesis simply.';
   const out = [];
@@ -154,6 +159,7 @@ export const RAG_DOCS = [
   { text: 'Our support line is open 9am–5pm on weekdays.', vec: [-0.6, 0.7] },
   { text: 'Standard shipping takes 3–5 business days.', vec: [0.1, -0.9] },
 ];
+/** @returns {Snapshot[]} */
 export function buildRag() {
   const query = 'How long do I have to return something?';
   const qvec = [0.85, 0.4]; // closest to the refund doc

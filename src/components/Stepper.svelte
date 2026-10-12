@@ -3,6 +3,8 @@
   // BACK button, a scrubber + "step n of m" counter, an AUTO speed cycler, and
   // ←/→/Home/End keys while focus is inside the controls. Everything drives
   // the pure stepper store, so widgets opt in by rendering <Stepper {stepper} />.
+  /** @import { Stepper } from '../lib/types.js' */
+  /** @type {{ stepper: Stepper<any>, stepLabel?: string }} */
   let { stepper, stepLabel = 'STEP ▸' } = $props();
   const { idx, autoOn, version, rate } = stepper;
   // `$version` is read so the count recomputes when the steps array is rebuilt

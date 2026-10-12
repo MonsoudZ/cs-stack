@@ -1,6 +1,8 @@
 // Part of the widgets builder set — system-design case studies. The barrel at
 // src/lib/widgets.js re-exports this module so existing imports keep working.
 
+/** @import { Snapshot } from '../types.js' */
+
 // The components a URL-shortener request flows through. Reused by the request-
 // flow widget; ordered for the diagram (client → edge → app → stores).
 export const URL_NODES = [
@@ -20,6 +22,7 @@ export const URL_EDGES = [['client', 'lb'], ['lb', 'app'], ['app', 'cache'], ['a
 // hot keys and rarely touches the database. Emits the generic RequestFlow step
 // contract ({ active, phase, note, meta, warn?, response }) so the shared widget
 // renders it; the cacheState/cacheKeys/dbKeys fields are kept for the unit test.
+/** @returns {Snapshot[]} */
 export function buildUrlShortener() {
   const KEY = 'a7Xk2', LONG = 'example.com/very/long/article/path';
   const out = [];

@@ -106,7 +106,7 @@ export const METHODS = {
     build(){ const nums=[2,10,7,8],target=18,buckets=Array.from({length:8},()=>[]),steps=[];
       const snap=()=>buckets.map(ch=>ch.map(e=>({...e})));
       const push=o=>steps.push(step(o,{kind:'hash',buckets:snap(),op:o.op||null}));
-      let vars={nums:'['+nums.join(', ')+']',target,i:'–',n:'–',complement:'–'};
+      /** @type {Record<string, string|number>} */ let vars={nums:'['+nums.join(', ')+']',target,i:'–',n:'–',complement:'–'};
       push({line:0,vm:['method entry','push a stack frame'],vars,touches:[5.5,6.5,7,7.5],note:'call two_sum(['+nums.join(', ')+'], '+target+') — a frame is pushed'});
       push({line:1,vm:['newhash','setlocal seen'],vars,touches:[5.5,6.5,7,7.5],note:'allocate an empty hash — an 8-slot bucket array in memory'});
       for(let i=0;i<nums.length;i++){ const n=nums[i]; vars={...vars,i,n,complement:'–'};
@@ -132,7 +132,7 @@ export const METHODS = {
     src:['def bsearch(arr, target)','  lo, hi = 0, arr.length - 1','  while lo <= hi','    mid = (lo + hi) / 2','    return mid if arr[mid] == target','    if arr[mid] < target','      lo = mid + 1','    else','      hi = mid - 1','    end','  end','  -1','end'],
     build(){ const arr=[1,3,5,7,9,11,13],target=9,steps=[]; let lo=0,hi=arr.length-1,mid=-1;
       const push=o=>steps.push(step(o,{kind:'window',arr:arr.slice(),lo,hi,mid:o.mid!==undefined?o.mid:mid,target,compared:!!o.compared}));
-      let vars={arr:'['+arr.join(', ')+']',target,lo:'–',hi:'–',mid:'–'};
+      /** @type {Record<string, string|number>} */ let vars={arr:'['+arr.join(', ')+']',target,lo:'–',hi:'–',mid:'–'};
       push({line:0,vm:['method entry'],vars,touches:[5.5,6.5,7,7.5],note:'binary search needs a SORTED array — that is the whole premise'});
       vars={...vars,lo,hi}; push({line:1,vm:['setlocal lo=0','setlocal hi='+hi],vars,note:'whole array in play: lo=0, hi='+hi});
       while(lo<=hi){ mid=Math.floor((lo+hi)/2); vars={...vars,lo,hi,mid};
@@ -192,7 +192,7 @@ const MORE = {
     build(){ const arr=[2,5,8,11,15],target=16,steps=[]; let lo=0,hi=arr.length-1;
       const cells=(cmp)=>arr.map((_,i)=>{let role='',mark=''; if(i<lo||i>hi)role='dimx'; if(i===lo)mark='L'; if(i===hi)mark=(mark?mark+' ':'')+'R'; if(cmp&&(i===lo||i===hi))role='cmp'; return {role,mark};});
       const push=o=>steps.push(step(o,{kind:'array',arr:arr.slice(),cells:o.cells,info:o.info}));
-      let vars={arr:'['+arr.join(', ')+']',target,lo,hi,sum:'–'};
+      /** @type {Record<string, string|number>} */ let vars={arr:'['+arr.join(', ')+']',target,lo,hi,sum:'–'};
       push({line:0,vm:['method entry'],vars,touches:[5.5,6.5,7,7.5],note:'a SORTED array lets two pointers replace the hash — no extra memory',cells:cells(),info:'lo='+lo+'  hi='+hi});
       push({line:1,vm:['setlocal lo=0','setlocal hi='+hi],vars,note:'pointers start at both ends',cells:cells(),info:'lo='+lo+'  hi='+hi});
       while(lo<hi){ const sm=arr[lo]+arr[hi]; vars={...vars,lo,hi,sum:sm};
@@ -213,7 +213,7 @@ const MORE = {
       const win=(L,R,cur)=>arr.map((_,i)=>{let role='',mark=''; if(i>=L&&i<=R)role='win'; if(cur!=null&&i===cur)role='cmp'; if(i===L)mark='L'; if(i===R)mark=(mark?mark+' ':'')+'R'; return {role,mark};});
       const push=o=>steps.push(step(o,{kind:'array',arr:arr.slice(),cells:o.cells,info:o.info}));
       let sum=arr.slice(0,k).reduce((a,b)=>a+b,0),best=sum;
-      let vars={arr:'['+arr.join(', ')+']',k,sum,best};
+      /** @type {Record<string, string|number>} */ let vars={arr:'['+arr.join(', ')+']',k,sum,best};
       push({line:1,vm:['arr[0...k].sum'],vars,touches:[3,4,6.5,7,7.5],cpu:{label:'ALU sum',expr:arr.slice(0,k).join(' + ')+' = '+sum},note:'seed: sum the first '+k+' items = '+sum,cells:win(0,k-1),info:'window [0..'+(k-1)+'] sum = '+sum});
       push({line:2,vm:['best = sum'],vars,note:'best so far = '+best,cells:win(0,k-1),info:'best = '+best});
       for(let r=k;r<arr.length;r++){ const added=arr[r],removed=arr[r-k]; sum+=added-removed; const L=r-k+1; const nb=Math.max(best,sum); vars={...vars,sum,best:nb};
@@ -247,7 +247,7 @@ const MORE = {
       const view=()=>{const a=[];for(let i=0;i<=n;i++)a.push(memo[i]!==undefined?memo[i]:'·');return a;};
       const cells=(cur)=>{const a=[];for(let i=0;i<=n;i++){a.push({role:i===cur?'cmp':(memo[i]!==undefined?'sorted':''),mark:i<=1&&memo[i]!==undefined?'base':(i===cur?'i':'')});}return a;};
       const push=o=>steps.push(step(o,{kind:'array',arr:view(),cells:o.cells,info:o.info}));
-      let vars={n,i:'–'};
+      /** @type {Record<string, string|number>} */ let vars={n,i:'–'};
       push({line:1,vm:['memo = [0, 1]'],vars,touches:[5.5,6.5,7,7.5],note:'cache the two base cases so we never recompute a subproblem',cells:cells(-1),info:'memo seeded: fib(0)=0, fib(1)=1'});
       for(let i=2;i<=n;i++){ memo[i]=memo[i-1]+memo[i-2]; vars={...vars,i};
         push({line:3,vm:['memo[i-1] + memo[i-2]','memo[i] = …'],vars,touches:[3,4,6.5,7,7.5],cpu:{label:'ALU add',expr:'memo['+(i-1)+'] + memo['+(i-2)+'] = '+memo[i-1]+' + '+memo[i-2]+' = '+memo[i]},note:'fib('+i+') = fib('+(i-1)+') + fib('+(i-2)+') = '+memo[i]+'   (both already cached → O(1))',cells:cells(i),info:'memo['+i+'] = '+memo[i]});
@@ -261,7 +261,7 @@ const MORE = {
     build(){ const arr=[5,2,4,1,3],steps=[];
       const cells=(sortedUpto,key,cmp)=>arr.map((_,i)=>{let role='',mark=''; if(i<=sortedUpto)role='sorted'; if(i===key){role='cmp';mark='key';} if(cmp!=null&&i===cmp)role='cmp'; return {role,mark};});
       const push=o=>steps.push(step(o,{kind:'array',arr:arr.slice(),cells:o.cells,info:o.info}));
-      let vars={arr:'['+arr.join(', ')+']'};
+      /** @type {Record<string, string|number>} */ let vars={arr:'['+arr.join(', ')+']'};
       push({line:0,vm:['method entry'],vars,touches:[5.5,6.5,7,7.5],note:'arr[0] alone is trivially sorted — grow that prefix',cells:cells(0),info:'sorted prefix: [0..0]'});
       for(let i=1;i<arr.length;i++){ const key=arr[i]; vars={arr:'['+arr.join(', ')+']',i,key};
         push({line:2,vm:['key = arr['+i+'] = '+key],vars,touches:[5.5,6.5,7,7.5],note:'take arr['+i+']='+key+', slide it left into the sorted part',cells:cells(i-1,i),info:'key = '+key});
@@ -283,7 +283,7 @@ const MORE = {
     build(){ const arr=[8,3,11,7,5,9],target=7,steps=[];
       const cells=(cur,found)=>arr.map((_,i)=>{let role='',mark=''; if(i<cur)role='dimx'; if(i===cur){role=found?'sorted':'cmp';mark=found?'found':'i';} return {role,mark};});
       const push=o=>steps.push(step(o,{kind:'array',arr:arr.slice(),cells:o.cells,info:o.info}));
-      let vars={arr:'['+arr.join(', ')+']',target,i:'–',v:'–'};
+      /** @type {Record<string, string|number>} */ let vars={arr:'['+arr.join(', ')+']',target,i:'–',v:'–'};
       push({line:0,vm:['method entry'],vars,touches:[5.5,6.5,7,7.5],note:'no shortcuts — walk the array from the front',cells:cells(-1),info:'searching for '+target});
       for(let i=0;i<arr.length;i++){ const v=arr[i],eq=v===target; vars={...vars,i,v};
         push({line:2,vm:['getarray arr['+i+']','opt_eq','branchif'],vars,touches:[3,4,6.5,7],cpu:{label:'ALU · compare',expr:'arr['+i+'] = '+v+(eq?' == ':' ≠ ')+target},note:eq?'arr['+i+'] = '+v+' equals target ✓ — found at index '+i:'arr['+i+'] = '+v+' ≠ '+target+' → keep scanning',cells:cells(i,eq),info:eq?'match at index '+i:'checked index '+i});

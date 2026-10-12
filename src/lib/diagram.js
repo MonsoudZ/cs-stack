@@ -7,6 +7,14 @@
 // so a chain reads top-to-bottom on a narrow screen.
 export const NODE_W = 132, NODE_H = 54, COL = 162, ROW = 84, PAD = 16;
 
+/** @import { FlowNode, FlowEdge, DiagramLayout } from './types.js' */
+
+/**
+ * @param {FlowNode[]} nodes
+ * @param {FlowEdge[] | null} [edges]  default: the chain
+ * @param {{ vertical?: boolean }} [opts]
+ * @returns {DiagramLayout}
+ */
 export function layoutDiagram(nodes, edges = null, { vertical = false } = {}) {
   const hasGrid = nodes.length > 0 && nodes.every((n) => Number.isFinite(n.x) && Number.isFinite(n.y));
   const grid = nodes.map((n, i) => (hasGrid ? { x: n.x, y: n.y } : { x: i, y: 0 }));

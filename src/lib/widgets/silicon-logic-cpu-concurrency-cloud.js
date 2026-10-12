@@ -1,6 +1,8 @@
 // Part of the widgets builder set, split by area. The barrel at
 // src/lib/widgets.js re-exports every module so existing imports keep working.
 
+/** @import { Snapshot } from '../types.js' */
+
 // --- SILICON STACK (/silicon) ---
 
 // Doping: pure silicon shares all four of its outer electrons in bonds, so it
@@ -17,6 +19,7 @@ export const DOPING = {
 // free electrons fill nearby holes, leaving a carrier-free "depletion region"
 // that blocks current. A forward bias (push from the p side) collapses it and
 // current flows; a reverse bias widens it and blocks — a one-way valve.
+/** @returns {Snapshot[]} */
 export function buildDiode() {
   const out = [];
   const snap = (bias, conducts, depletion, note) => out.push({ bias, conducts, depletion, note });
@@ -45,6 +48,7 @@ export function cmosInverter(input) {
 export const nand = (a, b) => (a && b ? 0 : 1);
 // For each target gate, return its NAND construction and a truth table proving
 // the NAND-built version equals the real gate for every input combination.
+/** @returns {{ gate: string, formula: string, unary: boolean, rows: { inputs: number[], real: number, built: number, match: boolean }[], allMatch: boolean }[]} */
 export function buildUniversal() {
   const defs = {
     NOT: { formula: 'a NAND a', unary: true, real: (a) => (a ? 0 : 1), built: (a) => nand(a, a) },
@@ -105,6 +109,7 @@ const STAGE_DETAIL = {
   MEM: 'data memory is accessed if this is a load or store; other instructions just pass through.',
   WB: 'the result is written back to the destination register, and the instruction retires.',
 };
+/** @param {{ instructions?: string[], pipelined?: boolean }} [opts] @returns {Snapshot[]} */
 export function buildPipeline({ instructions = ['lw', 'add', 'sub', 'and', 'or'], pipelined = true } = {}) {
   const n = instructions.length, S = PIPE_STAGES.length;
   const start = (i) => (pipelined ? i : i * S); // cycle an instruction enters IF
@@ -160,6 +165,7 @@ export function buildPipeline({ instructions = ['lw', 'add', 'sub', 'and', 'or']
 // waits for L2; B holds L2 and waits for L1 — a circular wait neither can break.
 // The fix is a lock ordering: if everyone takes L1 before L2, the cycle can't
 // form. Returns the trace; `ordered` switches between the bug and the fix.
+/** @param {{ ordered?: boolean }} [opts] @returns {Snapshot[]} */
 export function buildDeadlock({ ordered = false } = {}) {
   const out = [];
   let l1 = null, l2 = null, aWait = null, bWait = null, deadlocked = false, done = false;
@@ -189,6 +195,7 @@ export function buildDeadlock({ ordered = false } = {}) {
 // instruction: it writes only if the value still equals `expected`, else fails.
 // Two threads race; the loser's CAS fails (nothing is corrupted) and it simply
 // retries from a fresh read. Both increments land, with no lock ever held.
+/** @returns {Snapshot[]} */
 export function buildCas() {
   const out = [];
   let counter = 0;
@@ -210,6 +217,7 @@ export function buildCas() {
 // servers (round-robin), skipping any that fail a health check and picking
 // them back up when they recover. Returns the trace; each request snapshot
 // carries the target and every server's running load, so no request is lost.
+/** @returns {Snapshot[]} */
 export function buildLoadBalancer() {
   const servers = [{ id: 'S1', healthy: true, load: 0 }, { id: 'S2', healthy: true, load: 0 }, { id: 'S3', healthy: true, load: 0 }];
   let rr = 0, served = 0;
@@ -237,6 +245,7 @@ export function buildLoadBalancer() {
 // share load — but replication has lag, so a read during the gap sees STALE
 // data. The replicas converge afterwards. This is eventual consistency, and the
 // reason "read your own write" isn't guaranteed unless you read the primary.
+/** @returns {Snapshot[]} */
 export function buildReplication() {
   const out = [];
   let primary = 0;
